@@ -12,7 +12,6 @@ class TCPServer {
 
         IncomingRequestsThread incomingRequests = new IncomingRequestsThread("incoming_requests_thread");
     }
-
 }
 
 class IncomingRequestsThread implements Runnable {
