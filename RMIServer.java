@@ -1,3 +1,7 @@
+import java.util.*;
+import java.net.*;
+import java.io.*;
+
 class RMIServer {
     public static void main(String[] args) {
         System.out.println("Hello im the RMIServer!");
