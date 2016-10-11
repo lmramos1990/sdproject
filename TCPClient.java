@@ -24,16 +24,46 @@ class OutGoingRequests implements Runnable {
     public void run() {
         System.out.println("HELLO THIS IS THE THREAD THAT THE CLIENT WILL USE TO MAKE REQUESTS TO THE SERVER");
 
-        System.out.print("INSERT THE HOST: ");
-        host = reader.nextLine();
-        System.out.print("INSERT PORT: ");
+        String host = getHost();
+        int port = getPort();
 
         Socket socket;
 
         try {
             socket = new Socket(host, port);
         } catch(Exception e) {
-            System.out.println("fuck my life");
+            System.out.println("NEITHER THE HOST NOR THE PORT HAVE VALID VALUES");
         }
     }
+
+    private static String getHost() {
+        String host = new String();
+
+        System.out.print("INSERT THE HOST: ");
+        host = reader.nextLine();
+
+        return host;
+    }
+
+    private static int getPort() {
+        int port = 0;
+
+        while(port <= 1024) {
+            System.out.print("INSERT PORT: ");
+            try {
+                port = reader.nextInt();
+
+                if(port <= 1024) {
+                    System.out.println("THIS IS NOT A VALID VALUE FOR THE PORT");
+                    port = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("THIS IS NOT A VALID VALUE FOR THE PORT");
+                port = 0;
+            }
+        }
+
+        return port;
+    }
+
 }
