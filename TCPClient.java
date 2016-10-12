@@ -24,26 +24,31 @@ class OutGoingRequests implements Runnable {
     public void run() {
         System.out.println("HELLO THIS IS THE THREAD THAT THE CLIENT WILL USE TO MAKE REQUESTS TO THE SERVER");
 
-        String host = getHost();
+        InetAddress addr = getHost();
         int port = getPort();
-
         Socket socket;
 
         try {
-            socket = new Socket(host, port);
+            socket = new Socket(addr, port);
         } catch(Exception e) {
             System.out.println("NEITHER THE HOST NOR THE PORT HAVE VALID VALUES");
         }
     }
 
-    private static String getHost() {
+    private static InetAddress getHost() {
         String host = new String();
         Scanner reader = new Scanner(System.in);
+        InetAddress addr;
 
         System.out.print("INSERT THE HOST: ");
         host = reader.nextLine();
-
-        return host;
+        try {
+            addr = InetAddress.getByName(host);
+            return addr;
+        } catch(Exception e) {
+          System.out.println("THIS IS NOT A VALID VALUE FOR THE IP ADDRESS");
+        }
+        return null;
     }
 
     private static int getPort() {
@@ -67,5 +72,4 @@ class OutGoingRequests implements Runnable {
 
         return port;
     }
-
 }
