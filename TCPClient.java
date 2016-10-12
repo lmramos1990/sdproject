@@ -3,16 +3,92 @@ import java.net.*;
 import java.util.*;
 
 class TCPClient {
+
     public static void main(String[] args) {
         System.out.println("\t------ HELLO IAM AN AWESOME CLIENT INTERFACE ------");
 
         if(args.length > 0) {
-            System.out.println("ERROR: USAGE is java TCPClient");
+            System.out.println("ERROR: USAGE IS java TCPClient");
             return;
         }
+        int choice = 0;
+        while (choice == 0) {
+            choice = mainMenu();
+        }
 
-        OutGoingRequests outgoingRequests = new OutGoingRequests("outgoing_requests");
+        return;
+
+        // OutGoingRequests outgoingRequests = new OutGoingRequests("outgoing_requests");
     }
+
+    private static int mainMenu() {
+        int choice = 0;
+
+        while(choice != 3) {
+            System.out.println("[1] - Login\n[2] - Register\n[3] - Exit");
+            Scanner reader = new Scanner(System.in);
+            try {
+                System.out.print("CHOOSE AN OPTION: ");
+                choice = reader.nextInt();
+                if(choice <= 0 || choice >= 4) {
+                    System.out.println("ERROR: THIS IS NOT A VALID OPTION");
+                    choice = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID OPTION");
+                choice = 0;
+            }
+
+            if(choice == 1 || choice == 2) {
+                choice = loginRegister(choice);
+            }
+        }
+
+        return choice;
+    }
+
+    private static int loginRegister(int choice) {
+
+        Scanner reader = new Scanner(System.in);
+        String username = new String();
+        String password = new String();
+        Console console = System.console();
+
+        if(console == null) {
+            System.out.println("ERROR: Console does not exist");
+            return 0;
+        }
+
+        System.out.print("USERNAME: ");
+        username = reader.nextLine();
+        char[] pwd = console.readPassword("PASSWORD: ");
+
+        for(int i = 0; i < pwd.length; i++) {
+            password = password.concat(Character.toString(pwd[i]));
+        }
+
+        if(choice == 1) {
+            String a = "type: login, ";
+            String b = "username: " + username + ", ";
+            String c = "password: " + password;
+
+            String request = a + b + c;
+
+            System.out.println(request);
+        } else {
+            String a = "type: register, ";
+            String b = "username: " + username + ", ";
+            String c = "password: " + password;
+
+            String request = a + b + c;
+
+            System.out.println(request);
+        }
+
+        return choice;
+    }
+
+
 }
 
 class OutGoingRequests implements Runnable {
@@ -85,9 +161,9 @@ class OutGoingRequests implements Runnable {
             String request = "";
             InputStreamReader input = new InputStreamReader(System.in);
             BufferedReader reader = new BufferedReader(input);
-            System.out.println("Introduza texto:");
 
             while (true) {
+                System.out.print("INSERT SOME STUPID STRING: ");
                 try {
                     request = reader.readLine();
                 } catch (Exception e) {
