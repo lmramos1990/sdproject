@@ -3,6 +3,12 @@ import java.net.*;
 import java.util.*;
 
 class TCPClient {
+    static Socket clientSocket;
+
+    static DataInputStream dataInputStream;
+    static DataOutputStream dataOutputStream;
+    static InputStreamReader input;
+    static BufferedReader reader;
 
     public static void main(String[] args) {
         System.out.println("\t------ HELLO IAM AN AWESOME CLIENT INTERFACE ------");
@@ -11,14 +17,35 @@ class TCPClient {
             System.out.println("ERROR: USAGE IS java TCPClient");
             return;
         }
+
+        InetAddress serverAddress = getHost();
+        int port = getPort();
+
+        try {
+            clientSocket = new Socket(serverAddress, port);
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e.getMessage());
+            return;
+        }
+
+        try {
+            dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e.getMessage());
+            return;
+        }
+
+
+        input = new InputStreamReader(System.in);
+        reader = new BufferedReader(input);
+
         int choice = 0;
         while (choice == 0) {
             choice = mainMenu();
         }
 
         return;
-
-        // OutGoingRequests outgoingRequests = new OutGoingRequests("outgoing_requests");
     }
 
     private static int mainMenu() {
@@ -74,45 +101,40 @@ class TCPClient {
 
             String request = a + b + c;
 
-            System.out.println(request);
+            String reply = new String();
+
+            reply = sendRequest(clientSocket, request);
+            System.out.println(reply);
         } else {
             String a = "type: register, ";
             String b = "username: " + username + ", ";
             String c = "password: " + password;
 
             String request = a + b + c;
+            String reply = new String();
 
-            System.out.println(request);
+            reply = sendRequest(clientSocket, request);
+
+            System.out.println(reply);
         }
 
         return choice;
     }
 
-
-}
-
-class OutGoingRequests implements Runnable {
-    Thread thread;
-    String name;
-
-    OutGoingRequests(String name) {
-        thread = new Thread(this, name);
-        thread.start();
-    }
-
-    public void run() {
-        System.out.println("HELLO THIS IS THE THREAD THAT THE CLIENT WILL USE TO MAKE REQUESTS TO THE SERVER");
-        InetAddress serverAddress = getHost();
-        int port = getPort();
-
-        Socket clientSocket;
+    private static String sendRequest(Socket socket, String request) {
+        String data = new String();
+        System.out.println("THIS IS A REQUEST: " + request);
 
         try {
-            clientSocket = new Socket(serverAddress, port);
-            streamingStrings(clientSocket);
+            dataOutputStream.writeUTF(request);
+
+            data = dataInputStream.readUTF();
         } catch(Exception e) {
             System.out.println("ERROR: " + e.getMessage());
         }
+
+
+        return data;
     }
 
     private static InetAddress getHost() {
@@ -151,35 +173,5 @@ class OutGoingRequests implements Runnable {
         }
 
         return port;
-    }
-
-    private static int streamingStrings(Socket socket){
-        try {
-            DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
-            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
-
-            String request = "";
-            InputStreamReader input = new InputStreamReader(System.in);
-            BufferedReader reader = new BufferedReader(input);
-
-            while (true) {
-                System.out.print("INSERT SOME STUPID STRING: ");
-                try {
-                    request = reader.readLine();
-                } catch (Exception e) {
-                    System.out.println("ERROR: " + e.getMessage());
-                }
-
-                dataOutputStream.writeUTF(request);
-
-                String data = dataInputStream.readUTF();
-
-                System.out.println("RECIEVED: " + data);
-            }
-
-        } catch(Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-        }
-        return 0;
     }
 }
