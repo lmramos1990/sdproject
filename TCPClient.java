@@ -7,10 +7,7 @@ class TCPClient {
         System.out.println("\t------ HELLO IAM AN AWESOME CLIENT INTERFACE ------");
 
         if(args.length > 0) {
-            System.out
         }
-
-
 
         OutGoingRequests outgoingRequests = new OutGoingRequests("outgoing_requests");
 
