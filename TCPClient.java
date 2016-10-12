@@ -23,9 +23,9 @@ class OutGoingRequests implements Runnable {
 
     public void run() {
         System.out.println("HELLO THIS IS THE THREAD THAT THE CLIENT WILL USE TO MAKE REQUESTS TO THE SERVER");
-
         InetAddress serverAddress = getHost();
         int port = getPort();
+
         Socket socket;
 
         try {
@@ -36,7 +36,7 @@ class OutGoingRequests implements Runnable {
         }
     }
 
-    private static InetAddress getHost() {
+    private static String getHost() {
         String host = new String();
         Scanner reader = new Scanner(System.in);
         InetAddress serverAddress;
