@@ -3,29 +3,16 @@ import java.net.*;
 import java.io.*;
 
 class TCPServer {
-    public static void main(String[] args) {
 
-        if(args.length >= 1) {
-            System.out.println("ERROR: USAGE is java TCPServer");
-            return;
-        }
-
-        IncomingRequestsThread incomingRequests = new IncomingRequestsThread("incoming_requests_thread");
-    }
-}
-
-class IncomingRequestsThread implements Runnable {
-    Thread thread;
-    String name;
     private static ServerSocket socket;
     private static int port = 7000;
 
-    IncomingRequestsThread(String name) {
-        thread = new Thread(this, name);
-        thread.start();
-    }
+    public static void main(String[] args) {
 
-    public void run() {
+        if(args.length > 0) {
+            System.out.println("ERROR: USAGE is java TCPServer");
+            return;
+        }
 
         selectPort();
 
@@ -61,5 +48,19 @@ class IncomingRequestsThread implements Runnable {
         }
 
         return true;
+    }
+}
+
+class IncomingRequestsThread implements Runnable {
+    Thread thread;
+    String name;
+
+    IncomingRequestsThread(String name) {
+        thread = new Thread(this, name);
+        thread.start();
+    }
+
+    public void run() {
+
     }
 }
