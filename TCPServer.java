@@ -16,20 +16,31 @@ class TCPServer {
 
         selectPort();
 
-        String messageFromClient = new String();
-        String messageToClient = new String();
+        Socket incomingRequests;
 
         while(true) {
             System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
 
             try {
-                socket.accept();
+                incomingRequests = socket.accept();
             } catch(Exception e) {
                 System.out.println("AN ERROR HAS OCURRED: " + e);
                 return;
             }
 
+            Reader input = new Reader();
+            BufferedReader inputStream;
+            // // DataOutputStream dos;
+            //
+            inputStream = new BufferedReader(input);
+            // // dos = new DataOutputStream(incomingRequests.getOutputStream());
+            //
             System.out.println("[SERVER] THE CLIENT CAN TALK WITH ME NOW");
+            //
+            // String request = inputStream.readLine();
+            // System.out.println(request);
+            //
+            // socket.close();
         }
     }
 
@@ -54,9 +65,12 @@ class TCPServer {
 class IncomingRequestsThread implements Runnable {
     Thread thread;
     String name;
+    ServerSocket serverSocket;
 
-    IncomingRequestsThread(String name) {
+    IncomingRequestsThread(String name, ServerSocket socket) {
         thread = new Thread(this, name);
+        serverSocket = socket;
+
         thread.start();
     }
 
