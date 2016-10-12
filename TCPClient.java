@@ -4,7 +4,13 @@ import java.util.*;
 
 class TCPClient {
     public static void main(String[] args) {
-        System.out.println("HELLO WORLD!");
+        System.out.println("\t------ HELLO IAM AN AWESOME CLIENT INTERFACE ------");
+
+        if(args.length > 0) {
+            System.out
+        }
+
+
 
         OutGoingRequests outgoingRequests = new OutGoingRequests("outgoing_requests");
 
@@ -47,7 +53,7 @@ class OutGoingRequests implements Runnable {
             serverAddress = InetAddress.getByName(host);
             return serverAddress;
         } catch(Exception e) {
-          System.out.println("Sock:" + e.getMessage());
+          System.out.println("ERROR: " + e.getMessage());
         }
         return null;
     }
