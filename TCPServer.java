@@ -4,43 +4,30 @@ import java.io.*;
 
 class TCPServer {
 
-    private static ServerSocket socket;
+    private static ServerSocket serverSocket;
     private static int port = 7000;
 
-    public static void main(String[] args) {
+    public static void main(String args[]) {
+        int number = 0;
 
         if(args.length > 0) {
             System.out.println("ERROR: USAGE is java TCPServer");
             return;
         }
 
-        selectPort();
+        try {
+            selectPort();
 
-        Socket incomingRequests;
-
-        while(true) {
+            // ServerSocket serverSocket = new ServerSocket(port);
             System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
-
-            try {
-                incomingRequests = socket.accept();
-            } catch(Exception e) {
-                System.out.println("AN ERROR HAS OCURRED: " + e);
-                return;
+            while(true) {
+                Socket clientSocket = serverSocket.accept();
+                System.out.println("[SERVER] THE CLIENT CAN TALK WITH ME NOW");
+                number++;
+                new Connection(clientSocket, number);
             }
-
-            Reader input = new Reader();
-            BufferedReader inputStream;
-            // // DataOutputStream dos;
-            //
-            inputStream = new BufferedReader(input);
-            // // dos = new DataOutputStream(incomingRequests.getOutputStream());
-            //
-            System.out.println("[SERVER] THE CLIENT CAN TALK WITH ME NOW");
-            //
-            // String request = inputStream.readLine();
-            // System.out.println(request);
-            //
-            // socket.close();
+        } catch(IOException e) {
+            System.out.println("LISTEN: " + e.getMessage());
         }
     }
 
@@ -53,7 +40,7 @@ class TCPServer {
 
     private static Boolean isPortAvailable(int port) {
         try {
-            socket = new ServerSocket(port);
+            serverSocket = new ServerSocket(port);
         } catch(Exception e) {
             return false;
         }
@@ -62,19 +49,40 @@ class TCPServer {
     }
 }
 
-class IncomingRequestsThread implements Runnable {
-    Thread thread;
-    String name;
-    ServerSocket serverSocket;
+class Connection extends Thread {
+    DataInputStream in;
+    DataOutputStream out;
+    Socket clientSocket;
+    int threadNumber;
 
-    IncomingRequestsThread(String name, ServerSocket socket) {
-        thread = new Thread(this, name);
-        serverSocket = socket;
+    public Connection (Socket pclientSocket, int number) {
+        threadNumber = number;
+        try {
+            clientSocket = pclientSocket;
 
-        thread.start();
+            in = new DataInputStream(clientSocket.getInputStream());
+            out = new DataOutputStream(clientSocket.getOutputStream());
+            this.start();
+        } catch(IOException e) {
+            System.out.println("CONNECTION: " + e.getMessage());
+        }
     }
 
     public void run() {
-
+        String reply;
+        try {
+            while(true) {
+                //an echo server
+                String data = in.readUTF();
+                System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
+                reply = data.toUpperCase();
+                out.writeUTF(reply);
+            }
+        } catch(EOFException e) {
+            // WHEN A CLIENT DISCONNECTS!!!
+            System.out.println("EOF: " + e);
+        } catch(IOException e) {
+            System.out.println("IO: " + e);
+        }
     }
 }
