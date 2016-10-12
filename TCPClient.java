@@ -31,7 +31,7 @@ class OutGoingRequests implements Runnable {
         try {
             socket = new Socket(addr, port);
         } catch(Exception e) {
-            System.out.println("NEITHER THE HOST NOR THE PORT HAVE VALID VALUES");
+            System.out.println("Sock:" + e.getMessage());
         }
     }
 
@@ -46,7 +46,7 @@ class OutGoingRequests implements Runnable {
             addr = InetAddress.getByName(host);
             return addr;
         } catch(Exception e) {
-          System.out.println("THIS IS NOT A VALID VALUE FOR THE IP ADDRESS");
+          System.out.println("Sock:" + e.getMessage());
         }
         return null;
     }
