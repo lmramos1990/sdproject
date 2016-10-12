@@ -24,12 +24,13 @@ class OutGoingRequests implements Runnable {
     public void run() {
         System.out.println("HELLO THIS IS THE THREAD THAT THE CLIENT WILL USE TO MAKE REQUESTS TO THE SERVER");
 
-        InetAddress addr = getHost();
+        InetAddress serverAddress = getHost();
         int port = getPort();
         Socket socket;
 
         try {
-            socket = new Socket(addr, port);
+            socket = new Socket(serverAddress, port);
+            streamingStrings(socket);
         } catch(Exception e) {
             System.out.println("Sock:" + e.getMessage());
         }
@@ -38,13 +39,13 @@ class OutGoingRequests implements Runnable {
     private static InetAddress getHost() {
         String host = new String();
         Scanner reader = new Scanner(System.in);
-        InetAddress addr;
+        InetAddress serverAddress;
 
         System.out.print("INSERT THE HOST: ");
         host = reader.nextLine();
         try {
-            addr = InetAddress.getByName(host);
-            return addr;
+            serverAddress = InetAddress.getByName(host);
+            return serverAddress;
         } catch(Exception e) {
           System.out.println("Sock:" + e.getMessage());
         }
@@ -71,5 +72,40 @@ class OutGoingRequests implements Runnable {
         }
 
         return port;
+    }
+
+    private static int streamingStrings(Socket socket){
+        try {
+            DataInputStream in = new DataInputStream(socket.getInputStream());
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+
+            String texto = "";
+            InputStreamReader input = new InputStreamReader(System.in);
+            BufferedReader reader = new BufferedReader(input);
+            System.out.println("Introduza texto:");
+
+            // 3o passo
+            while (true) {
+            // READ STRING FROM KEYBOARD
+            try {
+                texto = reader.readLine();
+            } catch (Exception e) {
+            }
+
+            // WRITE INTO THE SOCKET
+            out.writeUTF(texto);
+
+            // READ FROM SOCKET
+            String data = in.readUTF();
+
+            // DISPLAY WHAT WAS READ
+            System.out.println("Received: " + data);
+            }
+
+        } catch(Exception e) {
+          System.out.println("Sock:" + e.getMessage());
+        }
+        return 0;
+
     }
 }
