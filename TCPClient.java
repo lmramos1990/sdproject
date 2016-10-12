@@ -38,6 +38,7 @@ class OutGoingRequests implements Runnable {
 
     private static String getHost() {
         String host = new String();
+        Scanner reader = new Scanner(System.in);
 
         System.out.print("INSERT THE HOST: ");
         host = reader.nextLine();
@@ -51,6 +52,7 @@ class OutGoingRequests implements Runnable {
         while(port <= 1024) {
             System.out.print("INSERT PORT: ");
             try {
+                Scanner reader = new Scanner(System.in);
                 port = reader.nextInt();
 
                 if(port <= 1024) {
