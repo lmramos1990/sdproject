@@ -7,14 +7,11 @@ class TCPClient {
         System.out.println("\t------ HELLO IAM AN AWESOME CLIENT INTERFACE ------");
 
         if(args.length > 0) {
-            System.out
+            System.out.println("ERROR: USAGE is java TCPClient");
+            return;
         }
 
-
-
         OutGoingRequests outgoingRequests = new OutGoingRequests("outgoing_requests");
-
-        System.out.println("GOODBYE WORLD!");
     }
 }
 
@@ -32,17 +29,17 @@ class OutGoingRequests implements Runnable {
         InetAddress serverAddress = getHost();
         int port = getPort();
 
-        Socket socket;
+        Socket clientSocket;
 
         try {
-            socket = new Socket(serverAddress, port);
-            streamingStrings(socket);
+            clientSocket = new Socket(serverAddress, port);
+            streamingStrings(clientSocket);
         } catch(Exception e) {
-            System.out.println("Sock:" + e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
         }
     }
 
-    private static String getHost() {
+    private static InetAddress getHost() {
         String host = new String();
         Scanner reader = new Scanner(System.in);
         InetAddress serverAddress;
@@ -82,36 +79,31 @@ class OutGoingRequests implements Runnable {
 
     private static int streamingStrings(Socket socket){
         try {
-            DataInputStream in = new DataInputStream(socket.getInputStream());
-            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+            DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
 
-            String texto = "";
+            String request = "";
             InputStreamReader input = new InputStreamReader(System.in);
             BufferedReader reader = new BufferedReader(input);
             System.out.println("Introduza texto:");
 
-            // 3o passo
             while (true) {
-            // READ STRING FROM KEYBOARD
-            try {
-                texto = reader.readLine();
-            } catch (Exception e) {
-            }
+                try {
+                    request = reader.readLine();
+                } catch (Exception e) {
+                    System.out.println("ERROR: " + e.getMessage());
+                }
 
-            // WRITE INTO THE SOCKET
-            out.writeUTF(texto);
+                dataOutputStream.writeUTF(request);
 
-            // READ FROM SOCKET
-            String data = in.readUTF();
+                String data = dataInputStream.readUTF();
 
-            // DISPLAY WHAT WAS READ
-            System.out.println("Received: " + data);
+                System.out.println("RECIEVED: " + data);
             }
 
         } catch(Exception e) {
-          System.out.println("Sock:" + e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
         }
         return 0;
-
     }
 }
