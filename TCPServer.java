@@ -9,23 +9,39 @@ class TCPServer {
 
     public static void main(String args[]) {
         int number = 0;
+        int count = 0;
 
         if(args.length > 0) {
-            System.out.println("ERROR: USAGE is java TCPServer");
+            System.out.println("ERROR: USAGE IS java TCPServer");
             return;
         }
 
         try {
             selectPort();
-
-            // ServerSocket serverSocket = new ServerSocket(port);
+            //new ServerLoad();
             System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
             while(true) {
-                Socket clientSocket = serverSocket.accept();
+                /*Socket clientSocket = serverSocket.accept();
                 System.out.println("[SERVER] THE CLIENT CAN TALK WITH ME NOW");
                 number++;
                 new Connection(clientSocket, number);
+*/
+                // join a Multicast group and send the group salutations
+                String msg = "VAMOS ENVIAR ESTA MERDA PARA TODOS CARALHO";
+                InetAddress group = InetAddress.getByName("224.0.0.2");
+                MulticastSocket s = new MulticastSocket(7001);
+                s.joinGroup(group);
+                DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
+                s.send(hi);
+                // get their responses!
+                byte[] buf = new byte[1000];
+                DatagramPacket recv = new DatagramPacket(buf, buf.length);
+                s.receive(recv);
+                // OK, I'm done talking - leave the group...
+                s.leaveGroup(group);
+
             }
+
         } catch(IOException e) {
             System.out.println("LISTEN: " + e.getMessage());
         }
@@ -50,8 +66,8 @@ class TCPServer {
 }
 
 class Connection extends Thread {
-    DataInputStream in;
-    DataOutputStream out;
+    DataInputStream dataInputStream;
+    DataOutputStream dataOutputStream;
     Socket clientSocket;
     int threadNumber;
 
@@ -60,8 +76,8 @@ class Connection extends Thread {
         try {
             clientSocket = pclientSocket;
 
-            in = new DataInputStream(clientSocket.getInputStream());
-            out = new DataOutputStream(clientSocket.getOutputStream());
+            dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
             this.start();
         } catch(IOException e) {
             System.out.println("CONNECTION: " + e.getMessage());
@@ -72,17 +88,59 @@ class Connection extends Thread {
         String reply;
         try {
             while(true) {
-                //an echo server
-                String data = in.readUTF();
+                String data = dataInputStream.readUTF();
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
                 reply = data.toUpperCase();
-                out.writeUTF(reply);
+                dataOutputStream.writeUTF(reply);
             }
         } catch(EOFException e) {
-            // WHEN A CLIENT DISCONNECTS!!!
-            System.out.println("EOF: " + e);
+            System.out.println("EOF: " + e.getMessage());
         } catch(IOException e) {
-            System.out.println("IO: " + e);
+            System.out.println("IO: " + e.getMessage());
         }
     }
 }
+
+/*class ServerLoad extends Thread {
+    DataInputStream dataInputStream;
+    DataOutputStream dataOutputStream;
+    int threadNumber;
+
+    public ServerLoad () {
+        try {
+    		DatagramSocket udpSocket = new DatagramSocket();
+    		String texto = "";
+    		InputStreamReader input = new InputStreamReader(System.in);
+    		BufferedReader reader = new BufferedReader(input);
+
+            dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+            this.start();
+        } catch(IOException e) {
+            System.out.println("DATAGRAM: " + e.getMessage());
+        }
+    }
+
+    public void run() {
+        try {
+			while(true){
+				System.out.print("Mensagem a enviar = ");
+				// READ STRING FROM KEYBOARD
+    	     	  try{
+                    texto = "merdinha";
+    				byte [] m = texto.getBytes();
+
+    				DatagramPacket request = new DatagramPacket(m, m.length);
+    				udpSocket.send(request);
+
+    				byte[] buffer = new byte[1000];
+
+    				DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
+    				udpSocket.receive(reply);
+
+    				System.out.println("Recebeu: " + new String(reply.getData(), 0, reply.getLength()));
+    			}
+		} catch (IOException e){System.out.println("IO: " + e.getMessage());
+		} finally {if(udpSocket != null) udpSocket.close();}
+    }
+}*/
