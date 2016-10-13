@@ -18,27 +18,29 @@ class TCPServer {
 
         try {
             selectPort();
-            //new ServerLoad();
             System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
+
+            //Sends/Receives Packets about the server load
+            //new ServerLoad();
+
             while(true) {
-                /*Socket clientSocket = serverSocket.accept();
+                Socket clientSocket = serverSocket.accept();
                 System.out.println("[SERVER] THE CLIENT CAN TALK WITH ME NOW");
                 number++;
                 new Connection(clientSocket, number);
-*/
-                // join a Multicast group and send the group salutations
-                String msg = "VAMOS ENVIAR ESTA MERDA PARA TODOS CARALHO";
-                InetAddress group = InetAddress.getByName("224.0.0.2");
-                MulticastSocket s = new MulticastSocket(7001);
+
+                //Joins Multicast Socket
+                /*InetAddress group = InetAddress.getByName("224.0.0.2");
+                MulticastSocket s = new MulticastSocket(7500);
                 s.joinGroup(group);
+
                 DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
                 s.send(hi);
                 // get their responses!
                 byte[] buf = new byte[1000];
                 DatagramPacket recv = new DatagramPacket(buf, buf.length);
-                s.receive(recv);
-                // OK, I'm done talking - leave the group...
-                s.leaveGroup(group);
+                s.receive(recv);*/
+
 
             }
 
