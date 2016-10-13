@@ -189,9 +189,10 @@ class TCPClient {
             serverAddress = InetAddress.getByName(host);
             return serverAddress;
         } catch(Exception e) {
-          System.out.println("ERROR: " + e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
+            serverAddress = getHost();
         }
-        return null;
+        return serverAddress;
     }
 
     private static int getPort() {
