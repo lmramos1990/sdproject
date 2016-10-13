@@ -25,7 +25,7 @@ class TCPServer {
 
             while(true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("[SERVER] THE CLIENT CAN TALK WITH ME NOW");
+                System.out.println("[SERVER] A CLIENT HAS CONNECTED WITH ME");
                 number++;
                 new Connection(clientSocket, number);
 
@@ -45,7 +45,7 @@ class TCPServer {
             }
 
         } catch(IOException e) {
-            System.out.println("LISTEN: " + e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
         }
     }
 
@@ -82,7 +82,7 @@ class Connection extends Thread {
             dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
             this.start();
         } catch(IOException e) {
-            System.out.println("CONNECTION: " + e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
         }
     }
 
@@ -92,13 +92,25 @@ class Connection extends Thread {
             while(true) {
                 String data = dataInputStream.readUTF();
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
+
+                System.out.println("[TODO] RUN SPECIFIED FUNCTION");
+
                 reply = data.toUpperCase();
                 dataOutputStream.writeUTF(reply);
             }
-        } catch(EOFException e) {
-            System.out.println("EOF: " + e.getMessage());
+        } catch(EOFException eofe) {
+            System.out.println("THE CLIENT DISCONNECTED, CLOSING THIS THREAD");
+
+            try {
+                this.clientSocket.close();
+            } catch(IOException ioe) {
+                System.out.println("ERROR CLOSING THE CLIENT SOCKET: " + ioe.getMessage());
+            }
+
+            Thread.currentThread().interrupt();
+            return;
         } catch(IOException e) {
-            System.out.println("IO: " + e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
         }
     }
 }
