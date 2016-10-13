@@ -9,25 +9,43 @@ class TCPServer {
 
     public static void main(String args[]) {
         int number = 0;
+        int count = 0;
 
         if(args.length > 0) {
-            System.out.println("ERROR: USAGE is java TCPServer");
+            System.out.println("ERROR: USAGE IS java TCPServer");
             return;
         }
 
         try {
             selectPort();
-
-            // ServerSocket serverSocket = new ServerSocket(port);
             System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
+
+            //Sends/Receives Packets about the server load
+            //new ServerLoad();
+
             while(true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("[SERVER] THE CLIENT CAN TALK WITH ME NOW");
+                System.out.println("[SERVER] A CLIENT HAS CONNECTED WITH ME");
                 number++;
                 new Connection(clientSocket, number);
+
+                //Joins Multicast Socket
+                /*InetAddress group = InetAddress.getByName("224.0.0.2");
+                MulticastSocket s = new MulticastSocket(7500);
+                s.joinGroup(group);
+
+                DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
+                s.send(hi);
+                // get their responses!
+                byte[] buf = new byte[1000];
+                DatagramPacket recv = new DatagramPacket(buf, buf.length);
+                s.receive(recv);*/
+
+
             }
+
         } catch(IOException e) {
-            System.out.println("LISTEN: " + e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
         }
     }
 
@@ -50,8 +68,8 @@ class TCPServer {
 }
 
 class Connection extends Thread {
-    DataInputStream in;
-    DataOutputStream out;
+    DataInputStream dataInputStream;
+    DataOutputStream dataOutputStream;
     Socket clientSocket;
     int threadNumber;
 
@@ -60,29 +78,128 @@ class Connection extends Thread {
         try {
             clientSocket = pclientSocket;
 
-            in = new DataInputStream(clientSocket.getInputStream());
-            out = new DataOutputStream(clientSocket.getOutputStream());
+            dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
             this.start();
         } catch(IOException e) {
-            System.out.println("CONNECTION: " + e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
         }
     }
 
     public void run() {
-        String reply;
+        String reply = new String();
+
         try {
             while(true) {
-                //an echo server
-                String data = in.readUTF();
+                String data = dataInputStream.readUTF();
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
-                reply = data.toUpperCase();
-                out.writeUTF(reply);
+
+                System.out.println("PARSE THE STRING AND VERIFY WHAT THE COURSE OF ACTION IS");
+
+                String [] aux1 = data.split("type: ");
+                String [] aux2 = aux1[1].split(",", 2);
+                String [] aux3 = aux2[1].split(" ", 2);
+
+                String action = aux2[0];
+                String parameters = aux3[1];
+
+                reply = courseOfAction(action, parameters);
+
+
+                reply = reply.toUpperCase();
+                dataOutputStream.writeUTF(reply);
             }
-        } catch(EOFException e) {
-            // WHEN A CLIENT DISCONNECTS!!!
-            System.out.println("EOF: " + e);
+        } catch(EOFException eofe) {
+            System.out.println("[SERVER] THE CLIENT DISCONNECTED");
+
+            try {
+                this.clientSocket.close();
+            } catch(IOException ioe) {
+                System.out.println("ERROR WHEN TRYING TO CLOSE THE CLIENT SOCKET: " + ioe.getMessage());
+            }
+
+            Thread.currentThread().interrupt();
+            return;
         } catch(IOException e) {
-            System.out.println("IO: " + e);
+            System.out.println("ERROR: " + e.getMessage());
         }
     }
+
+    private static String courseOfAction(String action, String parameters) {
+        String reply = new String();
+
+        if(action.equals("login") || action.equals("register")) {
+            String username = new String();
+            String password = new String();
+
+            String [] aux1 = parameters.split("username: ", 2);
+            String [] aux2 = aux1[1].split("password: ", 2);
+
+            String aux3 = new String();
+
+            for(int i = 0; i < aux2.length; i++) {
+                aux3 = aux3.concat(aux2[i]);
+            }
+
+            String [] aux4 = aux3.split(",", 2);
+            String [] aux5 = aux4[1].split(" ");
+
+            username = aux4[0];
+            password = aux5[1];
+
+            reply = attemptLoginRegister(action, username, password);
+        } else {
+            return "ERROR: THIS IS'NT A VALID REQUEST";
+        }
+
+        return reply;
+    }
+
+    private static String attemptLoginRegister(String action, String username, String password) {
+        return "ATTEMPT LOGIN OR REGISTRY";
+    }
 }
+
+/*class ServerLoad extends Thread {
+    DataInputStream dataInputStream;
+    DataOutputStream dataOutputStream;
+    int threadNumber;
+
+    public ServerLoad () {
+        try {
+    		DatagramSocket udpSocket = new DatagramSocket();
+    		String texto = "";
+    		InputStreamReader input = new InputStreamReader(System.in);
+    		BufferedReader reader = new BufferedReader(input);
+
+            dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+            this.start();
+        } catch(IOException e) {
+            System.out.println("DATAGRAM: " + e.getMessage());
+        }
+    }
+
+    public void run() {
+        try {
+			while(true){
+				System.out.print("Mensagem a enviar = ");
+				// READ STRING FROM KEYBOARD
+    	     	  try{
+                    texto = "merdinha";
+    				byte [] m = texto.getBytes();
+
+    				DatagramPacket request = new DatagramPacket(m, m.length);
+    				udpSocket.send(request);
+
+    				byte[] buffer = new byte[1000];
+
+    				DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
+    				udpSocket.receive(reply);
+
+    				System.out.println("Recebeu: " + new String(reply.getData(), 0, reply.getLength()));
+    			}
+		} catch (IOException e){System.out.println("IO: " + e.getMessage());
+		} finally {if(udpSocket != null) udpSocket.close();}
+    }
+}*/
