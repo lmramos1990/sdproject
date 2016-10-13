@@ -42,13 +42,13 @@ class TCPClient {
 
         int choice = 0;
         while (choice == 0) {
-            choice = mainMenu();
+            choice = loginRegisterMenu();
         }
 
         return;
     }
 
-    private static int mainMenu() {
+    private static int loginRegisterMenu() {
         int choice = 0;
 
         while(choice != 3) {
@@ -69,6 +69,47 @@ class TCPClient {
             if(choice == 1 || choice == 2) {
                 choice = loginRegister(choice);
             }
+        }
+
+        return choice;
+    }
+
+    private static int mainMenu() {
+        int choice = 0;
+
+        while(choice != 9) {
+            System.out.println("[1] - Create a new auction\n[2] - Search auction by article\n[3] - Auction details\n[4] - See my auctions\n[5] - Bid in an auction\n[6] - Edit an auction\n[7] - Comment on an auction\n[8] - List online users\n[9] - Logout");
+            Scanner reader = new Scanner(System.in);
+            try {
+                System.out.print("CHOOSE AN OPTION: ");
+                choice = reader.nextInt();
+                if(choice <= 0 || choice >= 10) {
+                    System.out.println("ERROR: THIS IS NOT A VALID OPTION");
+                    choice = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID OPTION");
+                choice = 0;
+            }
+        }
+
+        switch(choice) {
+            case 1: System.out.println("Create a new auction");
+                break;
+            case 2: System.out.println("Search auction by article");
+                break;
+            case 3: System.out.println("Auction details");
+                break;
+            case 4: System.out.println("See my auctions");
+                break;
+            case 5: System.out.println("Bid in an auction");
+                break;
+            case 6: System.out.println("Edit an auction");
+                break;
+            case 7: System.out.println("Comment on an auction");
+                break;
+            case 8: System.out.println("List online users");
+                break;
         }
 
         return choice;
@@ -104,7 +145,8 @@ class TCPClient {
             String reply = new String();
 
             reply = sendRequest(clientSocket, request);
-            System.out.println(reply);
+
+            System.out.println("[SERVER] " + reply);
         } else {
             String a = "type: register, ";
             String b = "username: " + username + ", ";
@@ -115,7 +157,7 @@ class TCPClient {
 
             reply = sendRequest(clientSocket, request);
 
-            System.out.println(reply);
+            System.out.println("[SERVER] " + reply);
         }
 
         return choice;
@@ -132,7 +174,6 @@ class TCPClient {
         } catch(Exception e) {
             System.out.println("ERROR: " + e.getMessage());
         }
-
 
         return data;
     }
