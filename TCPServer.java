@@ -87,24 +87,35 @@ class Connection extends Thread {
     }
 
     public void run() {
-        String reply;
+        String reply = new String();
+
         try {
             while(true) {
                 String data = dataInputStream.readUTF();
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
-                System.out.println("[TODO] RUN SPECIFIED FUNCTION");
+                System.out.println("PARSE THE STRING AND VERIFY WHAT THE COURSE OF ACTION IS");
 
-                reply = data.toUpperCase();
+                String [] aux1 = data.split("type: ");
+                String [] aux2 = aux1[1].split(",", 2);
+                String [] aux3 = aux2[1].split(" ", 2);
+
+                String action = aux2[0];
+                String parameters = aux3[1];
+
+                reply = courseOfAction(action, parameters);
+
+
+                reply = reply.toUpperCase();
                 dataOutputStream.writeUTF(reply);
             }
         } catch(EOFException eofe) {
-            System.out.println("THE CLIENT DISCONNECTED, CLOSING THIS THREAD");
+            System.out.println("[SERVER] THE CLIENT DISCONNECTED");
 
             try {
                 this.clientSocket.close();
             } catch(IOException ioe) {
-                System.out.println("ERROR CLOSING THE CLIENT SOCKET: " + ioe.getMessage());
+                System.out.println("ERROR WHEN TRYING TO CLOSE THE CLIENT SOCKET: " + ioe.getMessage());
             }
 
             Thread.currentThread().interrupt();
@@ -112,6 +123,44 @@ class Connection extends Thread {
         } catch(IOException e) {
             System.out.println("ERROR: " + e.getMessage());
         }
+    }
+
+    private static String courseOfAction(String action, String parameters) {
+        String reply = new String();
+
+        if(action.equals("login") || action.equals("register")) {
+            String username = new String();
+            String password = new String();
+
+            String [] aux1 = parameters.split("username: ", 2);
+            String [] aux2 = aux1[1].split("password: ", 2);
+
+            String aux3 = new String();
+
+            for(int i = 0; i < aux2.length; i++) {
+                aux3 = aux3.concat(aux2[i]);
+            }
+
+            String [] aux4 = aux3.split(",", 2);
+            String [] aux5 = aux4[1].split(" ");
+
+            username = aux4[0];
+            password = aux5[1];
+
+            reply = attemptLoginRegister(action, username, password);
+        } else {
+            return "ERROR: THIS IS'NT A VALID REQUEST";
+        }
+
+        return reply;
+    }
+
+    private static String attemptLoginRegister(String action, String username, String password) {
+        System.out.println(action);
+        System.out.println(username);
+        System.out.println(password);
+
+        return "what to do from here?";
     }
 }
 
