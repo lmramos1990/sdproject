@@ -156,7 +156,11 @@ class Connection extends Thread {
     }
 
     private static String attemptLoginRegister(String action, String username, String password) {
-        return "ATTEMPT LOGIN OR REGISTRY";
+        System.out.println(action);
+        System.out.println(username);
+        System.out.println(password);
+
+        return "what to do from here?";
     }
 }
 
