@@ -1,10 +1,25 @@
 import java.util.*;
 import java.net.*;
 import java.io.*;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.server.UnicastRemoteObject;
 
-class RMIServer {
-    public static void main(String[] args) {
-        System.out.println("Hello im the RMIServer!");
+
+class RMIServer extends UnicastRemoteObject implements AuctionInterface{
+
+    protected RMIServer() throws RemoteException {
+        super();
+    }
+
+    public int createAuction(String buyer, String isbnCode, String title, String description, String details, float maxPrice, String deadlineStamp) throws RemoteException{
+        return 0;
+    }
+
+    public static void main(String[] args) throws RemoteException{
+        AuctionInterface iBei = new RMIServer();
+        LocateRegistry.createRegistry(1099).rebind("calc", iBei);
+        System.out.println("iBei ready...");
 
         RMIRequestListener requestlistener = new RMIRequestListener();
         KeepAlive keepalive = new KeepAlive();
@@ -13,7 +28,6 @@ class RMIServer {
         requestlistener.run();
         keepalive.run();
     }
-
 }
 
 // Class that handles the requests of the clients
