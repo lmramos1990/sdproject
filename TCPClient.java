@@ -146,7 +146,7 @@ class TCPClient {
 
             reply = sendRequest(clientSocket, request);
 
-            if(replay.equals("type: login, ok: true")) {
+            if(reply.equals("type: login, ok: true")) {
                 System.out.println("segue para um menu");
             } else {
                 System.out.println("segue para um menu");
@@ -163,7 +163,7 @@ class TCPClient {
 
             reply = sendRequest(clientSocket, request);
 
-            if(replay.equals("type: register, ok: true")) {
+            if(reply.equals("type: register, ok: true")) {
                 System.out.println("segue para um menu");
             } else {
                 System.out.println("segue para um menu");
