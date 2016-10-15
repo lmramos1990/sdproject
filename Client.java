@@ -77,42 +77,48 @@ class Client {
     private static int mainMenu() {
         int choice = 0;
 
-        while(choice != 9) {
+        while(choice >= 0 && choice < 9) {
             System.out.println("[1] - Create a new auction\n[2] - Search auction by article\n[3] - Auction details\n[4] - See my auctions\n[5] - Bid in an auction\n[6] - Edit an auction\n[7] - Comment on an auction\n[8] - List online users\n[9] - Logout");
             Scanner reader = new Scanner(System.in);
             try {
                 System.out.print("CHOOSE AN OPTION: ");
                 choice = reader.nextInt();
-
-                System.out.println("THIS IS THE CHOICE OF THE CLIENT WHEN IN THE SECOND MENU: " + choice);
-
+                
                 if(choice <= 0 || choice >= 10) {
                     System.out.println("ERROR: THIS IS NOT A VALID OPTION");
                     choice = 0;
+                }
+
+                switch(choice) {
+                    case 1:
+                        choice = createAuction();
+                        break;
+                    case 2:
+                        choice = searchAuctionByArticle();
+                        break;
+                    case 3:
+                        choice = auctionDetails();
+                        break;
+                    case 4:
+                        choice = myAuctions();
+                        break;
+                    case 5:
+                        choice = makeBid();
+                        break;
+                    case 6:
+                        choice = editAuction();
+                        break;
+                    case 7:
+                        choice = commentInAuction();
+                        break;
+                    case 8:
+                        choice = listOnlineUsers();
+                        break;
                 }
             } catch(Exception e) {
                 System.out.println("ERROR: THIS IS NOT A VALID OPTION");
                 choice = 0;
             }
-        }
-
-        switch(choice) {
-            case 1: System.out.println("Create a new auction");
-                break;
-            case 2: System.out.println("Search auction by article");
-                break;
-            case 3: System.out.println("Auction details");
-                break;
-            case 4: System.out.println("See my auctions");
-                break;
-            case 5: System.out.println("Bid in an auction");
-                break;
-            case 6: System.out.println("Edit an auction");
-                break;
-            case 7: System.out.println("Comment on an auction");
-                break;
-            case 8: System.out.println("List online users");
-                break;
         }
 
         return choice;
@@ -180,6 +186,46 @@ class Client {
         }
 
         return choice;
+    }
+
+    private static int createAuction() {
+        System.out.println("Create a new auction");
+        return 0;
+    }
+
+    private static int searchAuctionByArticle() {
+        System.out.println("Search auction by article");
+        return 0;
+    }
+
+    private static int auctionDetails() {
+        System.out.println("Auction details");
+        return 0;
+    }
+
+    private static int myAuctions() {
+        System.out.println("See my auctions");
+        return 0;
+    }
+
+    private static int makeBid() {
+        System.out.println("Bid in an auction");
+        return 0;
+    }
+
+    private static int editAuction() {
+        System.out.println("Edit an auction");
+        return 0;
+    }
+
+    private static int commentInAuction() {
+        System.out.println("Comment on an auction");
+        return 0;
+    }
+
+    private static int listOnlineUsers() {
+        System.out.println("List online users");
+        return 0;
     }
 
     private static String sendRequest(Socket socket, String request) {
