@@ -78,12 +78,21 @@ class Client {
         int choice = 0;
 
         while(choice >= 0 && choice < 9) {
-            System.out.println("[1] - Create a new auction\n[2] - Search auction by article\n[3] - Auction details\n[4] - See my auctions\n[5] - Bid in an auction\n[6] - Edit an auction\n[7] - Comment on an auction\n[8] - List online users\n[9] - Logout");
+            System.out.println("[1] - Create a new auction");
+            System.out.println("[2] - Search auction by article");
+            System.out.println("[3] - Auction details");
+            System.out.println("[4] - See my auctions");
+            System.out.println("[5] - Bid in an auction");
+            System.out.println("[6] - Edit an auction");
+            System.out.println("[7] - Comment on an auction");
+            System.out.println("[8] - List online users");
+            System.out.println("[9] - Logout");
+
             Scanner reader = new Scanner(System.in);
             try {
                 System.out.print("CHOOSE AN OPTION: ");
                 choice = reader.nextInt();
-                
+
                 if(choice <= 0 || choice >= 10) {
                     System.out.println("ERROR: THIS IS NOT A VALID OPTION");
                     choice = 0;
@@ -190,6 +199,218 @@ class Client {
 
     private static int createAuction() {
         System.out.println("Create a new auction");
+        int code = 0;
+        Scanner sc = new Scanner(System.in);
+
+        // SINGLE ARTICLE STUFF
+        while(code == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE CODE OF THE ARTICLE: ");
+                code = reader.nextInt();
+                String scode = Integer.toString(code);
+
+                if(scode.length() == 0 || scode.length() >= 12) {
+                    System.out.println("ERROR: THIS IS NOT A VALID CODE");
+                    code = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID CODE");
+            }
+        }
+
+        System.out.print("INSERT THE TITLE OF THE AUCTION: ");
+        String title = sc.nextLine();
+
+        System.out.print("INSERT A DESCRIPTION ABOUT THE AUCTION: ");
+        String description = sc.nextLine();
+
+        System.out.println("------ INSERT THE DATE OF THE DEADLINE ------");
+        int year = 0, month = 0, day = 0, hour = -1, minutes = -1;
+
+        while(year == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE YEAR: ");
+                year = reader.nextInt();
+
+                if(year < 2016) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    year = 0;
+                }
+
+                String syear = Integer.toString(year);
+
+                if(syear.length() == 0 || syear.length() > 4) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    year = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                year = 0;
+            }
+        }
+
+        while(month == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE MONTH: ");
+                month = reader.nextInt();
+
+                if(month <= 0 || month > 12) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    month = 0;
+                }
+
+                String smonth = Integer.toString(month);
+
+                if(smonth.length() == 0 || smonth.length() > 2) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    month = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                month = 0;
+            }
+        }
+
+        while(day == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE DAY: ");
+                day = reader.nextInt();
+
+                if((month == 4 || month == 6 || month == 9 || month == 11) && day > 30) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    day = 0;
+                } else if((month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10 || month == 12) && day > 31) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    day = 0;
+                } else if(month == 2) {
+                    if(year % 4 == 0 || year % 100 == 0 || year % 400 == 0) {
+                        if(day > 29) {
+                            System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                            day = 0;
+                        }
+                    } else {
+                        if(day > 28) {
+                            System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                            day = 0;
+                        }
+                    }
+                }
+
+                String sday = Integer.toString(day);
+
+                if(sday.length() == 0 || sday.length() > 2) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    day = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                day = 0;
+            }
+        }
+
+        while(hour == -1) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE HOUR: ");
+                hour = reader.nextInt();
+
+                if(hour < 0 || hour > 24) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    hour = -1;
+                }
+
+                String shour = Integer.toString(hour);
+
+                if(shour.length() == 0 || shour.length() > 2) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    hour = -1;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                hour = -1;
+            }
+        }
+
+        while(minutes == -1) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE MINUTES: ");
+                minutes = reader.nextInt();
+
+                if(minutes < 0 && minutes > 60) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    minutes = -1;
+                }
+
+                String sminutes = Integer.toString(minutes);
+
+                if(sminutes.length() == 0 || sminutes.length() > 2) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    minutes = -1;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                minutes = -1;
+            }
+        }
+
+        String deadline = new String();
+        deadline = deadline.concat(Integer.toString(year));
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(Integer.toString(month));
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(Integer.toString(day));
+        deadline = deadline.concat(" ");
+        deadline = deadline.concat(Integer.toString(hour));
+        deadline = deadline.concat(":");
+        deadline = deadline.concat(Integer.toString(minutes));
+
+        int amount = 0;
+        while(amount == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE AMOUNT OF ITEMS TO SELL: ");
+                amount = reader.nextInt();
+
+                if(amount < 0) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    amount = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                amount = 0;
+            }
+        }
+
+        String request = new String();
+
+        request = request.concat("type: create_auction, code: ");
+        request = request.concat(Integer.toString(code));
+        request = request.concat(", title: ");
+        request = request.concat(title);
+        request = request.concat(", description: ");
+        request = request.concat(description);
+        request = request.concat(", deadline: ");
+        request = request.concat(deadline);
+        request = request.concat(", amount: ");
+        request = request.concat(Integer.toString(amount));
+
+        System.out.println(request);
+
+        String reply = new String();
+
+        reply = sendRequest(clientSocket, request);
+
+        if(reply.equals("type: create_auction , ok: true")) {
+            System.out.println("true");
+        } else {
+            System.out.println("false");
+        }
+
         return 0;
     }
 
