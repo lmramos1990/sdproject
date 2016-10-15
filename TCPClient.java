@@ -93,6 +93,8 @@ class TCPClient {
             }
         }
 
+        System.out.println("THIS IS THE CHOICE OF THE CLIENT WHEN IN THE SECOND MENU: " + choice);
+
         switch(choice) {
             case 1: System.out.println("Create a new auction");
                 break;
