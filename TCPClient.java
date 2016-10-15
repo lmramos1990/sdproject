@@ -146,6 +146,8 @@ class TCPClient {
 
             reply = sendRequest(clientSocket, request);
 
+            System.out.println(reply);
+
             if(reply.equals("type: login, ok: true")) {
                 choice = mainMenu();
             } else {
@@ -162,6 +164,8 @@ class TCPClient {
             String reply = new String();
 
             reply = sendRequest(clientSocket, request);
+
+            System.out.println(reply);
 
             if(reply.equals("type: register, ok: true")) {
                 choice = mainMenu();
