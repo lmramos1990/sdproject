@@ -148,7 +148,13 @@ class Connection extends Thread {
             // password = aux5[1];
             //
             // reply = attemptLoginRegister(action, username, password);
-            System.out.println("login/register");
+
+            // jsut for tests
+            if(action.equals("login")) {
+                reply = "type: login, ok: true";
+            } else {
+                reply = "type: register, ok: true";
+            }
         } else if(action.equals("create_auction")) {
             System.out.println("create an auction");
         } else if(action.equals("search_auction")) {
