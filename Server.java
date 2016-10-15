@@ -151,7 +151,7 @@ class Connection extends Thread {
             //
             // reply = attemptLoginRegister(action, username, password);
 
-            // jsut for tests
+            // just for tests
             if(action.equals("login")) {
                 reply = "type: login, ok: true";
             } else {
