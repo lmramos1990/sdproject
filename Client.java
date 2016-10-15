@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-class TCPClient {
+class Client {
     static Socket clientSocket;
 
     static DataInputStream dataInputStream;
@@ -83,6 +83,9 @@ class TCPClient {
             try {
                 System.out.print("CHOOSE AN OPTION: ");
                 choice = reader.nextInt();
+
+                System.out.println("THIS IS THE CHOICE OF THE CLIENT WHEN IN THE SECOND MENU: " + choice);
+
                 if(choice <= 0 || choice >= 10) {
                     System.out.println("ERROR: THIS IS NOT A VALID OPTION");
                     choice = 0;
@@ -92,8 +95,6 @@ class TCPClient {
                 choice = 0;
             }
         }
-
-        System.out.println("THIS IS THE CHOICE OF THE CLIENT WHEN IN THE SECOND MENU: " + choice);
 
         switch(choice) {
             case 1: System.out.println("Create a new auction");
