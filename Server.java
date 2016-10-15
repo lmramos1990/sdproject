@@ -2,7 +2,7 @@ import java.util.*;
 import java.net.*;
 import java.io.*;
 
-class TCPServer {
+class Server {
 
     private static ServerSocket serverSocket;
     private static int port = 7000;
@@ -95,7 +95,7 @@ class Connection extends Thread {
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
                 // CHANGE THIS BULLSHIT!!!
-                // MUST CHANGE THIS 
+                // MUST CHANGE THIS
                 String [] aux1 = data.split("type: ");
                 String [] aux2 = aux1[1].split(",", 2);
                 String [] aux3 = aux2[1].split(" ", 2);
