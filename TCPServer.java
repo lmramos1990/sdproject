@@ -1,6 +1,9 @@
 import java.util.*;
 import java.net.*;
 import java.io.*;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
+
 
 class TCPServer {
 
@@ -25,10 +28,16 @@ class TCPServer {
                 System.out.println("[SERVER] THE CLIENT CAN TALK WITH ME NOW");
                 number++;
                 new Connection(clientSocket, number);
+
+                //USING THE RMI SERVER - catch NotBoundException
+                //System.out.println("[SERVER] I'M IN TOUCH WITH RMI SERVER");
+                //AuctionInterface iBei = (AuctionInterface) Naming.lookup("iBei");
+
             }
         } catch(IOException e) {
             System.out.println("LISTEN: " + e.getMessage());
         }
+
     }
 
     private static void selectPort() {
