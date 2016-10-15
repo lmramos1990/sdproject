@@ -94,8 +94,7 @@ class Connection extends Thread {
                 String data = dataInputStream.readUTF();
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
-                System.out.println("PARSE THE STRING AND VERIFY WHAT THE COURSE OF ACTION IS");
-
+                // CHANGE THIS BULLSHIT!!!
                 String [] aux1 = data.split("type: ");
                 String [] aux2 = aux1[1].split(",", 2);
                 String [] aux3 = aux2[1].split(" ", 2);
@@ -129,25 +128,43 @@ class Connection extends Thread {
         String reply = new String();
 
         if(action.equals("login") || action.equals("register")) {
-            String username = new String();
-            String password = new String();
-
-            String [] aux1 = parameters.split("username: ", 2);
-            String [] aux2 = aux1[1].split("password: ", 2);
-
-            String aux3 = new String();
-
-            for(int i = 0; i < aux2.length; i++) {
-                aux3 = aux3.concat(aux2[i]);
-            }
-
-            String [] aux4 = aux3.split(",", 2);
-            String [] aux5 = aux4[1].split(" ");
-
-            username = aux4[0];
-            password = aux5[1];
-
-            reply = attemptLoginRegister(action, username, password);
+            // CHANGE THIS BULLSHIT!!!
+            // String username = new String();
+            // String password = new String();
+            //
+            // String [] aux1 = parameters.split("username: ", 2);
+            // String [] aux2 = aux1[1].split("password: ", 2);
+            //
+            // String aux3 = new String();
+            //
+            // for(int i = 0; i < aux2.length; i++) {
+            //     aux3 = aux3.concat(aux2[i]);
+            // }
+            //
+            // String [] aux4 = aux3.split(",", 2);
+            // String [] aux5 = aux4[1].split(" ");
+            //
+            // username = aux4[0];
+            // password = aux5[1];
+            //
+            // reply = attemptLoginRegister(action, username, password);
+            System.out.println("login/register");
+        } else if(action.equals("create_auction")) {
+            System.out.println("create an auction");
+        } else if(action.equals("search_auction")) {
+            System.out.println("search_auction");
+        } else if(action.equals("detail_auction")) {
+            System.out.println("detail_auction");
+        } else if(action.equals("my_auctions")) {
+            System.out.println("my_auctions");
+        } else if(action.equals("bid")) {
+            System.out.println("bid");
+        } else if(action.equals("edit_auction")) {
+            System.out.println("edit_auction");
+        } else if(action.equals("message")) {
+            System.out.println("message");
+        } else if(action.equals("online_users")) {
+            System.out.println("online_users");
         } else {
             return "ERROR: THIS IS'NT A VALID REQUEST";
         }
@@ -156,11 +173,13 @@ class Connection extends Thread {
     }
 
     private static String attemptLoginRegister(String action, String username, String password) {
-        System.out.println(action);
-        System.out.println(username);
-        System.out.println(password);
+        if(action.equals("login")) {
+            System.out.println("LOGIN -> SEND THIS BULLSHIT TO THE RMI SERVER");
+        } else {
+            System.out.println("REGISTER -> SEND THIS BULLSHIT TO THE RMI SERVER");
+        }
 
-        return "what to do from here?";
+        return action;
     }
 }
 
