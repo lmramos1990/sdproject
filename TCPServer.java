@@ -103,9 +103,7 @@ class Connection extends Thread {
                 String parameters = aux3[1];
 
                 reply = courseOfAction(action, parameters);
-
-
-                reply = reply.toUpperCase();
+                
                 dataOutputStream.writeUTF(reply);
             }
         } catch(EOFException eofe) {
