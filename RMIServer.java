@@ -7,15 +7,20 @@ import java.rmi.server.UnicastRemoteObject;
 
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface{
-
+    //CONSTRUCTOR
     protected RMIServer() throws RemoteException {
         super();
     }
 
+    //METHODS
     public int createAuction(String buyer, String isbnCode, String title, String description, String details, float maxPrice, String deadlineStamp) throws RemoteException{
         return 0;
     }
+    public int listAuctions(String isbnCode, Object searchingCriteria){
+        return 0;
+    }
 
+    //MAIN
     public static void main(String[] args) throws RemoteException{
         AuctionInterface iBei = new RMIServer();
         LocateRegistry.createRegistry(1099).rebind("calc", iBei);

@@ -3,4 +3,11 @@ import java.rmi.RemoteException;
 
 public interface AuctionInterface extends Remote {
 	public int createAuction(String buyer, String isbnCode, String title, String description, String details, float maxPrice, String deadlineStamp) throws RemoteException;
+
+    //TODO: returning data types are wrong
+    public int listAuctions(String isbnCode, Object searchingCriteria);
+
+
+
+
 }
