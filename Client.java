@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-class TCPClient {
+class Client {
     static Socket clientSocket;
 
     static DataInputStream dataInputStream;
@@ -42,13 +42,13 @@ class TCPClient {
 
         int choice = 0;
         while (choice == 0) {
-            choice = mainMenu();
+            choice = loginRegisterMenu();
         }
 
         return;
     }
 
-    private static int mainMenu() {
+    private static int loginRegisterMenu() {
         int choice = 0;
 
         while(choice != 3) {
@@ -68,6 +68,56 @@ class TCPClient {
 
             if(choice == 1 || choice == 2) {
                 choice = loginRegister(choice);
+            }
+        }
+
+        return choice;
+    }
+
+    private static int mainMenu() {
+        int choice = 0;
+
+        while(choice >= 0 && choice < 9) {
+            System.out.println("[1] - Create a new auction\n[2] - Search auction by article\n[3] - Auction details\n[4] - See my auctions\n[5] - Bid in an auction\n[6] - Edit an auction\n[7] - Comment on an auction\n[8] - List online users\n[9] - Logout");
+            Scanner reader = new Scanner(System.in);
+            try {
+                System.out.print("CHOOSE AN OPTION: ");
+                choice = reader.nextInt();
+                
+                if(choice <= 0 || choice >= 10) {
+                    System.out.println("ERROR: THIS IS NOT A VALID OPTION");
+                    choice = 0;
+                }
+
+                switch(choice) {
+                    case 1:
+                        choice = createAuction();
+                        break;
+                    case 2:
+                        choice = searchAuctionByArticle();
+                        break;
+                    case 3:
+                        choice = auctionDetails();
+                        break;
+                    case 4:
+                        choice = myAuctions();
+                        break;
+                    case 5:
+                        choice = makeBid();
+                        break;
+                    case 6:
+                        choice = editAuction();
+                        break;
+                    case 7:
+                        choice = commentInAuction();
+                        break;
+                    case 8:
+                        choice = listOnlineUsers();
+                        break;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID OPTION");
+                choice = 0;
             }
         }
 
@@ -104,7 +154,16 @@ class TCPClient {
             String reply = new String();
 
             reply = sendRequest(clientSocket, request);
+
             System.out.println(reply);
+
+            if(reply.equals("type: login, ok: true")) {
+                choice = mainMenu();
+            } else {
+                reply = "LOGIN WASN'T SUCCESSFULL";
+            }
+
+            System.out.println("[SERVER] " + reply);
         } else {
             String a = "type: register, ";
             String b = "username: " + username + ", ";
@@ -116,9 +175,57 @@ class TCPClient {
             reply = sendRequest(clientSocket, request);
 
             System.out.println(reply);
+
+            if(reply.equals("type: register, ok: true")) {
+                choice = mainMenu();
+            } else {
+                reply = "REGISTER WASN'T SUCCESSFULL";
+            }
+
+            System.out.println("[SERVER] " + reply);
         }
 
         return choice;
+    }
+
+    private static int createAuction() {
+        System.out.println("Create a new auction");
+        return 0;
+    }
+
+    private static int searchAuctionByArticle() {
+        System.out.println("Search auction by article");
+        return 0;
+    }
+
+    private static int auctionDetails() {
+        System.out.println("Auction details");
+        return 0;
+    }
+
+    private static int myAuctions() {
+        System.out.println("See my auctions");
+        return 0;
+    }
+
+    private static int makeBid() {
+        System.out.println("Bid in an auction");
+        return 0;
+    }
+
+    private static int editAuction() {
+        System.out.println("Edit an auction");
+        return 0;
+    }
+
+    private static int commentInAuction() {
+        System.out.println("Comment on an auction");
+        return 0;
+    }
+
+    private static int listOnlineUsers() {
+        System.out.println("List online users");
+        return 0;
     }
 
     private static String sendRequest(Socket socket, String request) {
@@ -132,7 +239,6 @@ class TCPClient {
         } catch(Exception e) {
             System.out.println("ERROR: " + e.getMessage());
         }
-
 
         return data;
     }
@@ -148,9 +254,10 @@ class TCPClient {
             serverAddress = InetAddress.getByName(host);
             return serverAddress;
         } catch(Exception e) {
-          System.out.println("ERROR: " + e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
+            serverAddress = getHost();
         }
-        return null;
+        return serverAddress;
     }
 
     private static int getPort() {
@@ -175,3 +282,25 @@ class TCPClient {
         return port;
     }
 }
+
+// SEARCH FOR SOMETHING WITHIN A STRING !!!!!! <- MAYBE USEFULL
+// public class RegionMatchesDemo {
+//     public static void main(String[] args) {
+//         String searchMe = "Green Eggs and Ham";
+//         String findMe = "Eggs";
+//         int searchMeLength = searchMe.length();
+//         int findMeLength = findMe.length();
+//         boolean foundIt = false;
+//         for (int i = 0;
+//              i <= (searchMeLength - findMeLength);
+//              i++) {
+//            if (searchMe.regionMatches(i, findMe, 0, findMeLength)) {
+//               foundIt = true;
+//               System.out.println(searchMe.substring(i, i + findMeLength));
+//               break;
+//            }
+//         }
+//         if (!foundIt)
+//             System.out.println("No match found.");
+//     }
+// }
