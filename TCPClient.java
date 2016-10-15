@@ -146,6 +146,12 @@ class TCPClient {
 
             reply = sendRequest(clientSocket, request);
 
+            if(replay.equals("type: login, ok: true")) {
+                System.out.println("segue para um menu");
+            } else {
+                System.out.println("segue para um menu");
+            }
+
             System.out.println("[SERVER] " + reply);
         } else {
             String a = "type: register, ";
@@ -156,6 +162,12 @@ class TCPClient {
             String reply = new String();
 
             reply = sendRequest(clientSocket, request);
+
+            if(replay.equals("type: register, ok: true")) {
+                System.out.println("segue para um menu");
+            } else {
+                System.out.println("segue para um menu");
+            }
 
             System.out.println("[SERVER] " + reply);
         }
@@ -217,3 +229,25 @@ class TCPClient {
         return port;
     }
 }
+
+// SEARCH FOR SOMETHING WITHIN A STRING !!!!!! <- MAYBE USEFULL
+// public class RegionMatchesDemo {
+//     public static void main(String[] args) {
+//         String searchMe = "Green Eggs and Ham";
+//         String findMe = "Eggs";
+//         int searchMeLength = searchMe.length();
+//         int findMeLength = findMe.length();
+//         boolean foundIt = false;
+//         for (int i = 0;
+//              i <= (searchMeLength - findMeLength);
+//              i++) {
+//            if (searchMe.regionMatches(i, findMe, 0, findMeLength)) {
+//               foundIt = true;
+//               System.out.println(searchMe.substring(i, i + findMeLength));
+//               break;
+//            }
+//         }
+//         if (!foundIt)
+//             System.out.println("No match found.");
+//     }
+// }
