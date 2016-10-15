@@ -95,6 +95,7 @@ class Connection extends Thread {
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
                 // CHANGE THIS BULLSHIT!!!
+                // MUST CHANGE THIS 
                 String [] aux1 = data.split("type: ");
                 String [] aux2 = aux1[1].split(",", 2);
                 String [] aux3 = aux2[1].split(" ", 2);
@@ -103,7 +104,7 @@ class Connection extends Thread {
                 String parameters = aux3[1];
 
                 reply = courseOfAction(action, parameters);
-                
+
                 dataOutputStream.writeUTF(reply);
             }
         } catch(EOFException eofe) {
