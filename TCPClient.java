@@ -147,9 +147,9 @@ class TCPClient {
             reply = sendRequest(clientSocket, request);
 
             if(reply.equals("type: login, ok: true")) {
-                System.out.println("segue para um menu");
+                choice = mainMenu();
             } else {
-                System.out.println("segue para um menu");
+                reply = "LOGIN WASN'T SUCCESSFULL";
             }
 
             System.out.println("[SERVER] " + reply);
@@ -164,9 +164,9 @@ class TCPClient {
             reply = sendRequest(clientSocket, request);
 
             if(reply.equals("type: register, ok: true")) {
-                System.out.println("segue para um menu");
+                choice = mainMenu();
             } else {
-                System.out.println("segue para um menu");
+                reply = "REGISTER WASN'T SUCCESSFULL";
             }
 
             System.out.println("[SERVER] " + reply);
