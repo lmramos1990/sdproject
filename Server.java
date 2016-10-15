@@ -95,7 +95,6 @@ class Connection extends Thread {
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
                 // CHANGE THIS BULLSHIT!!!
-                // MUST CHANGE THIS
                 String [] aux1 = data.split("type: ");
                 String [] aux2 = aux1[1].split(",", 2);
                 String [] aux3 = aux2[1].split(" ", 2);
