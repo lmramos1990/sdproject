@@ -405,6 +405,8 @@ class Client {
 
         reply = sendRequest(clientSocket, request);
 
+        System.out.println("hello");
+
         if(reply.equals("type: create_auction , ok: true")) {
             System.out.println("true");
         } else {
