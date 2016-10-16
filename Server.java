@@ -135,7 +135,7 @@ class Connection extends Thread {
                 reply = "type: register, ok: true";
             }
 
-            String [] parsedParameters = loginRegisterParse(parameters);
+            String username = getUsername(parameters);
 
         } else if(action.equals("create_auction")) {
             reply = "type: create_auction, ok: true";
@@ -160,34 +160,12 @@ class Connection extends Thread {
         return reply;
     }
 
-    private static String [] loginRegisterParse(String parameters) {
-        String [] aux1 = parameters.split("username: ", 2);
-        String [] aux2 = aux1[1].split("password: ", 2);
-
+    private static String getUsername(String searchMe) {
         String username = new String();
-        String password = new String();
 
-        username = removeCommas(aux2[0]);
+        
 
-        String [] parsed = new String[2];
-        parsed[0] = username;
-        parsed[1] = password;
-
-        return parsed;
-    }
-
-    private static String removeCommas(String string) {
-        StringBuilder sb = new StringBuilder(string);
-
-        for(int i = 0; i < string.length(); i++) {
-            if(string.charAt(i) == ',') {
-                sb.deleteCharAt(i);
-            }
-        }
-
-        String stringWithoutCommas = sb.toString();
-
-        return stringWithoutCommas;
+        return username;
     }
 
     private static String attemptLoginRegister(String action, String username, String password) {
