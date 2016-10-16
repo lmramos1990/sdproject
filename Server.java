@@ -30,16 +30,16 @@ class Server {
                 new Connection(clientSocket, number);
 
                 //Joins Multicast Socket
-                /*InetAddress group = InetAddress.getByName("224.0.0.2");
-                MulticastSocket s = new MulticastSocket(7500);
-                s.joinGroup(group);
-
-                DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
-                s.send(hi);
-                // get their responses!
-                byte[] buf = new byte[1000];
-                DatagramPacket recv = new DatagramPacket(buf, buf.length);
-                s.receive(recv);*/
+                // InetAddress group = InetAddress.getByName("224.0.0.2");
+                // MulticastSocket s = new MulticastSocket(7500);
+                // s.joinGroup(group);
+                //
+                // DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
+                // s.send(hi);
+                // // get their responses!
+                // byte[] buf = new byte[1000];
+                // DatagramPacket recv = new DatagramPacket(buf, buf.length);
+                // s.receive(recv);
 
                 //USING THE RMI SERVER - catch NotBoundException
                 //System.out.println("[SERVER] I'M IN TOUCH WITH RMI SERVER");
@@ -98,7 +98,6 @@ class Connection extends Thread {
                 String data = dataInputStream.readUTF();
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
-                // CHANGE THIS BULLSHIT!!!
                 String [] aux1 = data.split("type: ");
                 String [] aux2 = aux1[1].split(",", 2);
                 String [] aux3 = aux2[1].split(" ", 2);
@@ -130,49 +129,27 @@ class Connection extends Thread {
         String reply = new String();
 
         if(action.equals("login") || action.equals("register")) {
-            // CHANGE THIS BULLSHIT!!!
-            // String username = new String();
-            // String password = new String();
-            //
-            // String [] aux1 = parameters.split("username: ", 2);
-            // String [] aux2 = aux1[1].split("password: ", 2);
-            //
-            // String aux3 = new String();
-            //
-            // for(int i = 0; i < aux2.length; i++) {
-            //     aux3 = aux3.concat(aux2[i]);
-            // }
-            //
-            // String [] aux4 = aux3.split(",", 2);
-            // String [] aux5 = aux4[1].split(" ");
-            //
-            // username = aux4[0];
-            // password = aux5[1];
-            //
-            // reply = attemptLoginRegister(action, username, password);
-
-            // just for tests
             if(action.equals("login")) {
                 reply = "type: login, ok: true";
             } else {
                 reply = "type: register, ok: true";
             }
         } else if(action.equals("create_auction")) {
-            System.out.println("create an auction");
+            reply = "type: create_auction, ok: true";
         } else if(action.equals("search_auction")) {
-            System.out.println("search_auction");
+            reply = "type: search_auction, ok: true";
         } else if(action.equals("detail_auction")) {
-            System.out.println("detail_auction");
+            reply = "type: detail_auction, ok: true";
         } else if(action.equals("my_auctions")) {
-            System.out.println("my_auctions");
+            reply = "type: my_auctions, ok: true";
         } else if(action.equals("bid")) {
-            System.out.println("bid");
+            reply = "type: bid, ok: true";
         } else if(action.equals("edit_auction")) {
-            System.out.println("edit_auction");
+            reply = "type: edit_auction, ok: true";
         } else if(action.equals("message")) {
-            System.out.println("message");
+            reply = "type: message, ok: true";
         } else if(action.equals("online_users")) {
-            System.out.println("online_users");
+            reply = "type: online_users, ok: true";
         } else {
             return "ERROR: THIS IS'NT A VALID REQUEST";
         }
