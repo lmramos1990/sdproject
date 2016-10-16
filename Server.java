@@ -30,16 +30,16 @@ class Server {
                 new Connection(clientSocket, number);
 
                 //Joins Multicast Socket
-                /*InetAddress group = InetAddress.getByName("224.0.0.2");
-                MulticastSocket s = new MulticastSocket(7500);
-                s.joinGroup(group);
-
-                DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
-                s.send(hi);
-                // get their responses!
-                byte[] buf = new byte[1000];
-                DatagramPacket recv = new DatagramPacket(buf, buf.length);
-                s.receive(recv);*/
+                // InetAddress group = InetAddress.getByName("224.0.0.2");
+                // MulticastSocket s = new MulticastSocket(7500);
+                // s.joinGroup(group);
+                //
+                // DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
+                // s.send(hi);
+                // // get their responses!
+                // byte[] buf = new byte[1000];
+                // DatagramPacket recv = new DatagramPacket(buf, buf.length);
+                // s.receive(recv);
 
                 //USING THE RMI SERVER - catch NotBoundException
                 //System.out.println("[SERVER] I'M IN TOUCH WITH RMI SERVER");
