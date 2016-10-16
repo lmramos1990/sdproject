@@ -6,6 +6,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface{
+    private static int port = 8000;
     //CONSTRUCTOR
     protected RMIServer() throws RemoteException {
         super();
@@ -16,25 +17,46 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface{
         return 0;
     }
 
+    private static int selectPort() {
+        int myPort = port;
+        if(isPortAvailable(port) == false) {
+            port += 1;
+            selectPort();
+        }
+        return (port - myPort + 1);
+    }
+
+    private static Boolean isPortAvailable(int port) {
+        try {
+            AuctionInterface iBei = new RMIServer();
+            LocateRegistry.createRegistry(port).rebind("iBei", iBei);
+        } catch(Exception e) {
+            return false;
+        }
+
+        return true;
+    }
+
     //MAIN
     public static void main(String[] args) throws RemoteException{
-        AuctionInterface iBei = new RMIServer();
-        LocateRegistry.createRegistry(1099).rebind("iBei", iBei);
-        System.out.println("iBei ready...");
-
+        int rmiNumber = selectPort();
+        System.out.println("iBei ready at port: " + port);
+        System.out.println("I'm RMIServer Number: " + rmiNumber);
         RMIRequestListener requestlistener = new RMIRequestListener();
-        KeepAlive keepalive = new KeepAlive();
-
-
-        requestlistener.run();
-        keepalive.run();
+        if (rmiNumber > 1) {
+            KeepAlive keepalive = new KeepAlive();
+        }
     }
 }
 
 // Class that handles the requests of the clients
-class RMIRequestListener implements Runnable {
+class RMIRequestListener extends Thread {
     public RMIRequestListener() {
-        System.out.println("This is the RMIRequestListener constructor");
+        try{
+            this.start();
+        } catch( Exception e){
+            System.out.println(e.getMessage());
+        }
     }
 
     public void run() {
@@ -43,20 +65,30 @@ class RMIRequestListener implements Runnable {
 }
 
 // Class that is supposed to be keeping the servers running at all times
-class KeepAlive implements Runnable {
+class KeepAlive extends Thread{
     public KeepAlive() {
-        System.out.println("This is the KeepAlive constructor");
+        try{
+            this.start();
+        } catch( Exception e){
+            System.out.println(e.getMessage());
+        }
     }
 
     public void run() {
-
+        System.out.println("I'm responsible to keep alive the RMI Servers");
+        while(true){
+        }
     }
 }
 
 // Class that handles the connection to the database
-class DBConnection implements Runnable {
+class DBConnection extends Thread {
     public DBConnection() {
-        System.out.println("This is the DBConnection constructor");
+        try{
+            this.start();
+        } catch( Exception e){
+            System.out.println(e.getMessage());
+        }
     }
 
     public void run() {
