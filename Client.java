@@ -135,36 +135,18 @@ class Client {
 
     private static int loginRegister(int choice) {
 
-        Scanner reader = new Scanner(System.in);
-        String username = new String();
-        String password = new String();
-        Console console = System.console();
-
-        if(console == null) {
-            System.out.println("ERROR: Console does not exist");
-            return 0;
-        }
-
-        System.out.print("USERNAME: ");
-        username = reader.nextLine();
-        char[] pwd = console.readPassword("PASSWORD: ");
-
-        for(int i = 0; i < pwd.length; i++) {
-            password = password.concat(Character.toString(pwd[i]));
-        }
+        String username = getUsername();
+        String password = getPassword();
 
         if(choice == 1) {
-            String a = "type: login, ";
-            String b = "username: " + username + ", ";
-            String c = "password: " + password;
+            String request = new String();
 
-            String request = a + b + c;
+            request = request.concat("type: login, username: ");
+            request = request.concat(username);
+            request = request.concat(", password: ");
+            request = request.concat(password);
 
-            String reply = new String();
-
-            reply = sendRequest(clientSocket, request);
-
-            System.out.println(reply);
+            String reply = sendRequest(clientSocket, request);
 
             if(reply.equals("type: login, ok: true")) {
                 choice = mainMenu();
@@ -174,16 +156,13 @@ class Client {
 
             System.out.println("[SERVER] " + reply);
         } else {
-            String a = "type: register, ";
-            String b = "username: " + username + ", ";
-            String c = "password: " + password;
+            String request = new String();
+            request = request.concat("type: register, username: ");
+            request = request.concat(username);
+            request = request.concat(", password: ");
+            request = request.concat(password);
 
-            String request = a + b + c;
-            String reply = new String();
-
-            reply = sendRequest(clientSocket, request);
-
-            System.out.println(reply);
+            String reply = sendRequest(clientSocket, request);
 
             if(reply.equals("type: register, ok: true")) {
                 choice = mainMenu();
@@ -198,11 +177,230 @@ class Client {
     }
 
     private static int createAuction() {
-        System.out.println("Create a new auction");
+
+        String code = getCode();
+        String title = getTitle();
+        String description = getDescription();
+
+        String year = getYear();
+        String month = getMonth();
+        String day = getDay(year, month);
+        String hour = getHour();
+        String minutes = getMinutes();
+        String amount = getAmount();
+
+        System.out.println("------ INSERT THE DATE OF THE DEADLINE ------");
+
+        String deadline = new String();
+        deadline = deadline.concat(year);
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(month);
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(day);
+        deadline = deadline.concat(" ");
+        deadline = deadline.concat(hour);
+        deadline = deadline.concat(":");
+        deadline = deadline.concat(minutes);
+
+        String request = new String();
+
+        request = request.concat("type: create_auction, code: ");
+        request = request.concat(code);
+        request = request.concat(", title: ");
+        request = request.concat(title);
+        request = request.concat(", description: ");
+        request = request.concat(description);
+        request = request.concat(", deadline: ");
+        request = request.concat(deadline);
+        request = request.concat(", amount: ");
+        request = request.concat(amount);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        if(reply.equals("type: create_auction, ok: true")) {
+            System.out.println("CREATE AUCTION TRUE");
+        } else {
+            System.out.println("CREATE AUCTION FALSE");
+        }
+
+        return 0;
+    }
+
+    private static int searchAuctionByArticle() {
+        String code = getCode();
+
+        String request = new String();
+
+        request = request.concat("type: search_auction, code: ");
+        request = request.concat(code);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        if(reply.equals("type: search_auction, items_count: 0")) {
+            System.out.println("SEARCH AUCTION FALSE");
+        } else {
+            System.out.println("SEARCH AUCTION TRUE");
+        }
+
+        return 0;
+    }
+
+    private static int auctionDetails() {
+        String id = getId();
+        String request = new String();
+
+        request = request.concat("type: detail_auction, id: ");
+        request = request.concat(id);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        if(reply.equals("type: detail_auction, items_count: 0")) {
+            System.out.println("AUCTION DETAILS FALSE");
+        } else {
+            System.out.println("AUCTION DETAILS TRUE");
+        }
+
+        return 0;
+    }
+
+    private static int myAuctions() {
+        String request = new String();
+
+        request = request.concat("type: my_auctions");
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        return 0;
+    }
+
+    private static int makeBid() {
+        String id = getId();
+        String amount = getAmount();
+
+        String request = new String();
+
+        request = request.concat("type: bid, id: ");
+        request = request.concat(id);
+        request = request.concat(", amount: ");
+        request = request.concat(amount);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        return 0;
+    }
+
+    private static int editAuction() {
+        String id = getId();
+        String year = getYear();
+        String month = getMonth();
+        String day = getDay(year, month);
+        String hour = getHour();
+        String minutes = getMinutes();
+
+        System.out.println("------ INSERT THE DATE OF THE DEADLINE ------");
+
+        String deadline = new String();
+        deadline = deadline.concat(year);
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(month);
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(day);
+        deadline = deadline.concat(" ");
+        deadline = deadline.concat(hour);
+        deadline = deadline.concat(":");
+        deadline = deadline.concat(minutes);
+
+        String request = new String();
+
+        request = request.concat("type: edit_auction, id: ");
+        request = request.concat(id);
+        request = request.concat(", deadline: ");
+        request = request.concat(deadline);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        return 0;
+    }
+
+    private static int commentInAuction() {
+        String id = getId();
+        String text = getText();
+
+        String request = new String();
+
+        request = request.concat("type: message, id: ");
+        request = request.concat(id);
+        request = request.concat(", text: ");
+        request = request.concat(text);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        if(reply.equals("type: message, ok: true")) {
+            System.out.println("MESSAGE TRUE");
+        } else {
+            System.out.println("MESSAGE FALSE");
+        }
+
+        return 0;
+    }
+
+    private static int listOnlineUsers() {
+        String request = new String();
+
+        request = request.concat("type: online_users");
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        return 0;
+    }
+
+    private static String getUsername() {
+        Scanner reader = new Scanner(System.in);
+
+        System.out.print("INSERT USERNAME: ");
+        String username = reader.nextLine();
+
+        return username;
+    }
+
+    private static String getPassword() {
+        Console console = System.console();
+        String password = new String();
+
+        if(console == null) {
+            System.out.println("ERROR: CONSOLE DOES NOT EXIST");
+            return null;
+        }
+
+        char[] pwd = console.readPassword("PASSWORD: ");
+
+        for(int i = 0; i < pwd.length; i++) {
+            password = password.concat(Character.toString(pwd[i]));
+        }
+
+        return password;
+    }
+
+    private static String getCode() {
         int code = 0;
         Scanner sc = new Scanner(System.in);
 
-        // SINGLE ARTICLE STUFF
         while(code == 0) {
             try {
                 Scanner reader = new Scanner(System.in);
@@ -216,17 +414,33 @@ class Client {
                 }
             } catch(Exception e) {
                 System.out.println("ERROR: THIS IS NOT A VALID CODE");
+                code = 0;
             }
         }
 
+        return Integer.toString(code);
+    }
+
+    private static String getTitle() {
+        Scanner reader = new Scanner(System.in);
+
         System.out.print("INSERT THE TITLE OF THE AUCTION: ");
-        String title = sc.nextLine();
+        String title = reader.nextLine();
+
+        return title;
+    }
+
+    private static String getDescription() {
+        Scanner reader = new Scanner(System.in);
 
         System.out.print("INSERT A DESCRIPTION ABOUT THE AUCTION: ");
-        String description = sc.nextLine();
+        String description = reader.nextLine();
 
-        System.out.println("------ INSERT THE DATE OF THE DEADLINE ------");
-        int year = 0, month = 0, day = 0, hour = -1, minutes = -1;
+        return description;
+    }
+
+    private static String getYear() {
+        int year = 0;
 
         while(year == 0) {
             try {
@@ -251,6 +465,12 @@ class Client {
             }
         }
 
+        return Integer.toString(year);
+    }
+
+    private static String getMonth() {
+        int month = 0;
+
         while(month == 0) {
             try {
                 Scanner reader = new Scanner(System.in);
@@ -273,6 +493,14 @@ class Client {
                 month = 0;
             }
         }
+
+        return Integer.toString(month);
+    }
+
+    private static String getDay(String syear, String smonth) {
+        int day = 0;
+        int year = Integer.parseInt(syear);
+        int month = Integer.parseInt(smonth);
 
         while(day == 0) {
             try {
@@ -312,13 +540,19 @@ class Client {
             }
         }
 
+        return Integer.toString(day);
+    }
+
+    private static String getHour() {
+        int hour = -1;
+
         while(hour == -1) {
             try {
                 Scanner reader = new Scanner(System.in);
                 System.out.print("INSERT THE HOUR: ");
                 hour = reader.nextInt();
 
-                if(hour < 0 || hour > 24) {
+                if(hour <= 0 || hour > 24) {
                     System.out.println("ERROR: THIS IS NOT A VALID VALUE");
                     hour = -1;
                 }
@@ -334,6 +568,12 @@ class Client {
                 hour = -1;
             }
         }
+
+        return Integer.toString(hour);
+    }
+
+    private static String getMinutes() {
+        int minutes = -1;
 
         while(minutes == -1) {
             try {
@@ -358,17 +598,10 @@ class Client {
             }
         }
 
-        String deadline = new String();
-        deadline = deadline.concat(Integer.toString(year));
-        deadline = deadline.concat("-");
-        deadline = deadline.concat(Integer.toString(month));
-        deadline = deadline.concat("-");
-        deadline = deadline.concat(Integer.toString(day));
-        deadline = deadline.concat(" ");
-        deadline = deadline.concat(Integer.toString(hour));
-        deadline = deadline.concat(":");
-        deadline = deadline.concat(Integer.toString(minutes));
+        return Integer.toString(minutes);
+    }
 
+    private static String getAmount() {
         int amount = 0;
         while(amount == 0) {
             try {
@@ -376,7 +609,7 @@ class Client {
                 System.out.print("INSERT THE AMOUNT OF ITEMS TO SELL: ");
                 amount = reader.nextInt();
 
-                if(amount < 0) {
+                if(amount <= 0) {
                     System.out.println("ERROR: THIS IS NOT A VALID VALUE");
                     amount = 0;
                 }
@@ -386,67 +619,39 @@ class Client {
             }
         }
 
-        String request = new String();
+        return Integer.toString(amount);
+    }
 
-        request = request.concat("type: create_auction, code: ");
-        request = request.concat(Integer.toString(code));
-        request = request.concat(", title: ");
-        request = request.concat(title);
-        request = request.concat(", description: ");
-        request = request.concat(description);
-        request = request.concat(", deadline: ");
-        request = request.concat(deadline);
-        request = request.concat(", amount: ");
-        request = request.concat(Integer.toString(amount));
+    private static String getId() {
+        int id = 0;
 
-        System.out.println(request);
+        while(id == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE ID OF THE AUCTION: ");
+                id = reader.nextInt();
+                String sid = Integer.toString(id);
 
-        String reply = new String();
-
-        reply = sendRequest(clientSocket, request);
-
-        if(reply.equals("type: create_auction, ok: true")) {
-            System.out.println("true");
-        } else {
-            System.out.println("false");
+                if(sid.length() == 0 || sid.length() >= 12) {
+                    System.out.println("ERROR: THIS IS NOT A VALID ID");
+                    id = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID ID");
+                id = 0;
+            }
         }
 
-        return 0;
+        return Integer.toString(id);
     }
 
-    private static int searchAuctionByArticle() {
-        System.out.println("Search auction by article");
-        return 0;
-    }
+    private static String getText() {
+        Scanner reader = new Scanner(System.in);
 
-    private static int auctionDetails() {
-        System.out.println("Auction details");
-        return 0;
-    }
+        System.out.print("INSERT THE TEXT: ");
+        String text = reader.nextLine();
 
-    private static int myAuctions() {
-        System.out.println("See my auctions");
-        return 0;
-    }
-
-    private static int makeBid() {
-        System.out.println("Bid in an auction");
-        return 0;
-    }
-
-    private static int editAuction() {
-        System.out.println("Edit an auction");
-        return 0;
-    }
-
-    private static int commentInAuction() {
-        System.out.println("Comment on an auction");
-        return 0;
-    }
-
-    private static int listOnlineUsers() {
-        System.out.println("List online users");
-        return 0;
+        return text;
     }
 
     private static String sendRequest(Socket socket, String request) {
