@@ -98,14 +98,9 @@ class Connection extends Thread {
                 String data = dataInputStream.readUTF();
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
-                String [] aux1 = data.split("type: ");
-                String [] aux2 = aux1[1].split(",", 2);
-                String [] aux3 = aux2[1].split(" ", 2);
+                String action = parse("type: ", data);
 
-                String action = aux2[0];
-                String parameters = aux3[1];
-
-                reply = courseOfAction(action, parameters);
+                reply = courseOfAction(action, data);
 
                 dataOutputStream.writeUTF(reply);
             }
@@ -137,7 +132,7 @@ class Connection extends Thread {
             } else {
                 reply = "type: register, ok: true";
             }
-            
+
         } else if(action.equals("create_auction")) {
 
             String code = parse("code: ", parameters);
