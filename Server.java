@@ -129,30 +129,45 @@ class Connection extends Thread {
         String reply = new String();
 
         if(action.equals("login") || action.equals("register")) {
+            String username = parse("username: ", parameters);
+            String password = parse("password: ", parameters);
+
             if(action.equals("login")) {
                 reply = "type: login, ok: true";
             } else {
                 reply = "type: register, ok: true";
             }
-
-            String username = getUsername(parameters);
-
+            
         } else if(action.equals("create_auction")) {
-            reply = "type: create_auction, ok: true";
+
+            String code = parse("code: ", parameters);
+            String title = parse("title: ", parameters);
+            String description = parse("description: ", parameters);
+            String deadline = parse("deadeline: ", parameters);
+            String amount = parse("amount: ", parameters);
+
         } else if(action.equals("search_auction")) {
-            reply = "type: search_auction, ok: true";
+            String code = parse("code: ", parameters);
+
         } else if(action.equals("detail_auction")) {
-            reply = "type: detail_auction, ok: true";
+            String id = parse("id: ", parameters);
         } else if(action.equals("my_auctions")) {
-            reply = "type: my_auctions, ok: true";
+            //ONLY ACTION type: my_auctions
         } else if(action.equals("bid")) {
-            reply = "type: bid, ok: true";
+            String id = parse("id: ", parameters);
+            String amount = parse("amount: ", parameters);
+
         } else if(action.equals("edit_auction")) {
-            reply = "type: edit_auction, ok: true";
+            String id = parse("id: ", parameters);
+            String deadline = parse("deadline: ", parameters);
+
         } else if(action.equals("message")) {
-            reply = "type: message, ok: true";
+            String id = parse("id: ", parameters);
+            String text = parse("text: ", parameters);
+
         } else if(action.equals("online_users")) {
-            reply = "type: online_users, ok: true";
+            // ONLY ACTION type: online_users
+
         } else {
             return "ERROR: THIS IS'NT A VALID REQUEST";
         }
@@ -160,12 +175,38 @@ class Connection extends Thread {
         return reply;
     }
 
-    private static String getUsername(String searchMe) {
-        String username = new String();
+    private static String parse(String parameter, String request) {
+        int j = 0, k = 0;
+        int plen = parameter.length();
 
-        
+        for(int i = 0; i < request.length(); i++) {
+            if(j != plen && (request.charAt(i) == parameter.charAt(j))) {
+                j++;
+            }
 
-        return username;
+            if(j == plen) {
+                j = i;
+                break;
+            }
+        }
+
+        for(int i = 0; i < request.length(); i++) {
+            if(request.charAt(i) == ',' && j < i) {
+                k = i;
+                break;
+            }
+        }
+
+        String string = new String();
+
+        if(k == 0) {
+            k = request.length();
+            string = request.substring(j + 1, k);
+        } else {
+            string = request.substring(j + 1, k);
+        }
+
+        return string;
     }
 
     private static String attemptLoginRegister(String action, String username, String password) {
