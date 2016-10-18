@@ -106,6 +106,7 @@ class Connection extends Thread {
             }
         } catch(EOFException eofe) {
             System.out.println("[SERVER] THE CLIENT DISCONNECTED");
+            // IF A REQUEST COMES AND THE USER DOESNT GET IT HE SOULD BE NOTIFIED ABOUT IT WHEN HE COMES BACK!!!
 
             try {
                 this.clientSocket.close();
@@ -241,7 +242,7 @@ class Connection extends Thread {
 				System.out.print("Mensagem a enviar = ");
 				// READ STRING FROM KEYBOARD
     	     	  try{
-                    texto = "merdinha";
+                    texto = "some text";
     				byte [] m = texto.getBytes();
 
     				DatagramPacket request = new DatagramPacket(m, m.length);
@@ -258,3 +259,13 @@ class Connection extends Thread {
 		} finally {if(udpSocket != null) udpSocket.close();}
     }
 }*/
+
+
+// AULA
+    // ATOMIC INTEGER
+    // COPYONWIRTEARAYLIST
+    // CONCURRENTHASHMAP
+
+    // ENTRADA NO SERVIDOR PODE SER type:login!!!!
+    // USAR UM FICHEIRO DE CONFIGURAÇAO PARA DECIDIR ONDE VAO ESTAR ALOJADOS OS SERVIDORES
+    // USAR MULTICAST SOCKETS! PARA SABER A CARGA DOS SERVIDORES
