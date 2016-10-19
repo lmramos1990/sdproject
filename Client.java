@@ -103,7 +103,7 @@ class Client {
                         choice = createAuction();
                         break;
                     case 2:
-                        choice = searchAuctionByArticle();
+                        choice = searchAuction();
                         break;
                     case 3:
                         choice = auctionDetails();
@@ -228,7 +228,7 @@ class Client {
         return 0;
     }
 
-    private static int searchAuctionByArticle() {
+    private static int searchAuction() {
         String code = getCode();
 
         String request = new String();
