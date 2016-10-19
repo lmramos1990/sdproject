@@ -106,6 +106,7 @@ class Connection extends Thread {
             }
         } catch(EOFException eofe) {
             System.out.println("[SERVER] THE CLIENT DISCONNECTED");
+            // IF A REQUEST COMES AND THE USER DOESNT GET IT HE SOULD BE NOTIFIED ABOUT IT WHEN HE COMES BACK!!!
 
             try {
                 this.clientSocket.close();
@@ -206,9 +207,9 @@ class Connection extends Thread {
 
     private static String attemptLoginRegister(String action, String username, String password) {
         if(action.equals("login")) {
-            System.out.println("LOGIN -> SEND THIS BULLSHIT TO THE RMI SERVER");
+            System.out.println("LOGIN -> SEND THIS TO THE RMI SERVER");
         } else {
-            System.out.println("REGISTER -> SEND THIS BULLSHIT TO THE RMI SERVER");
+            System.out.println("REGISTER -> SEND THIS TO THE RMI SERVER");
         }
 
         return action;
@@ -241,7 +242,7 @@ class Connection extends Thread {
 				System.out.print("Mensagem a enviar = ");
 				// READ STRING FROM KEYBOARD
     	     	  try{
-                    texto = "merdinha";
+                    texto = "some text";
     				byte [] m = texto.getBytes();
 
     				DatagramPacket request = new DatagramPacket(m, m.length);
@@ -258,3 +259,23 @@ class Connection extends Thread {
 		} finally {if(udpSocket != null) udpSocket.close();}
     }
 }*/
+
+
+// AULA
+    // CENAS PARA TRABALHAR CONCURRENTEMENTE (WhAT?)
+    // ATOMIC INTEGER
+    // COPYONWIRTEARAYLIST
+    // CONCURRENTHASHMAP
+
+    // ENTRADA NO SERVIDOR PODE SER type:login!!!!
+    // USAR UM FICHEIRO DE CONFIGURAÇAO PARA DECIDIR ONDE VAO ESTAR ALOJADOS OS SERVIDORES
+    // USAR MULTICAST SOCKETS PARA SABER A CARGA DOS SERVIDORES
+
+    // CODIGO ISBN/ESN TEM 13 DIGITOS!!!
+
+
+    // RMI NAO USA PORTAS !?!?!?
+
+
+    // SERVER FAZ LOOKUP E PODE DAR BODE <-- CUIDADO!!
+    // RMI FAZ BIND PARA DECIDIR QUAL E O PRIMARIO E O SECUNDARIO!!!
