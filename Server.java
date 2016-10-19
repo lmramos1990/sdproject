@@ -207,9 +207,9 @@ class Connection extends Thread {
 
     private static String attemptLoginRegister(String action, String username, String password) {
         if(action.equals("login")) {
-            System.out.println("LOGIN -> SEND THIS BULLSHIT TO THE RMI SERVER");
+            System.out.println("LOGIN -> SEND THIS TO THE RMI SERVER");
         } else {
-            System.out.println("REGISTER -> SEND THIS BULLSHIT TO THE RMI SERVER");
+            System.out.println("REGISTER -> SEND THIS TO THE RMI SERVER");
         }
 
         return action;
@@ -262,10 +262,20 @@ class Connection extends Thread {
 
 
 // AULA
+    // CENAS PARA TRABALHAR CONCURRENTEMENTE (WhAT?)
     // ATOMIC INTEGER
     // COPYONWIRTEARAYLIST
     // CONCURRENTHASHMAP
 
     // ENTRADA NO SERVIDOR PODE SER type:login!!!!
     // USAR UM FICHEIRO DE CONFIGURAÇAO PARA DECIDIR ONDE VAO ESTAR ALOJADOS OS SERVIDORES
-    // USAR MULTICAST SOCKETS! PARA SABER A CARGA DOS SERVIDORES
+    // USAR MULTICAST SOCKETS PARA SABER A CARGA DOS SERVIDORES
+
+    // CODIGO ISBN/ESN TEM 13 DIGITOS!!!
+
+
+    // RMI NAO USA PORTAS !?!?!?
+
+
+    // SERVER FAZ LOOKUP E PODE DAR BODE <-- CUIDADO!!
+    // RMI FAZ BIND PARA DECIDIR QUAL E O PRIMARIO E O SECUNDARIO!!!
