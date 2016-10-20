@@ -77,6 +77,19 @@ class Connection extends Thread {
     Socket clientSocket;
     int threadNumber;
 
+    // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
+    private static String username = new String();
+    private static String password = new String();
+    private static String code = new String();
+    private static String title = new String();
+    private static String description = new String();
+    private static String deadline = new String();
+    private static String amount = new String();
+    private static String id = new String();
+    private static String text = new String();
+
+    // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
+
     public Connection (Socket pclientSocket, int number) {
         threadNumber = number;
         try {
@@ -125,8 +138,8 @@ class Connection extends Thread {
         String reply = new String();
 
         if(action.equals("login") || action.equals("register")) {
-            String username = parse("username:", parameters);
-            String password = parse("password:", parameters);
+            username = parse("username:", parameters);
+            password = parse("password:", parameters);
 
             if(action.equals("login")) {
                 reply = "type: login, ok: true";
@@ -136,30 +149,30 @@ class Connection extends Thread {
 
         } else if(action.equals("create_auction")) {
 
-            String code = parse("code:", parameters);
-            String title = parse("title:", parameters);
-            String description = parse("description:", parameters);
-            String deadline = parse("deadeline:", parameters);
-            String amount = parse("amount:", parameters);
+            code = parse("code:", parameters);
+            title = parse("title:", parameters);
+            description = parse("description:", parameters);
+            deadline = parse("deadeline:", parameters);
+            amount = parse("amount:", parameters);
 
         } else if(action.equals("search_auction")) {
-            String code = parse("code:", parameters);
+            code = parse("code:", parameters);
 
         } else if(action.equals("detail_auction")) {
-            String id = parse("id:", parameters);
+            id = parse("id:", parameters);
         } else if(action.equals("my_auctions")) {
             //ONLY ACTION type: my_auctions
         } else if(action.equals("bid")) {
-            String id = parse("id:", parameters);
-            String amount = parse("amount:", parameters);
+            id = parse("id:", parameters);
+            amount = parse("amount:", parameters);
 
         } else if(action.equals("edit_auction")) {
-            String id = parse("id:", parameters);
-            String deadline = parse("deadline:", parameters);
+            id = parse("id:", parameters);
+            deadline = parse("deadline:", parameters);
 
         } else if(action.equals("message")) {
-            String id = parse("id:", parameters);
-            String text = parse("text:", parameters);
+            id = parse("id:", parameters);
+            text = parse("text:", parameters);
 
         } else if(action.equals("online_users")) {
             // ONLY ACTION type: online_users
@@ -204,7 +217,7 @@ class Connection extends Thread {
 
         StringBuilder sb = new StringBuilder(string);
 
-        if(string.charAt(0) == ' ') {
+        while(string.charAt(0) == ' ') {
             sb.deleteCharAt(0);
             string = sb.toString();
         }
@@ -220,6 +233,20 @@ class Connection extends Thread {
         }
 
         return action;
+    }
+}
+
+class ServerLoad extends Thread {
+    DataInputStream dataInputStream;
+    DataOutputStream dataOutputStream;
+    DatagramSocket socket;
+
+    public ServerLoad() {
+
+    }
+
+    public void run() {
+
     }
 }
 
@@ -274,7 +301,6 @@ class Connection extends Thread {
     // COPYONWIRTEARAYLIST
     // CONCURRENTHASHMAP
 
-    // ENTRADA NO SERVIDOR PODE SER type:login!!!!
     // USAR UM FICHEIRO DE CONFIGURAÇAO PARA DECIDIR ONDE VAO ESTAR ALOJADOS OS SERVIDORES
     // USAR MULTICAST SOCKETS PARA SABER A CARGA DOS SERVIDORES
 
