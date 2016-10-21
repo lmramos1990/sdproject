@@ -661,11 +661,14 @@ class Client {
         byte[] message = request.getBytes();
         System.out.println("THIS IS A REQUEST: " + request);
 
+        byte[] buffer = new byte[100];
+
         try {
-            dataOutputStream.writeInt(message.length);
             dataOutputStream.write(message);
 
-            data = dataInputStream.readUTF();
+            dataInputStream.read(buffer);
+            data = new String(buffer);
+
         } catch(Exception e) {
             System.out.println("ERROR: " + e.getMessage());
         }

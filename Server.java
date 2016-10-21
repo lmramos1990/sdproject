@@ -110,23 +110,18 @@ class TCPConnection extends Thread {
 
         try {
             while(true) {
-                byte[] message = new byte[2048];
+                byte[] buffer = new byte[100];
+                dataInputStream.read(buffer);
+                String data = new String(buffer);
 
-                //TODO: telnet sends some shit and does not work
-                int length = dataInputStream.readInt();
-                if(length > 0) {
-                    message = new byte[length];
-                    dataInputStream.readFully(message, 0, message.length);
-                }
-
-                String data = new String(message);
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
                 String action = parse("type:", data);
 
                 reply = courseOfAction(action, data);
 
-                dataOutputStream.writeUTF(reply);
+                byte[] message = reply.getBytes();
+                dataOutputStream.write(message);
             }
         } catch(EOFException eofe) {
             System.out.println("[SERVER] THE CLIENT DISCONNECTED");
