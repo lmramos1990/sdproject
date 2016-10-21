@@ -1,3 +1,4 @@
+
 import java.util.*;
 import java.net.*;
 import java.io.*;
@@ -6,56 +7,70 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface{
-    private static int port = 8000;
+    private volatile boolean mainRMI = false;
+
     //CONSTRUCTOR
     protected RMIServer() throws RemoteException {
         super();
     }
 
     //METHODS
+    public synchronized void switchToMainRMI(boolean ismainRMI) throws IOException {
+        //MAIN RMI CODE
+        //rebind registry
+        mainRMI = ismainRMI;
+    }
+
+    private synchronized void validateIfmainRMI() throws NotMainRMIException{
+        if (!mainRMI) {
+            throw new NotMainRMIException();
+        }
+    }
+    public synchronized void ping() throws RemoteException {
+
+    }
+
     public int createAuction(String buyer, String isbnCode, String title, String description, String details, float maxPrice, String deadlineStamp) throws RemoteException{
         return 0;
     }
 
-    private static int selectPort() {
-        int myPort = port;
-        if(isPortAvailable(port) == false) {
-            port += 1;
-            selectPort();
-        }
-        return (port - myPort + 1);
-    }
+    public void init (){
+        //TODO: we need to find the ip on the configurations file first
+        PingService udpPing = new PingService(this, "127.0.0.1");
+        udpPing.start();
 
-    private static Boolean isPortAvailable(int port) {
         try {
-            AuctionInterface iBei = new RMIServer();
-            LocateRegistry.createRegistry(port).rebind("iBei", iBei);
-        } catch(Exception e) {
-            return false;
+            while (true) {
+                if (mainRMI) {
+                    System.out.println("I'm the main RMI Server");
+                    //MAIN RMI CODE
+                    //rebind registry
+                }
+
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    System.out.println("INTERRUPTION:" + e.getMessage());
+                }
+
+            }
+        } catch(Exception e){
+            System.out.println("ERROR: " + e.getMessage());
         }
 
-        return true;
     }
 
     //MAIN
     public static void main(String[] args) throws RemoteException{
-        int rmiNumber = selectPort();
-        System.out.println("iBei ready at port: " + port);
-        System.out.println("I'm RMIServer Number: " + rmiNumber);
-        RMIRequestListener requestlistener = new RMIRequestListener();
-        KeepAlive keepalive = new KeepAlive(rmiNumber);
+        RMIServer myRMI = new RMIServer();
+        myRMI.init();
+
+
     }
 }
 
 // Class that handles the requests of the clients
 class RMIRequestListener extends Thread {
-    public RMIRequestListener() {
-        try{
-            this.start();
-        } catch( Exception e){
-            System.out.println(e.getMessage());
-        }
-    }
 
     public void run() {
 
@@ -64,106 +79,108 @@ class RMIRequestListener extends Thread {
 
 //----------------------------------------------------------------------------------------------------------------
 // Class that is supposed to be keeping the servers running at all times
-class KeepAlive extends Thread{
-    private static int port = 9000;
-    private int rmiNumber;
-    private String isAlive = "Y";
+class PingService extends Thread{
+    RMIServer rmiServer;
+    String ip;
+    DatagramSocket pingSocket = null;
+    DatagramPacket receivePacket, sendPacket;
+    String message = "Y";
+    byte[] dataIn = new byte[1];
+    byte[] dataOut;
+    //TODO: we need to find the ip on the configurations file first
+    int port = 9000;
+    int timeout = 1000;
 
-    public KeepAlive(int _rmiNumber) {
-        this.rmiNumber = _rmiNumber;
-        try{
-            this.start();
-        } catch( Exception e){
-            System.out.println(e.getMessage());
-        }
+    public PingService(RMIServer rmiServer, String ip) {
+        this.rmiServer = rmiServer;
+        this.ip = ip;
     }
 
     public void run() {
-        //MAIN RMI SERVER
-        if (rmiNumber == 1) {
-            try{
-                selectPort();
-                DatagramSocket rmiSocket = new DatagramSocket(port);
-                System.out.println("RMI to RMI Socket Listening at Port: " + port);
-                while(true){
-                    byte[] buffer = new byte[1];
-                    DatagramPacket request = new DatagramPacket(buffer, buffer.length);
-                    rmiSocket.receive(request);
-                    DatagramPacket reply = new DatagramPacket(request.getData(),request.getLength(), request.getAddress(), request.getPort());
-                    rmiSocket.send(reply);
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                      System.out.println("Thread: " + e.getMessage());
+        try {
+            int count = 0;
+            int backup = 0;
+
+            dataOut = message.getBytes(); //
+            InetAddress rmiHost = InetAddress.getByName(ip); //
+            pingSocket = new DatagramSocket(); //
+            pingSocket.setSoTimeout(timeout); //
+
+            while (true) {
+                try {
+                    sendPacket = new DatagramPacket(dataOut, dataOut.length, rmiHost, port);
+                    pingSocket.send(sendPacket);
+
+                    receivePacket = new DatagramPacket(dataIn, dataIn.length);
+                    pingSocket.receive(receivePacket);
+                    count = 0;
+                    backup = 1;
+                } catch (SocketException e) {
+                    System.out.println("Socket: " + e.getMessage());
+                } catch (UnknownHostException e) {
+                    System.out.println("Host: " + e.getMessage());
+                } catch (IOException e) {
+                    count++;
+                    if ((backup == 0) || (count == 3)) {
+                        //Switching
+                        rmiServer.switchToMainRMI(true);
+                        break;
                     }
                 }
-            }catch (SocketException e){System.out.println("Socket: " + e.getMessage());
-    		}catch (IOException e) {System.out.println("IO: " + e.getMessage());
-    		}
 
-        //SECONDARY RMI SERVER
-        } else {
-            try{
-                DatagramSocket rmiSocket = new DatagramSocket();
-                InputStreamReader input = new InputStreamReader(System.in);
-                BufferedReader reader = new BufferedReader(input);
-
-                while(true){
-                    byte [] m = isAlive.getBytes();
-                    //TODO: it should be generic
-                    InetAddress aHost = InetAddress.getByName("127.0.0.1");
-
-                    DatagramPacket request = new DatagramPacket(m,m.length,aHost,port);
-                    rmiSocket.send(request);
-                    byte[] buffer = new byte[1];
-                    DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
-                    rmiSocket.receive(reply);
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                      System.out.println("Thread: " + e.getMessage());
-                    }
+                try {
+                    Thread.sleep(timeout);
+                } catch (InterruptedException e) {
+                    System.out.println("INTERRUPTION:" + e.getMessage());
                 }
-            }catch (SocketException e){System.out.println("Socket: " + e.getMessage());
-            }catch (IOException e){System.out.println("IO: " + e.getMessage());
+            }
+            pingSocket = new DatagramSocket(port);
+        } catch (SocketException e) {
+            System.out.println("Socket Exception");
+        } catch (UnknownHostException e) {
+            System.out.println("Unknown Host Exception");
+        } catch (IOException e) {
+            System.out.println("IO:" + e.getMessage());
+        }
+
+        //o mainRMI espera indefinidamente por um pacote
+        try {
+            pingSocket.setSoTimeout(0);
+        } catch (SocketException e) {
+            System.out.println("Socket: " + e.getMessage());
+        }
+
+        //mainRMI
+        while (true) {
+            try {
+                receivePacket = new DatagramPacket(dataIn, dataIn.length);
+                pingSocket.receive(receivePacket);
+                String myMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
+
+                dataOut = myMessage.getBytes();
+                sendPacket = new DatagramPacket(dataOut, dataOut.length, receivePacket.getAddress(), receivePacket.getPort());
+                pingSocket.send(sendPacket);
+            } catch (Exception e) {
+                System.out.println("Socket: " + e.getMessage());
+
             }
         }
 
     }
 
-    private static int selectPort() {
-        int myPort = port;
-        if(isPortAvailable(port) == false) {
-            port += 1;
-            selectPort();
-        }
-        return (port - myPort + 1);
-    }
-
-    private static Boolean isPortAvailable(int port) {
-        try {
-            AuctionInterface iBei = new RMIServer();
-            LocateRegistry.createRegistry(port).rebind("iBei", iBei);
-        } catch(Exception e) {
-            return false;
-        }
-
-        return true;
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
 // Class that handles the connection to the database
 class DBConnection extends Thread {
     public DBConnection() {
-        try{
-            this.start();
-        } catch( Exception e){
-            System.out.println(e.getMessage());
-        }
+
     }
 
     public void run() {
 
     }
 }
+
+//----------------------------------------------------------------------------------------------------------------------------------
+class NotMainRMIException  extends java.lang.Exception {}
