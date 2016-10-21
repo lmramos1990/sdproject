@@ -30,16 +30,17 @@ class Server {
                 new Connection(clientSocket, number);
 
                 //Joins Multicast Socket
-                /*InetAddress group = InetAddress.getByName("224.0.0.2");
-                MulticastSocket s = new MulticastSocket(7500);
-                s.joinGroup(group);
 
-                DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
-                s.send(hi);
-                // get their responses!
-                byte[] buf = new byte[1000];
-                DatagramPacket recv = new DatagramPacket(buf, buf.length);
-                s.receive(recv);*/
+                // InetAddress group = InetAddress.getByName("224.0.0.2");
+                // MulticastSocket s = new MulticastSocket(7500);
+                // s.joinGroup(group);
+                //
+                // DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
+                // s.send(hi);
+                // // get their responses!
+                // byte[] buf = new byte[1000];
+                // DatagramPacket recv = new DatagramPacket(buf, buf.length);
+                // s.receive(recv);
 
                 //USING THE RMI SERVER - catch NotBoundException
                 //System.out.println("[SERVER] I'M IN TOUCH WITH RMI SERVER");
@@ -77,6 +78,19 @@ class Connection extends Thread {
     Socket clientSocket;
     int threadNumber;
 
+    // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
+    private static String username = new String();
+    private static String password = new String();
+    private static String code = new String();
+    private static String title = new String();
+    private static String description = new String();
+    private static String deadline = new String();
+    private static String amount = new String();
+    private static String id = new String();
+    private static String text = new String();
+
+    // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
+
     public Connection (Socket pclientSocket, int number) {
         threadNumber = number;
         try {
@@ -98,20 +112,16 @@ class Connection extends Thread {
                 String data = dataInputStream.readUTF();
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
-                // CHANGE THIS BULLSHIT!!!
-                String [] aux1 = data.split("type: ");
-                String [] aux2 = aux1[1].split(",", 2);
-                String [] aux3 = aux2[1].split(" ", 2);
+                String action = parse("type:", data);
 
-                String action = aux2[0];
-                String parameters = aux3[1];
-
-                reply = courseOfAction(action, parameters);
+                reply = courseOfAction(action, data);
 
                 dataOutputStream.writeUTF(reply);
             }
         } catch(EOFException eofe) {
             System.out.println("[SERVER] THE CLIENT DISCONNECTED");
+
+            // IF A REQUEST COMES AND THE USER DOESNT GET IT HE SOULD BE NOTIFIED ABOUT IT WHEN HE COMES BACK!!!
 
             try {
                 this.clientSocket.close();
@@ -130,49 +140,46 @@ class Connection extends Thread {
         String reply = new String();
 
         if(action.equals("login") || action.equals("register")) {
-            // CHANGE THIS BULLSHIT!!!
-            // String username = new String();
-            // String password = new String();
-            //
-            // String [] aux1 = parameters.split("username: ", 2);
-            // String [] aux2 = aux1[1].split("password: ", 2);
-            //
-            // String aux3 = new String();
-            //
-            // for(int i = 0; i < aux2.length; i++) {
-            //     aux3 = aux3.concat(aux2[i]);
-            // }
-            //
-            // String [] aux4 = aux3.split(",", 2);
-            // String [] aux5 = aux4[1].split(" ");
-            //
-            // username = aux4[0];
-            // password = aux5[1];
-            //
-            // reply = attemptLoginRegister(action, username, password);
 
-            // jsut for tests
+            username = parse("username:", parameters);
+            password = parse("password:", parameters);
+
             if(action.equals("login")) {
                 reply = "type: login, ok: true";
             } else {
                 reply = "type: register, ok: true";
             }
+
         } else if(action.equals("create_auction")) {
-            System.out.println("create an auction");
+
+            code = parse("code:", parameters);
+            title = parse("title:", parameters);
+            description = parse("description:", parameters);
+            deadline = parse("deadeline:", parameters);
+            amount = parse("amount:", parameters);
+
         } else if(action.equals("search_auction")) {
-            System.out.println("search_auction");
+            code = parse("code:", parameters);
+
         } else if(action.equals("detail_auction")) {
-            System.out.println("detail_auction");
+            id = parse("id:", parameters);
         } else if(action.equals("my_auctions")) {
-            System.out.println("my_auctions");
+            //ONLY ACTION type: my_auctions
         } else if(action.equals("bid")) {
-            System.out.println("bid");
+            id = parse("id:", parameters);
+            amount = parse("amount:", parameters);
+
         } else if(action.equals("edit_auction")) {
-            System.out.println("edit_auction");
+            id = parse("id:", parameters);
+            deadline = parse("deadline:", parameters);
+
         } else if(action.equals("message")) {
-            System.out.println("message");
+            id = parse("id:", parameters);
+            text = parse("text:", parameters);
+
         } else if(action.equals("online_users")) {
-            System.out.println("online_users");
+            // ONLY ACTION type: online_users
+
         } else {
             return "ERROR: THIS IS'NT A VALID REQUEST";
         }
@@ -180,14 +187,69 @@ class Connection extends Thread {
         return reply;
     }
 
+    private static String parse(String parameter, String request) {
+        int j = 0, k = 0;
+        int plen = parameter.length();
+
+        for(int i = 0; i < request.length(); i++) {
+            if(j != plen && (request.charAt(i) == parameter.charAt(j))) {
+                j++;
+            }
+
+            if(j == plen) {
+                j = i;
+                break;
+            }
+        }
+
+        for(int i = 0; i < request.length(); i++) {
+            if(request.charAt(i) == ',' && j < i) {
+                k = i;
+                break;
+            }
+        }
+
+        String string = new String();
+
+        if(k == 0) {
+            k = request.length();
+            string = request.substring(j + 1, k);
+        } else {
+            string = request.substring(j + 1, k);
+        }
+
+        StringBuilder sb = new StringBuilder(string);
+
+        while(string.charAt(0) == ' ') {
+            sb.deleteCharAt(0);
+            string = sb.toString();
+        }
+
+        return string;
+    }
+
     private static String attemptLoginRegister(String action, String username, String password) {
         if(action.equals("login")) {
-            System.out.println("LOGIN -> SEND THIS BULLSHIT TO THE RMI SERVER");
+            System.out.println("LOGIN -> SEND THIS TO THE RMI SERVER");
         } else {
-            System.out.println("REGISTER -> SEND THIS BULLSHIT TO THE RMI SERVER");
+            System.out.println("REGISTER -> SEND THIS TO THE RMI SERVER");
         }
 
         return action;
+    }
+}
+
+class ServerLoad extends Thread {
+    DataInputStream dataInputStream;
+    DataOutputStream dataOutputStream;
+    DatagramSocket socket;
+
+    public ServerLoad() {
+
+    }
+
+    public void run() {
+
     }
 }
 
@@ -217,7 +279,8 @@ class Connection extends Thread {
 				System.out.print("Mensagem a enviar = ");
 				// READ STRING FROM KEYBOARD
     	     	  try{
-                    texto = "merdinha";
+
+                    texto = "some text";
     				byte [] m = texto.getBytes();
 
     				DatagramPacket request = new DatagramPacket(m, m.length);
@@ -234,3 +297,22 @@ class Connection extends Thread {
 		} finally {if(udpSocket != null) udpSocket.close();}
     }
 }*/
+
+
+// AULA
+    // CENAS PARA TRABALHAR CONCURRENTEMENTE (WhAT?)
+    // ATOMIC INTEGER
+    // COPYONWIRTEARAYLIST
+    // CONCURRENTHASHMAP
+
+    // USAR UM FICHEIRO DE CONFIGURAÇAO PARA DECIDIR ONDE VAO ESTAR ALOJADOS OS SERVIDORES
+    // USAR MULTICAST SOCKETS PARA SABER A CARGA DOS SERVIDORES
+
+    // CODIGO ISBN/ESN TEM 13 DIGITOS!!!
+
+
+    // RMI NAO USA PORTAS !?!?!?
+
+
+    // SERVER FAZ LOOKUP E PODE DAR BODE <-- CUIDADO!!
+    // RMI FAZ BIND PARA DECIDIR QUAL E O PRIMARIO E O SECUNDARIO!!!

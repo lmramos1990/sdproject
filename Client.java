@@ -78,7 +78,20 @@ class Client {
         int choice = 0;
 
         while(choice >= 0 && choice < 9) {
+<<<<<<< HEAD
             System.out.println("[1] - Create a new auction\n[2] - Search auction by article\n[3] - Auction details\n[4] - See my auctions\n[5] - Bid in an auction\n[6] - Edit an auction\n[7] - Comment on an auction\n[8] - List online users\n[9] - Logout");
+=======
+            System.out.println("[1] - Create a new auction");
+            System.out.println("[2] - Search auction by article");
+            System.out.println("[3] - Auction details");
+            System.out.println("[4] - See my auctions");
+            System.out.println("[5] - Bid in an auction");
+            System.out.println("[6] - Edit an auction");
+            System.out.println("[7] - Comment on an auction");
+            System.out.println("[8] - List online users");
+            System.out.println("[9] - Logout");
+
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
             Scanner reader = new Scanner(System.in);
             try {
                 System.out.print("CHOOSE AN OPTION: ");
@@ -94,7 +107,11 @@ class Client {
                         choice = createAuction();
                         break;
                     case 2:
+<<<<<<< HEAD
                         choice = searchAuctionByArticle();
+=======
+                        choice = searchAuction();
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
                         break;
                     case 3:
                         choice = auctionDetails();
@@ -126,6 +143,7 @@ class Client {
 
     private static int loginRegister(int choice) {
 
+<<<<<<< HEAD
         Scanner reader = new Scanner(System.in);
         String username = new String();
         String password = new String();
@@ -156,6 +174,20 @@ class Client {
             reply = sendRequest(clientSocket, request);
 
             System.out.println(reply);
+=======
+        String username = getUsername();
+        String password = getPassword();
+
+        if(choice == 1) {
+            String request = new String();
+
+            request = request.concat("type: login, username: ");
+            request = request.concat(username);
+            request = request.concat(", password: ");
+            request = request.concat(password);
+
+            String reply = sendRequest(clientSocket, request);
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
 
             if(reply.equals("type: login, ok: true")) {
                 choice = mainMenu();
@@ -165,6 +197,7 @@ class Client {
 
             System.out.println("[SERVER] " + reply);
         } else {
+<<<<<<< HEAD
             String a = "type: register, ";
             String b = "username: " + username + ", ";
             String c = "password: " + password;
@@ -175,6 +208,15 @@ class Client {
             reply = sendRequest(clientSocket, request);
 
             System.out.println(reply);
+=======
+            String request = new String();
+            request = request.concat("type: register, username: ");
+            request = request.concat(username);
+            request = request.concat(", password: ");
+            request = request.concat(password);
+
+            String reply = sendRequest(clientSocket, request);
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
 
             if(reply.equals("type: register, ok: true")) {
                 choice = mainMenu();
@@ -189,45 +231,519 @@ class Client {
     }
 
     private static int createAuction() {
+<<<<<<< HEAD
         System.out.println("Create a new auction");
         return 0;
     }
 
     private static int searchAuctionByArticle() {
         System.out.println("Search auction by article");
+=======
+
+        String code = getCode();
+        String title = getTitle();
+        String description = getDescription();
+
+        String year = getYear();
+        String month = getMonth();
+        String day = getDay(year, month);
+        String hour = getHour();
+        String minutes = getMinutes();
+        String amount = getAmount();
+
+        System.out.println("------ INSERT THE DATE OF THE DEADLINE ------");
+
+        String deadline = new String();
+        deadline = deadline.concat(year);
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(month);
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(day);
+        deadline = deadline.concat(" ");
+        deadline = deadline.concat(hour);
+        deadline = deadline.concat(":");
+        deadline = deadline.concat(minutes);
+
+        String request = new String();
+
+        request = request.concat("type: create_auction, code: ");
+        request = request.concat(code);
+        request = request.concat(", title: ");
+        request = request.concat(title);
+        request = request.concat(", description: ");
+        request = request.concat(description);
+        request = request.concat(", deadline: ");
+        request = request.concat(deadline);
+        request = request.concat(", amount: ");
+        request = request.concat(amount);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        if(reply.equals("type: create_auction, ok: true")) {
+            System.out.println("CREATE AUCTION TRUE");
+        } else {
+            System.out.println("CREATE AUCTION FALSE");
+        }
+
+        return 0;
+    }
+
+    private static int searchAuction() {
+        String code = getCode();
+
+        String request = new String();
+
+        request = request.concat("type: search_auction, code: ");
+        request = request.concat(code);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        if(reply.equals("type: search_auction, items_count: 0")) {
+            System.out.println("SEARCH AUCTION FALSE");
+        } else {
+            System.out.println("SEARCH AUCTION TRUE");
+        }
+
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int auctionDetails() {
+<<<<<<< HEAD
         System.out.println("Auction details");
+=======
+        String id = getId();
+        String request = new String();
+
+        request = request.concat("type: detail_auction, id: ");
+        request = request.concat(id);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        if(reply.equals("type: detail_auction, items_count: 0")) {
+            System.out.println("AUCTION DETAILS FALSE");
+        } else {
+            System.out.println("AUCTION DETAILS TRUE");
+        }
+
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int myAuctions() {
+<<<<<<< HEAD
         System.out.println("See my auctions");
+=======
+        String request = new String();
+
+        request = request.concat("type: my_auctions");
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int makeBid() {
+<<<<<<< HEAD
         System.out.println("Bid in an auction");
+=======
+        String id = getId();
+        String amount = getAmount();
+
+        String request = new String();
+
+        request = request.concat("type: bid, id: ");
+        request = request.concat(id);
+        request = request.concat(", amount: ");
+        request = request.concat(amount);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int editAuction() {
+<<<<<<< HEAD
         System.out.println("Edit an auction");
+=======
+        String id = getId();
+        String year = getYear();
+        String month = getMonth();
+        String day = getDay(year, month);
+        String hour = getHour();
+        String minutes = getMinutes();
+
+        System.out.println("------ INSERT THE DATE OF THE DEADLINE ------");
+
+        String deadline = new String();
+        deadline = deadline.concat(year);
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(month);
+        deadline = deadline.concat("-");
+        deadline = deadline.concat(day);
+        deadline = deadline.concat(" ");
+        deadline = deadline.concat(hour);
+        deadline = deadline.concat(":");
+        deadline = deadline.concat(minutes);
+
+        String request = new String();
+
+        request = request.concat("type: edit_auction, id: ");
+        request = request.concat(id);
+        request = request.concat(", deadline: ");
+        request = request.concat(deadline);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int commentInAuction() {
+<<<<<<< HEAD
         System.out.println("Comment on an auction");
+=======
+        String id = getId();
+        String text = getText();
+
+        String request = new String();
+
+        request = request.concat("type: message, id: ");
+        request = request.concat(id);
+        request = request.concat(", text: ");
+        request = request.concat(text);
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        if(reply.equals("type: message, ok: true")) {
+            System.out.println("MESSAGE TRUE");
+        } else {
+            System.out.println("MESSAGE FALSE");
+        }
+
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int listOnlineUsers() {
+<<<<<<< HEAD
         System.out.println("List online users");
         return 0;
     }
 
+=======
+        String request = new String();
+
+        request = request.concat("type: online_users");
+
+        String reply = sendRequest(clientSocket, request);
+
+        System.out.println("[SERVER] " + reply);
+
+        return 0;
+    }
+
+    private static String getUsername() {
+        Scanner reader = new Scanner(System.in);
+
+        System.out.print("INSERT USERNAME: ");
+        String username = reader.nextLine();
+
+        return username;
+    }
+
+    private static String getPassword() {
+        Console console = System.console();
+        String password = new String();
+
+        if(console == null) {
+            System.out.println("ERROR: CONSOLE DOES NOT EXIST");
+            return null;
+        }
+
+        char[] pwd = console.readPassword("PASSWORD: ");
+
+        for(int i = 0; i < pwd.length; i++) {
+            password = password.concat(Character.toString(pwd[i]));
+        }
+
+        return password;
+    }
+
+    private static String getCode() {
+        int code = 0;
+        Scanner sc = new Scanner(System.in);
+
+        while(code == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE CODE OF THE ARTICLE: ");
+                code = reader.nextInt();
+                String scode = Integer.toString(code);
+
+                if(scode.length() == 0 || scode.length() >= 12) {
+                    System.out.println("ERROR: THIS IS NOT A VALID CODE");
+                    code = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID CODE");
+                code = 0;
+            }
+        }
+
+        return Integer.toString(code);
+    }
+
+    private static String getTitle() {
+        Scanner reader = new Scanner(System.in);
+
+        System.out.print("INSERT THE TITLE OF THE AUCTION: ");
+        String title = reader.nextLine();
+
+        return title;
+    }
+
+    private static String getDescription() {
+        Scanner reader = new Scanner(System.in);
+
+        System.out.print("INSERT A DESCRIPTION ABOUT THE AUCTION: ");
+        String description = reader.nextLine();
+
+        return description;
+    }
+
+    private static String getYear() {
+        int year = 0;
+
+        while(year == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE YEAR: ");
+                year = reader.nextInt();
+
+                if(year < 2016) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    year = 0;
+                }
+
+                String syear = Integer.toString(year);
+
+                if(syear.length() == 0 || syear.length() > 4) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    year = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                year = 0;
+            }
+        }
+
+        return Integer.toString(year);
+    }
+
+    private static String getMonth() {
+        int month = 0;
+
+        while(month == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE MONTH: ");
+                month = reader.nextInt();
+
+                if(month <= 0 || month > 12) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    month = 0;
+                }
+
+                String smonth = Integer.toString(month);
+
+                if(smonth.length() == 0 || smonth.length() > 2) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    month = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                month = 0;
+            }
+        }
+
+        return Integer.toString(month);
+    }
+
+    private static String getDay(String syear, String smonth) {
+        int day = 0;
+        int year = Integer.parseInt(syear);
+        int month = Integer.parseInt(smonth);
+
+        while(day == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE DAY: ");
+                day = reader.nextInt();
+
+                if((month == 4 || month == 6 || month == 9 || month == 11) && day > 30) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    day = 0;
+                } else if((month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10 || month == 12) && day > 31) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    day = 0;
+                } else if(month == 2) {
+                    if(year % 4 == 0 || year % 100 == 0 || year % 400 == 0) {
+                        if(day > 29) {
+                            System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                            day = 0;
+                        }
+                    } else {
+                        if(day > 28) {
+                            System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                            day = 0;
+                        }
+                    }
+                }
+
+                String sday = Integer.toString(day);
+
+                if(sday.length() == 0 || sday.length() > 2) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    day = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                day = 0;
+            }
+        }
+
+        return Integer.toString(day);
+    }
+
+    private static String getHour() {
+        int hour = -1;
+
+        while(hour == -1) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE HOUR: ");
+                hour = reader.nextInt();
+
+                if(hour <= 0 || hour > 24) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    hour = -1;
+                }
+
+                String shour = Integer.toString(hour);
+
+                if(shour.length() == 0 || shour.length() > 2) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    hour = -1;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                hour = -1;
+            }
+        }
+
+        return Integer.toString(hour);
+    }
+
+    private static String getMinutes() {
+        int minutes = -1;
+
+        while(minutes == -1) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE MINUTES: ");
+                minutes = reader.nextInt();
+
+                if(minutes < 0 && minutes > 60) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    minutes = -1;
+                }
+
+                String sminutes = Integer.toString(minutes);
+
+                if(sminutes.length() == 0 || sminutes.length() > 2) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    minutes = -1;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                minutes = -1;
+            }
+        }
+
+        return Integer.toString(minutes);
+    }
+
+    private static String getAmount() {
+        int amount = 0;
+        while(amount == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE AMOUNT OF ITEMS TO SELL: ");
+                amount = reader.nextInt();
+
+                if(amount <= 0) {
+                    System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                    amount = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                amount = 0;
+            }
+        }
+
+        return Integer.toString(amount);
+    }
+
+    private static String getId() {
+        int id = 0;
+
+        while(id == 0) {
+            try {
+                Scanner reader = new Scanner(System.in);
+                System.out.print("INSERT THE ID OF THE AUCTION: ");
+                id = reader.nextInt();
+                String sid = Integer.toString(id);
+
+                if(sid.length() == 0 || sid.length() >= 12) {
+                    System.out.println("ERROR: THIS IS NOT A VALID ID");
+                    id = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("ERROR: THIS IS NOT A VALID ID");
+                id = 0;
+            }
+        }
+
+        return Integer.toString(id);
+    }
+
+    private static String getText() {
+        Scanner reader = new Scanner(System.in);
+
+        System.out.print("INSERT THE TEXT: ");
+        String text = reader.nextLine();
+
+        return text;
+    }
+
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
     private static String sendRequest(Socket socket, String request) {
         String data = new String();
         System.out.println("THIS IS A REQUEST: " + request);
@@ -282,6 +798,7 @@ class Client {
         return port;
     }
 }
+<<<<<<< HEAD
 
 // SEARCH FOR SOMETHING WITHIN A STRING !!!!!! <- MAYBE USEFULL
 // public class RegionMatchesDemo {
@@ -304,3 +821,5 @@ class Client {
 //             System.out.println("No match found.");
 //     }
 // }
+=======
+>>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
