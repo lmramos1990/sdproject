@@ -28,6 +28,7 @@ class Server {
                 System.out.println("[SERVER] A CLIENT HAS CONNECTED WITH ME");
                 number++;
                 new TCPConnection(clientSocket, number);
+                new ServerLoad();
 
                 //Joins Multicast Socket
                 // InetAddress group = InetAddress.getByName("224.0.0.2");
@@ -242,7 +243,7 @@ class ServerLoad extends Thread {
     MulticastSocket mcSocket;
 
     public ServerLoad() {
-
+        this.start();
     }
 
     public void run() {
