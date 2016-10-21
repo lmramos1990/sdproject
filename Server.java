@@ -111,6 +111,8 @@ class TCPConnection extends Thread {
         try {
             while(true) {
                 byte[] message = new byte[2048];
+
+                //TODO: telnet sends some shit and does not work
                 int length = dataInputStream.readInt();
                 if(length > 0) {
                     message = new byte[length];
