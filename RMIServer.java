@@ -143,7 +143,7 @@ class PingService extends Thread{
             System.out.println("IO:" + e.getMessage());
         }
 
-        //o mainRMI espera indefinidamente por um pacote
+        //main RMI waits indefinitly for a packet
         try {
             pingSocket.setSoTimeout(0);
         } catch (SocketException e) {
