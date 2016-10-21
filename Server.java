@@ -5,6 +5,7 @@ import java.io.*;
 class Server {
 
     private static ServerSocket serverSocket;
+    private static int port = 7000;
 
     public static void main(String args[]) {
         int number = 0;
@@ -16,6 +17,7 @@ class Server {
         }
 
         try {
+            selectPort();
             System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
 
             //Sends/Receives Packets about the server load
@@ -49,6 +51,23 @@ class Server {
         } catch(IOException e) {
             System.out.println("ERROR: " + e.getMessage());
         }
+    }
+
+    private static void selectPort() {
+        if(isPortAvailable(port) == false) {
+            port += 1;
+            selectPort();
+        }
+    }
+
+    private static Boolean isPortAvailable(int port) {
+        try {
+            serverSocket = new ServerSocket(port);
+        } catch(Exception e) {
+            return false;
+        }
+
+        return true;
     }
 }
 
