@@ -31,6 +31,7 @@ class Server {
                 new ServerLoad();
 
                 //Joins Multicast Socket
+
                 // InetAddress group = InetAddress.getByName("224.0.0.2");
                 // MulticastSocket s = new MulticastSocket(7500);
                 // s.joinGroup(group);
@@ -120,6 +121,7 @@ class TCPConnection extends Thread {
             }
         } catch(EOFException eofe) {
             System.out.println("[SERVER] THE CLIENT DISCONNECTED");
+
             // IF A REQUEST COMES AND THE USER DOESNT GET IT HE SOULD BE NOTIFIED ABOUT IT WHEN HE COMES BACK!!!
 
             try {
@@ -139,6 +141,7 @@ class TCPConnection extends Thread {
         String reply = new String();
 
         if(action.equals("login") || action.equals("register")) {
+
             username = parse("username:", parameters);
             password = parse("password:", parameters);
 
@@ -277,6 +280,7 @@ class ServerLoad extends Thread {
 				System.out.print("Mensagem a enviar = ");
 				// READ STRING FROM KEYBOARD
     	     	  try{
+
                     texto = "some text";
     				byte [] m = texto.getBytes();
 

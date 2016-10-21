@@ -250,6 +250,7 @@ class Client {
     }
 
     private static int auctionDetails() {
+
         String id = getId();
         String request = new String();
 
@@ -282,6 +283,7 @@ class Client {
     }
 
     private static int makeBid() {
+
         String id = getId();
         String amount = getAmount();
 
