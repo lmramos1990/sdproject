@@ -241,16 +241,60 @@ class TCPConnection extends Thread {
 }
 
 class ServerLoad extends Thread {
-    DataInputStream dataInputStream;
-    DataOutputStream dataOutputStream;
-    MulticastSocket mcSocket;
+    private static DataInputStream dataInputStream;
+    private static DataOutputStream dataOutputStream;
+    private static MulticastSocket mcSocket;
+    private static int port = 8000;
 
     public ServerLoad() {
         this.start();
     }
 
     public void run() {
+        // selectPort();
+        // try {
+        //     InetAddress group = InetAddress.getByName("239.255.255.255");
+        //     mcSocket.joinGroup(group);
+        // } catch(Exception e) {
+        //     System.out.println("ERROR: " + e.getMessage());
+        //     return;
+        // }
 
+        sendMyInformation();
+
+    }
+
+    private static void sendMyInformation() {
+        System.out.println("hello world!");
+        new java.util.Timer().schedule(
+            new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    System.out.println("hello world!");
+                }
+            },
+            2000
+        );
+
+
+
+    }
+
+    private static void selectPort() {
+        if(isPortAvailable(port) == false) {
+            port += 1;
+            selectPort();
+        }
+    }
+
+    private static Boolean isPortAvailable(int port) {
+        try {
+            mcSocket = new MulticastSocket(port);
+        } catch(Exception e) {
+            return false;
+        }
+
+        return true;
     }
 }
 
@@ -306,14 +350,57 @@ class ServerLoad extends Thread {
     // COPYONWIRTEARAYLIST
     // CONCURRENTHASHMAP
 
-    // USAR UM FICHEIRO DE CONFIGURAÇAO PARA DECIDIR ONDE VAO ESTAR ALOJADOS OS SERVIDORES
-    // USAR MULTICAST SOCKETS PARA SABER A CARGA DOS SERVIDORES
+    // USAR UM FICHEIRO DE CONFIGURAÇAO PARA DECIDIR ONDE VAO ESTAR ALOJADOS OS SERVIDORES???? <- maybe not
+    // USAR MULTICAST SOCKETS PARA SABER A CARGA DOS SERVIDORES right!
 
     // CODIGO ISBN/ESN TEM 13 DIGITOS!!!
 
 
-    // RMI NAO USA PORTAS !?!?!?
-
-
     // SERVER FAZ LOOKUP E PODE DAR BODE <-- CUIDADO!!
-    // RMI FAZ BIND PARA DECIDIR QUAL E O PRIMARIO E O SECUNDARIO!!!
+    
+// package pt.uc.dei.sd.ibei.helpers;
+//
+// import java.util.Arrays;
+// import java.util.HashMap;
+// import java.util.List;
+// import java.util.NoSuchElementException;
+// import java.util.stream.Collectors;
+// import java.util.stream.IntStream;
+//
+// public class ProtocolParser {
+//     public static HashMap<String, String> parse(String line) {
+// 		HashMap<String, String> g = new HashMap<>();
+// 		Arrays.stream(line.split(",")).map(s -> s.split(":")).forEach( i -> g.put(i[0].trim(), i[1].trim()) );
+// 		return g;
+// 	}
+//
+//     public static List<HashMap<String, String>> getList(HashMap<String, String> map, String field) {
+//     	if (!map.containsKey(field + "_count")) {
+//     		throw new NoSuchElementException();
+//     	}
+//     	int count = Integer.parseInt(map.get(field + "_count"));
+//     	return IntStream.range(0, count).mapToObj((int i) -> {
+//     		HashMap<String, String> im = new HashMap<>();
+//     		String prefix = field + "_" + i;
+// 			map.keySet().stream().filter((t) -> t.startsWith(prefix)).forEach((k) -> {
+// 				im.put(k.substring(prefix.length()+1), map.get(k));
+// 			});
+// 			return im;
+//     	}).collect(Collectors.toList());
+//     }
+//
+//     public static void main(String[] args) {
+//     	String a = "type : search_auction , items_count : 2, items_0_id : 101, items_0_code : 9780451524935, items_0_title : 1984, items_1_id : 103, items_1_code : 9780451524935, items_1_title : 1984 usado";
+//     	HashMap<String, String> m = ProtocolParser.parse(a);
+//
+//     	assert(m.get("type").equals("search_auction"));
+//     	assert(ProtocolParser.getList(m, "items").size() > 0);
+//     	assert(ProtocolParser.getList(m, "items").get(0).get("id").equals("101"));
+//     	assert(ProtocolParser.getList(m, "items").get(1).get("code").equals("9780451524935"));
+//
+//     	for (HashMap<String, String> element : ProtocolParser.getList(m, "items")) {
+//     		assert(Integer.parseInt(element.get("id")) > 0);
+//     	}
+//
+//     }
+// }
