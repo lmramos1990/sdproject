@@ -658,10 +658,12 @@ class Client {
 
     private static String sendRequest(Socket socket, String request) {
         String data = new String();
+        byte[] message = request.getBytes();
         System.out.println("THIS IS A REQUEST: " + request);
 
         try {
-            dataOutputStream.writeUTF(request);
+            dataOutputStream.writeInt(message.length);
+            dataOutputStream.write(message);
 
             data = dataInputStream.readUTF();
         } catch(Exception e) {
