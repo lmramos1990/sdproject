@@ -27,7 +27,7 @@ class Server {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("[SERVER] A CLIENT HAS CONNECTED WITH ME");
                 number++;
-                new Connection(clientSocket, number);
+                new TCPConnection(clientSocket, number);
 
                 //Joins Multicast Socket
                 // InetAddress group = InetAddress.getByName("224.0.0.2");
@@ -71,7 +71,7 @@ class Server {
     }
 }
 
-class Connection extends Thread {
+class TCPConnection extends Thread {
     DataInputStream dataInputStream;
     DataOutputStream dataOutputStream;
     Socket clientSocket;
@@ -90,7 +90,7 @@ class Connection extends Thread {
 
     // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
 
-    public Connection (Socket pclientSocket, int number) {
+    public TCPConnection(Socket pclientSocket, int number) {
         threadNumber = number;
         try {
             clientSocket = pclientSocket;
@@ -239,7 +239,7 @@ class Connection extends Thread {
 class ServerLoad extends Thread {
     DataInputStream dataInputStream;
     DataOutputStream dataOutputStream;
-    DatagramSocket socket;
+    MulticastSocket mcSocket;
 
     public ServerLoad() {
 
