@@ -28,10 +28,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return new String();
     }
 
-    public synchronized void switchToMainRMI(boolean ismainRMI) throws IOException {
+    public synchronized void switchToMainRMI(boolean ismainRMI, RMIServer myRMI) throws IOException {
         //MAIN RMI CODE
         try {
-            Naming.rebind("rmi://localhost:10000/iBei", this);
+            Naming.rebind("rmi://localhost:10000/iBei", myRMI);
+            System.out.println("Fiz bind");
         } catch(Exception e){
             System.out.println("BIND: " + e.getMessage());
         }
@@ -63,6 +64,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     System.out.println("I'm the main RMI Server");
                     //MAIN RMI CODE
 
+
+                    
                 }
 
                 try {
@@ -80,7 +83,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     //MAIN
     public static void main(String[] args) throws RemoteException{
-        RMIServer myRMI = new RMIServer();
         myRMI.init();
 
 
@@ -141,7 +143,7 @@ class PingService extends Thread{
                     count++;
                     if ((backup == 0) || (count == 3)) {
                         //Switching
-                        rmiServer.switchToMainRMI(true);
+                        rmiServer.switchToMainRMI(true, rmiServer);
                         break;
                     }
                 }
