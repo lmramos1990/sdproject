@@ -78,9 +78,6 @@ class Client {
         int choice = 0;
 
         while(choice >= 0 && choice < 9) {
-<<<<<<< HEAD
-            System.out.println("[1] - Create a new auction\n[2] - Search auction by article\n[3] - Auction details\n[4] - See my auctions\n[5] - Bid in an auction\n[6] - Edit an auction\n[7] - Comment on an auction\n[8] - List online users\n[9] - Logout");
-=======
             System.out.println("[1] - Create a new auction");
             System.out.println("[2] - Search auction by article");
             System.out.println("[3] - Auction details");
@@ -91,7 +88,6 @@ class Client {
             System.out.println("[8] - List online users");
             System.out.println("[9] - Logout");
 
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
             Scanner reader = new Scanner(System.in);
             try {
                 System.out.print("CHOOSE AN OPTION: ");
@@ -107,11 +103,7 @@ class Client {
                         choice = createAuction();
                         break;
                     case 2:
-<<<<<<< HEAD
-                        choice = searchAuctionByArticle();
-=======
                         choice = searchAuction();
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
                         break;
                     case 3:
                         choice = auctionDetails();
@@ -143,38 +135,6 @@ class Client {
 
     private static int loginRegister(int choice) {
 
-<<<<<<< HEAD
-        Scanner reader = new Scanner(System.in);
-        String username = new String();
-        String password = new String();
-        Console console = System.console();
-
-        if(console == null) {
-            System.out.println("ERROR: Console does not exist");
-            return 0;
-        }
-
-        System.out.print("USERNAME: ");
-        username = reader.nextLine();
-        char[] pwd = console.readPassword("PASSWORD: ");
-
-        for(int i = 0; i < pwd.length; i++) {
-            password = password.concat(Character.toString(pwd[i]));
-        }
-
-        if(choice == 1) {
-            String a = "type: login, ";
-            String b = "username: " + username + ", ";
-            String c = "password: " + password;
-
-            String request = a + b + c;
-
-            String reply = new String();
-
-            reply = sendRequest(clientSocket, request);
-
-            System.out.println(reply);
-=======
         String username = getUsername();
         String password = getPassword();
 
@@ -187,7 +147,6 @@ class Client {
             request = request.concat(password);
 
             String reply = sendRequest(clientSocket, request);
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
 
             if(reply.equals("type: login, ok: true")) {
                 choice = mainMenu();
@@ -197,18 +156,6 @@ class Client {
 
             System.out.println("[SERVER] " + reply);
         } else {
-<<<<<<< HEAD
-            String a = "type: register, ";
-            String b = "username: " + username + ", ";
-            String c = "password: " + password;
-
-            String request = a + b + c;
-            String reply = new String();
-
-            reply = sendRequest(clientSocket, request);
-
-            System.out.println(reply);
-=======
             String request = new String();
             request = request.concat("type: register, username: ");
             request = request.concat(username);
@@ -216,7 +163,6 @@ class Client {
             request = request.concat(password);
 
             String reply = sendRequest(clientSocket, request);
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
 
             if(reply.equals("type: register, ok: true")) {
                 choice = mainMenu();
@@ -231,14 +177,6 @@ class Client {
     }
 
     private static int createAuction() {
-<<<<<<< HEAD
-        System.out.println("Create a new auction");
-        return 0;
-    }
-
-    private static int searchAuctionByArticle() {
-        System.out.println("Search auction by article");
-=======
 
         String code = getCode();
         String title = getTitle();
@@ -308,14 +246,11 @@ class Client {
             System.out.println("SEARCH AUCTION TRUE");
         }
 
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int auctionDetails() {
-<<<<<<< HEAD
-        System.out.println("Auction details");
-=======
+
         String id = getId();
         String request = new String();
 
@@ -332,14 +267,10 @@ class Client {
             System.out.println("AUCTION DETAILS TRUE");
         }
 
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int myAuctions() {
-<<<<<<< HEAD
-        System.out.println("See my auctions");
-=======
         String request = new String();
 
         request = request.concat("type: my_auctions");
@@ -348,14 +279,11 @@ class Client {
 
         System.out.println("[SERVER] " + reply);
 
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int makeBid() {
-<<<<<<< HEAD
-        System.out.println("Bid in an auction");
-=======
+
         String id = getId();
         String amount = getAmount();
 
@@ -370,14 +298,10 @@ class Client {
 
         System.out.println("[SERVER] " + reply);
 
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int editAuction() {
-<<<<<<< HEAD
-        System.out.println("Edit an auction");
-=======
         String id = getId();
         String year = getYear();
         String month = getMonth();
@@ -409,14 +333,10 @@ class Client {
 
         System.out.println("[SERVER] " + reply);
 
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int commentInAuction() {
-<<<<<<< HEAD
-        System.out.println("Comment on an auction");
-=======
         String id = getId();
         String text = getText();
 
@@ -437,17 +357,10 @@ class Client {
             System.out.println("MESSAGE FALSE");
         }
 
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
         return 0;
     }
 
     private static int listOnlineUsers() {
-<<<<<<< HEAD
-        System.out.println("List online users");
-        return 0;
-    }
-
-=======
         String request = new String();
 
         request = request.concat("type: online_users");
@@ -743,7 +656,6 @@ class Client {
         return text;
     }
 
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd
     private static String sendRequest(Socket socket, String request) {
         String data = new String();
         System.out.println("THIS IS A REQUEST: " + request);
@@ -798,28 +710,3 @@ class Client {
         return port;
     }
 }
-<<<<<<< HEAD
-
-// SEARCH FOR SOMETHING WITHIN A STRING !!!!!! <- MAYBE USEFULL
-// public class RegionMatchesDemo {
-//     public static void main(String[] args) {
-//         String searchMe = "Green Eggs and Ham";
-//         String findMe = "Eggs";
-//         int searchMeLength = searchMe.length();
-//         int findMeLength = findMe.length();
-//         boolean foundIt = false;
-//         for (int i = 0;
-//              i <= (searchMeLength - findMeLength);
-//              i++) {
-//            if (searchMe.regionMatches(i, findMe, 0, findMeLength)) {
-//               foundIt = true;
-//               System.out.println(searchMe.substring(i, i + findMeLength));
-//               break;
-//            }
-//         }
-//         if (!foundIt)
-//             System.out.println("No match found.");
-//     }
-// }
-=======
->>>>>>> 397aee542fe9f9fc72cfcc83dc40255b9b53e5dd

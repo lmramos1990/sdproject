@@ -1,4 +1,3 @@
-
 import java.util.*;
 import java.net.*;
 import java.io.*;
@@ -6,7 +5,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 
-class RMIServer extends UnicastRemoteObject implements AuctionInterface{
+class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private volatile boolean mainRMI = false;
 
     //CONSTRUCTOR
@@ -15,9 +14,22 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface{
     }
 
     //METHODS
+    public String login(String username, String password) throws RemoteException {
+        return new String();
+    }
+    public String register(String username, String password) throws RemoteException {
+        return new String();
+    }
+    public String createAuction(String username, String code, String title, String description, String deadline, String amount) throws RemoteException {
+        return new String();
+    }
+    public String searchAuction(String code) throws RemoteException {
+        return new String();
+    }
+
     public synchronized void switchToMainRMI(boolean ismainRMI) throws IOException {
         //MAIN RMI CODE
-        //rebind registry
+
         mainRMI = ismainRMI;
     }
 
@@ -44,7 +56,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface{
                 if (mainRMI) {
                     System.out.println("I'm the main RMI Server");
                     //MAIN RMI CODE
-                    //rebind registry
+
                 }
 
                 try {
