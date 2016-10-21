@@ -64,6 +64,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     System.out.println("I'm the main RMI Server");
                     //MAIN RMI CODE
 
+
+                    
                 }
 
                 try {
@@ -81,7 +83,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     //MAIN
     public static void main(String[] args) throws RemoteException{
-        RMIServer myRMI = new RMIServer();
         myRMI.init();
 
 
