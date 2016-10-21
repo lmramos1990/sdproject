@@ -4,6 +4,7 @@ import java.io.*;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
+import java.rmi.Naming;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private volatile boolean mainRMI = false;
@@ -29,6 +30,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized void switchToMainRMI(boolean ismainRMI) throws IOException {
         //MAIN RMI CODE
+        try {
+            Naming.rebind("rmi://localhost:10000/iBei", this);
+        } catch(Exception e){
+            System.out.println("BIND: " + e.getMessage());
+        }
 
         mainRMI = ismainRMI;
     }
