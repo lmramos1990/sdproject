@@ -31,6 +31,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized void switchToMainRMI(boolean ismainRMI, RMIServer myRMI) throws IOException {
         //MAIN RMI CODE
         try {
+            //TODO: it should work with any port
             Naming.rebind("rmi://localhost:10000/iBei", myRMI);
             System.out.println("Fiz bind");
         } catch(Exception e){
@@ -65,7 +66,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     //MAIN RMI CODE
 
 
-                    
+
                 }
 
                 try {
@@ -83,6 +84,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     //MAIN
     public static void main(String[] args) throws RemoteException{
+        RMIServer myRMI = new RMIServer();
         myRMI.init();
 
 

@@ -110,7 +110,14 @@ class TCPConnection extends Thread {
 
         try {
             while(true) {
-                String data = dataInputStream.readUTF();
+                byte[] message = new byte[2048];
+                int length = dataInputStream.readInt();
+                if(length > 0) {
+                    message = new byte[length];
+                    dataInputStream.readFully(message, 0, message.length);
+                }
+
+                String data = new String(message);
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
                 String action = parse("type:", data);
@@ -357,7 +364,7 @@ class ServerLoad extends Thread {
 
 
     // SERVER FAZ LOOKUP E PODE DAR BODE <-- CUIDADO!!
-    
+
 // package pt.uc.dei.sd.ibei.helpers;
 //
 // import java.util.Arrays;
