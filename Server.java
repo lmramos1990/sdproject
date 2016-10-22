@@ -110,7 +110,7 @@ class TCPConnection extends Thread {
 
         try {
             while(true) {
-                byte[] buffer = new byte[100];
+                byte[] buffer = new byte[1024];
                 dataInputStream.read(buffer);
                 String data = new String(buffer);
 

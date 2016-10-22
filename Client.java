@@ -661,7 +661,7 @@ class Client {
         byte[] message = request.getBytes();
         System.out.println("THIS IS A REQUEST: " + request);
 
-        byte[] buffer = new byte[100];
+        byte[] buffer = new byte[1024];
 
         try {
             dataOutputStream.write(message);
