@@ -20,6 +20,7 @@ class Server {
             selectPort();
 
             Enumeration enumeration = NetworkInterface.getNetworkInterfaces();
+            InetAddress enumerationAdresses = null;
 
             while(enumeration.hasMoreElements()) {
 
@@ -27,25 +28,13 @@ class Server {
                 Enumeration ee = n.getInetAddresses();
 
                 while (ee.hasMoreElements()) {
-                    InetAddress i = (InetAddress) ee.nextElement();
-                    System.out.println(i.getHostAddress());
+                    enumerationAdresses = (InetAddress) ee.nextElement();
+                    break;
                 }
             }
+            String address = enumerationAdresses.getHostAddress();
 
-
-
-
-            InetAddress localip = null;
-
-            try {
-                localip = InetAddress.getLocalHost();
-            } catch(Exception e) {
-                System.out.println("ERROR: " + e.getMessage());
-                return;
-            }
-
-            String adress = localip.getHostAddress();
-            new ServerLoad(adress, port);
+            new ServerLoad(address, port);
 
             System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
 
