@@ -8,6 +8,9 @@ class Server {
     private static int port = 7000;
 
     public static void main(String args[]) {
+
+        System.setProperty("java.net.preferIPv4Stack" , "true");
+
         int number = 0;
         int count = 0;
 
@@ -28,7 +31,7 @@ class Server {
                 System.out.println("[SERVER] A CLIENT HAS CONNECTED WITH ME");
                 number++;
                 new TCPConnection(clientSocket, number);
-                new ServerLoad();
+                new ServerLoad(port);
 
                 //Joins Multicast Socket
 
@@ -116,7 +119,7 @@ class TCPConnection extends Thread {
 
                 System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
 
-                String action = parse("type:", data);
+                String action = parse("type", data);
 
                 reply = courseOfAction(action, data);
 
@@ -146,8 +149,8 @@ class TCPConnection extends Thread {
 
         if(action.equals("login") || action.equals("register")) {
 
-            username = parse("username:", parameters);
-            password = parse("password:", parameters);
+            username = parse("username", parameters);
+            password = parse("password", parameters);
 
             if(action.equals("login")) {
                 reply = "type: login, ok: true";
@@ -157,30 +160,30 @@ class TCPConnection extends Thread {
 
         } else if(action.equals("create_auction")) {
 
-            code = parse("code:", parameters);
-            title = parse("title:", parameters);
-            description = parse("description:", parameters);
-            deadline = parse("deadeline:", parameters);
-            amount = parse("amount:", parameters);
+            code = parse("code", parameters);
+            title = parse("title", parameters);
+            description = parse("description", parameters);
+            deadline = parse("deadeline", parameters);
+            amount = parse("amount", parameters);
 
         } else if(action.equals("search_auction")) {
-            code = parse("code:", parameters);
+            code = parse("code", parameters);
 
         } else if(action.equals("detail_auction")) {
-            id = parse("id:", parameters);
+            id = parse("id", parameters);
         } else if(action.equals("my_auctions")) {
             //ONLY ACTION type: my_auctions
         } else if(action.equals("bid")) {
-            id = parse("id:", parameters);
-            amount = parse("amount:", parameters);
+            id = parse("id", parameters);
+            amount = parse("amount", parameters);
 
         } else if(action.equals("edit_auction")) {
-            id = parse("id:", parameters);
-            deadline = parse("deadline:", parameters);
+            id = parse("id", parameters);
+            deadline = parse("deadline", parameters);
 
         } else if(action.equals("message")) {
-            id = parse("id:", parameters);
-            text = parse("text:", parameters);
+            id = parse("id", parameters);
+            text = parse("text", parameters);
 
         } else if(action.equals("online_users")) {
             // ONLY ACTION type: online_users
@@ -225,7 +228,7 @@ class TCPConnection extends Thread {
 
         StringBuilder sb = new StringBuilder(string);
 
-        while(string.charAt(0) == ' ') {
+        while(string.charAt(0) == ' ' || string.charAt(0) == ':') {
             sb.deleteCharAt(0);
             string = sb.toString();
         }
@@ -248,45 +251,63 @@ class ServerLoad extends Thread {
     private static DataInputStream dataInputStream;
     private static DataOutputStream dataOutputStream;
     private static MulticastSocket mcSocket;
-    private static int port = 8000;
+    private static int mcport = 8000;
+    private static int port;
 
-    public ServerLoad() {
+    public ServerLoad(int tcpport) {
+        port = tcpport;
         this.start();
     }
 
     public void run() {
-        // selectPort();
-        // try {
-        //     InetAddress group = InetAddress.getByName("239.255.255.255");
-        //     mcSocket.joinGroup(group);
-        // } catch(Exception e) {
-        //     System.out.println("ERROR: " + e.getMessage());
-        //     return;
-        // }
+        selectPort();
+
+        try {
+            InetAddress group = InetAddress.getByName("228.5.6.7");
+            mcSocket.joinGroup(group);
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e.getMessage());
+            return;
+        }
+
+        InetAddress adress = null;
+
+        try {
+            adress = InetAddress.getLocalHost();
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e.getMessage());
+            return;
+        }
+
+        String hello = adress.getHostAddress();
+
+        System.out.println("HELLO IAM A SERVER ON THE PORT " + port + " AND IAM AWESOME");
+        System.out.println("MY ADDRESS IS: " + hello);
+        // System.out.println("I HAVE " + numClients + " CONNECTED TO ME");
+
+        // figure out how many clients I have connected and send them in a UDP packet!!!
+        // how to update number of clients as soon as they connect ?
+
 
         sendMyInformation();
 
     }
 
     private static void sendMyInformation() {
-        System.out.println("hello world!");
-        new java.util.Timer().schedule(
-            new java.util.TimerTask() {
-                @Override
-                public void run() {
-                    System.out.println("hello world!");
-                }
-            },
-            2000
-        );
 
+        Timer timer = new Timer();
 
-
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println("hello see you in 60s");
+            }
+        }, 60000, 60000);
     }
 
     private static void selectPort() {
-        if(isPortAvailable(port) == false) {
-            port += 1;
+        if(isPortAvailable(mcport) == false) {
+            mcport += 1;
             selectPort();
         }
     }
@@ -301,53 +322,6 @@ class ServerLoad extends Thread {
         return true;
     }
 }
-
-/*class ServerLoad extends Thread {
-    DataInputStream dataInputStream;
-    DataOutputStream dataOutputStream;
-    int threadNumber;
-
-    public ServerLoad () {
-        try {
-    		DatagramSocket udpSocket = new DatagramSocket();
-    		String texto = "";
-    		InputStreamReader input = new InputStreamReader(System.in);
-    		BufferedReader reader = new BufferedReader(input);
-
-            dataInputStream = new DataInputStream(clientSocket.getInputStream());
-            dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
-            this.start();
-        } catch(IOException e) {
-            System.out.println("DATAGRAM: " + e.getMessage());
-        }
-    }
-
-    public void run() {
-        try {
-			while(true){
-				System.out.print("Mensagem a enviar = ");
-				// READ STRING FROM KEYBOARD
-    	     	  try{
-
-                    texto = "some text";
-    				byte [] m = texto.getBytes();
-
-    				DatagramPacket request = new DatagramPacket(m, m.length);
-    				udpSocket.send(request);
-
-    				byte[] buffer = new byte[1000];
-
-    				DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
-    				udpSocket.receive(reply);
-
-    				System.out.println("Recebeu: " + new String(reply.getData(), 0, reply.getLength()));
-    			}
-		} catch (IOException e){System.out.println("IO: " + e.getMessage());
-		} finally {if(udpSocket != null) udpSocket.close();}
-    }
-}*/
-
-
 // AULA
     // CENAS PARA TRABALHAR CONCURRENTEMENTE (WhAT?)
     // ATOMIC INTEGER
