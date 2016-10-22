@@ -1,20 +1,74 @@
 import java.util.*;
 import java.net.*;
 import java.io.*;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
+import java.rmi.*;
 import java.rmi.server.UnicastRemoteObject;
-import java.rmi.Naming;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
-    private volatile boolean mainRMI = false;
+    public static int rmiregistryport = 0;
 
-    //CONSTRUCTOR
+    private static final long serialVersionUID = 1L;
+
     protected RMIServer() throws RemoteException {
         super();
     }
 
-    //METHODS
+    protected RMIServer(boolean online) throws RemoteException {
+        RMIServer rmiServer = new RMIServer();
+
+        String toBind = "rmi://localhost:" + Integer.toString(rmiregistryport) + "/iBei";
+        System.out.println(toBind);
+
+        if(online == true) {
+            try {
+                Naming.rebind(toBind, rmiServer);
+                primaryRMIServer();
+            } catch(Exception e) {
+                System.out.println("ERROR REBINDING: " + e);
+                return;
+            }
+        } else {
+            try {
+                Naming.bind(toBind, rmiServer);
+                primaryRMIServer();
+
+            } catch(AlreadyBoundException abe) {
+                System.out.println("THERE IS A RMISERVER ALREADY ONLINE");
+                ConnectionToPrimaryServer secondaryServer = new ConnectionToPrimaryServer();
+            } catch(MalformedURLException murle) {
+                System.out.println("ERROR: " + murle.getMessage());
+                return;
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+
+        // System.getProperties().put("java.security.policy", "policy.all");
+        // System.setSecurityManager(new RMISecurityManager());
+
+        if(args.length > 0) {
+            System.out.println("ERROR: USAGE IS java RMIServer");
+            return;
+        }
+
+        RMIServer.rmiregistryport = getPort();
+
+        try {
+            RMIServer rmiServer = new RMIServer(false);
+        } catch(Exception e) {
+            System.out.println("RMI SERVER CREATION FUCKED UP");
+            return;
+        }
+    }
+
+    private static void primaryRMIServer() {
+        System.out.println("IM THE PRIMARY RMISERVER");
+        ConnectionToSecondaryServer connectionToSecondaryServer = new ConnectionToSecondaryServer();
+    }
+
+
+
     public String login(String username, String password) throws RemoteException {
         return new String();
     }
@@ -28,180 +82,163 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return new String();
     }
 
-    public synchronized void switchToMainRMI(boolean ismainRMI, RMIServer myRMI) throws IOException {
-        //MAIN RMI CODE
-        try {
-            Naming.rebind("rmi://localhost:10000/iBei", myRMI);
-            System.out.println("Fiz bind");
-        } catch(Exception e){
-            System.out.println("BIND: " + e.getMessage());
-        }
+    private static int getPort() {
+        int port = 0;
 
-        mainRMI = ismainRMI;
-    }
-
-    private synchronized void validateIfmainRMI() throws NotMainRMIException{
-        if (!mainRMI) {
-            throw new NotMainRMIException();
-        }
-    }
-    public synchronized void ping() throws RemoteException {
-
-    }
-
-    public int createAuction(String buyer, String isbnCode, String title, String description, String details, float maxPrice, String deadlineStamp) throws RemoteException{
-        return 0;
-    }
-
-    public void init (){
-        //TODO: we need to find the ip on the configurations file first
-        PingService udpPing = new PingService(this, "127.0.0.1");
-        udpPing.start();
-
-        try {
-            while (true) {
-                if (mainRMI) {
-                    System.out.println("I'm the main RMI Server");
-                    //MAIN RMI CODE
-
-
-
-                }
-
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    System.out.println("INTERRUPTION:" + e.getMessage());
-                }
-
-            }
-        } catch(Exception e){
-            System.out.println("ERROR: " + e.getMessage());
-        }
-
-    }
-
-    //MAIN
-    public static void main(String[] args) throws RemoteException{
-        RMIServer myRMI = new RMIServer();
-        myRMI.init();
-
-
-    }
-}
-
-// Class that handles the requests of the clients
-class RMIRequestListener extends Thread {
-
-    public void run() {
-
-    }
-}
-
-//----------------------------------------------------------------------------------------------------------------
-// Class that is supposed to be keeping the servers running at all times
-class PingService extends Thread{
-    RMIServer rmiServer;
-    String ip;
-    DatagramSocket pingSocket = null;
-    DatagramPacket receivePacket, sendPacket;
-    String message = "Y";
-    byte[] dataIn = new byte[1];
-    byte[] dataOut;
-    //TODO: we need to find the ip on the configurations file first
-    int port = 9000;
-    int timeout = 1000;
-
-    public PingService(RMIServer rmiServer, String ip) {
-        this.rmiServer = rmiServer;
-        this.ip = ip;
-    }
-
-    public void run() {
-        try {
-            int count = 0;
-            int backup = 0;
-
-            dataOut = message.getBytes(); //
-            InetAddress rmiHost = InetAddress.getByName(ip); //
-            pingSocket = new DatagramSocket(); //
-            pingSocket.setSoTimeout(timeout); //
-
-            while (true) {
-                try {
-                    sendPacket = new DatagramPacket(dataOut, dataOut.length, rmiHost, port);
-                    pingSocket.send(sendPacket);
-
-                    receivePacket = new DatagramPacket(dataIn, dataIn.length);
-                    pingSocket.receive(receivePacket);
-                    count = 0;
-                    backup = 1;
-                } catch (SocketException e) {
-                    System.out.println("Socket: " + e.getMessage());
-                } catch (UnknownHostException e) {
-                    System.out.println("Host: " + e.getMessage());
-                } catch (IOException e) {
-                    count++;
-                    if ((backup == 0) || (count == 3)) {
-                        //Switching
-                        rmiServer.switchToMainRMI(true, rmiServer);
-                        break;
-                    }
-                }
-
-                try {
-                    Thread.sleep(timeout);
-                } catch (InterruptedException e) {
-                    System.out.println("INTERRUPTION:" + e.getMessage());
-                }
-            }
-            pingSocket = new DatagramSocket(port);
-        } catch (SocketException e) {
-            System.out.println("Socket Exception");
-        } catch (UnknownHostException e) {
-            System.out.println("Unknown Host Exception");
-        } catch (IOException e) {
-            System.out.println("IO:" + e.getMessage());
-        }
-
-        //main RMI waits indefinitly for a packet
-        try {
-            pingSocket.setSoTimeout(0);
-        } catch (SocketException e) {
-            System.out.println("Socket: " + e.getMessage());
-        }
-
-        //mainRMI
-        while (true) {
+        while(port <= 1024) {
+            System.out.print("INSERT PORT: ");
             try {
-                receivePacket = new DatagramPacket(dataIn, dataIn.length);
-                pingSocket.receive(receivePacket);
-                String myMessage = new String(receivePacket.getData(), 0, receivePacket.getLength());
+                Scanner reader = new Scanner(System.in);
+                port = reader.nextInt();
 
-                dataOut = myMessage.getBytes();
-                sendPacket = new DatagramPacket(dataOut, dataOut.length, receivePacket.getAddress(), receivePacket.getPort());
-                pingSocket.send(sendPacket);
-            } catch (Exception e) {
-                System.out.println("Socket: " + e.getMessage());
-
+                if(port <= 1024) {
+                    System.out.println("THIS IS NOT A VALID VALUE FOR THE PORT");
+                    port = 0;
+                }
+            } catch(Exception e) {
+                System.out.println("THIS IS NOT A VALID VALUE FOR THE PORT");
+                port = 0;
             }
         }
 
+        return port;
     }
 
 }
 
-//------------------------------------------------------------------------------------------------------------------------------
-// Class that handles the connection to the database
-class DBConnection extends Thread {
-    public DBConnection() {
+class ConnectionToSecondaryServer extends Thread {
 
+    DatagramSocket udpSocket;
+
+    public ConnectionToSecondaryServer() {
+        this.start();
     }
 
     public void run() {
+        try {
+            udpSocket = new DatagramSocket(9876);
+        } catch(Exception e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
 
+        byte[] receiveData = new byte[10];
+        byte[] sendData = new byte[10];
+
+        while(true) {
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+            try {
+                udpSocket.receive(receivePacket);
+            } catch(Exception e) {
+                Thread.currentThread().interrupt();
+            }
+
+            String receiveString = new String(receiveData);
+            System.out.println(receiveString);
+
+            String sentence = "YES";
+
+            InetAddress IPAddress = receivePacket.getAddress();
+
+            int port = receivePacket.getPort();
+
+            sendData = sentence.getBytes();
+            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
+            try {
+                udpSocket.send(sendPacket);
+            } catch(Exception e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 }
 
-//----------------------------------------------------------------------------------------------------------------------------------
-class NotMainRMIException  extends java.lang.Exception {}
+class ConnectionToPrimaryServer extends Thread {
+
+    DatagramSocket udpSocket;
+    private static int count = 0;
+
+    public ConnectionToPrimaryServer() {
+        this.start();
+    }
+
+    public void run() {
+        System.out.println("IM THE SECONDARY RMISERVER");
+
+        while(true) {
+            BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
+            try {
+                udpSocket = new DatagramSocket();
+                udpSocket.setSoTimeout(5000);
+            } catch(Exception e) {
+                Thread.currentThread().interrupt();
+            }
+
+            InetAddress IPAddress = null;
+
+            try {
+                IPAddress = InetAddress.getByName("localhost");
+            } catch(Exception e) {
+                Thread.currentThread().interrupt();
+            }
+
+            byte[] sendData = new byte[10];
+            byte[] receiveData = new byte[10];
+            String sentence = "ARE YOU ALIVE";
+
+            sendData = sentence.getBytes();
+            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 9876);
+
+
+            try {
+                udpSocket.send(sendPacket);
+            } catch(Exception e) {
+                Thread.currentThread().interrupt();
+            }
+
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+
+            try {
+                udpSocket.receive(receivePacket);
+            } catch(Exception e) {
+                Thread.currentThread().interrupt();
+            }
+
+            String receivedSentence = new String(receivePacket.getData());
+            StringBuilder sb = new StringBuilder();
+
+            for(int i = 0; i < receivedSentence.length(); i++) {
+                if(!(receivedSentence.charAt(i) == '\0')) {
+                    sb.append(receivedSentence.charAt(i));
+                }
+            }
+
+            String newString = sb.toString();
+
+            if(!(newString.equals("YES"))) {
+                System.out.println("PRIMARY SERVER FAILED TO RESPOND");
+                count++;
+            } else System.out.println(newString);
+
+            if(count == 3) {
+                count = 0;
+
+                try {
+                    RMIServer myServer = new RMIServer(true);
+                } catch(Exception e) {
+                    System.out.println("RMI SERVER CREATION FUCKED UP");
+                    Thread.currentThread().interrupt();
+                }
+
+                Thread.currentThread().interrupt();
+                return;
+            }
+
+            try {
+                Thread.sleep(5000);
+            } catch(Exception e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+}

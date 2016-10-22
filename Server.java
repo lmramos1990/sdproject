@@ -1,18 +1,16 @@
 import java.util.*;
 import java.net.*;
 import java.io.*;
+import java.rmi.*;
 
 class Server {
 
     private static ServerSocket serverSocket;
     private static int port = 7000;
+    public static int numberOfClients = 0;
 
     public static void main(String args[]) {
-
         System.setProperty("java.net.preferIPv4Stack" , "true");
-
-        int number = 0;
-        int count = 0;
 
         if(args.length > 0) {
             System.out.println("ERROR: USAGE IS java TCPServer");
@@ -21,36 +19,33 @@ class Server {
 
         try {
             selectPort();
-            System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
+            InetAddress localip = null;
 
-            //Sends/Receives Packets about the server load
-            //new ServerLoad();
+            try {
+                localip = InetAddress.getLocalHost();
+            } catch(Exception e) {
+                System.out.println("ERROR: " + e.getMessage());
+                return;
+            }
+
+            String adress = localip.getHostAddress();
+            new ServerLoad(adress, port);
+
+            try {
+                AuctionInterface iBei = (AuctionInterface) Naming.lookup("rmi://localhost/iBei");
+            } catch(NotBoundException nbe) {
+                System.out.println("ERROR LOOKUP: " + nbe);
+            } catch(RemoteException re) {
+                System.out.println("ERROR LOOKUP: " + re);
+            }
+
+            System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
 
             while(true) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("[SERVER] A CLIENT HAS CONNECTED WITH ME");
-                number++;
-                new TCPConnection(clientSocket, number);
-                new ServerLoad(port);
-
-                //Joins Multicast Socket
-
-                // InetAddress group = InetAddress.getByName("224.0.0.2");
-                // MulticastSocket s = new MulticastSocket(7500);
-                // s.joinGroup(group);
-                //
-                // DatagramPacket hi = new DatagramPacket(msg.getBytes(), msg.length(), group, 7001);
-                // s.send(hi);
-                // // get their responses!
-                // byte[] buf = new byte[1000];
-                // DatagramPacket recv = new DatagramPacket(buf, buf.length);
-                // s.receive(recv);
-
-                //USING THE RMI SERVER - catch NotBoundException
-                //System.out.println("[SERVER] I'M IN TOUCH WITH RMI SERVER");
-                //AuctionInterface iBei = (AuctionInterface) Naming.lookup("iBei");
-
-
+                Server.numberOfClients++;
+                new TCPConnection(clientSocket);
             }
 
         } catch(IOException e) {
@@ -80,7 +75,6 @@ class TCPConnection extends Thread {
     DataInputStream dataInputStream;
     DataOutputStream dataOutputStream;
     Socket clientSocket;
-    int threadNumber;
 
     // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
     private static String username = new String();
@@ -92,11 +86,9 @@ class TCPConnection extends Thread {
     private static String amount = new String();
     private static String id = new String();
     private static String text = new String();
-
     // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
 
-    public TCPConnection(Socket pclientSocket, int number) {
-        threadNumber = number;
+    public TCPConnection(Socket pclientSocket) {
         try {
             clientSocket = pclientSocket;
 
@@ -117,7 +109,7 @@ class TCPConnection extends Thread {
                 dataInputStream.read(buffer);
                 String data = new String(buffer);
 
-                System.out.println("THREAD[" + threadNumber + "] RECIEVED: " + data);
+                System.out.println("[CLIENT] RECIEVED: " + data);
 
                 String action = parse("type", data);
 
@@ -128,6 +120,7 @@ class TCPConnection extends Thread {
             }
         } catch(EOFException eofe) {
             System.out.println("[SERVER] THE CLIENT DISCONNECTED");
+            Server.numberOfClients--;
 
             // IF A REQUEST COMES AND THE USER DOESNT GET IT HE SOULD BE NOTIFIED ABOUT IT WHEN HE COMES BACK!!!
 
@@ -140,7 +133,8 @@ class TCPConnection extends Thread {
             Thread.currentThread().interrupt();
             return;
         } catch(IOException e) {
-            System.out.println("ERROR: " + e.getMessage());
+            System.out.println("[SERVER] THE CLIENT DISCONNECTED");
+            Server.numberOfClients--;
         }
     }
 
@@ -253,9 +247,11 @@ class ServerLoad extends Thread {
     private static MulticastSocket mcSocket;
     private static int mcport = 8000;
     private static int port;
+    private static String ipAdress;
 
-    public ServerLoad(int tcpport) {
+    public ServerLoad(String adress, int tcpport) {
         port = tcpport;
+        ipAdress = adress;
         this.start();
     }
 
@@ -270,19 +266,8 @@ class ServerLoad extends Thread {
             return;
         }
 
-        InetAddress adress = null;
-
-        try {
-            adress = InetAddress.getLocalHost();
-        } catch(Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return;
-        }
-
-        String hello = adress.getHostAddress();
-
         System.out.println("HELLO IAM A SERVER ON THE PORT " + port + " AND IAM AWESOME");
-        System.out.println("MY ADDRESS IS: " + hello);
+        System.out.println("MY ADDRESS IS: " + ipAdress);
         // System.out.println("I HAVE " + numClients + " CONNECTED TO ME");
 
         // figure out how many clients I have connected and send them in a UDP packet!!!
@@ -302,7 +287,7 @@ class ServerLoad extends Thread {
             public void run() {
                 System.out.println("hello see you in 60s");
             }
-        }, 60000, 60000);
+        }, 0, 60000);
     }
 
     private static void selectPort() {

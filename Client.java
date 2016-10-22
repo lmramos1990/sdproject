@@ -14,7 +14,7 @@ class Client {
         System.out.println("\t------ HELLO IAM AN AWESOME CLIENT INTERFACE ------");
 
         if(args.length > 0) {
-            System.out.println("ERROR: USAGE IS java TCPClient");
+            System.out.println("ERROR: USAGE IS java Client");
             return;
         }
 
@@ -154,7 +154,6 @@ class Client {
                 reply = "LOGIN WASN'T SUCCESSFULL";
             }
 
-            System.out.println("[SERVER] " + reply);
         } else {
             String request = new String();
             request = request.concat("type: register, username: ");
