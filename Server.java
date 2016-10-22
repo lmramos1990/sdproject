@@ -28,7 +28,7 @@ class Server {
                 Enumeration ee = n.getInetAddresses();
 
                 enumerationAdresses = (InetAddress) ee.nextElement();
-                System.out.println(enumerationAdresses.getHostAddress());
+                // System.out.println(enumerationAdresses.getHostAddress());
                 break;
             }
 
@@ -311,7 +311,7 @@ class ServerLoad extends Thread {
                     return;
                 }
             }
-        }, 60000, 60000);
+        }, 0, 60000);
     }
 
     private static void receiveOthersInfo() {
@@ -338,7 +338,7 @@ class ServerLoad extends Thread {
                 System.out.println(receiveString);
 
             }
-        }, 60000, 60000);
+        }, 0, 60000);
     }
 
     private static void selectPort() {
