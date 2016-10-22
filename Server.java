@@ -4,7 +4,6 @@ import java.io.*;
 import java.rmi.*;
 
 class Server {
-
     private static ServerSocket serverSocket;
     private static int port = 7000;
     public static int numberOfClients = 0;
@@ -30,14 +29,6 @@ class Server {
 
             String adress = localip.getHostAddress();
             new ServerLoad(adress, port);
-
-            try {
-                AuctionInterface iBei = (AuctionInterface) Naming.lookup("rmi://localhost/iBei");
-            } catch(NotBoundException nbe) {
-                System.out.println("ERROR LOOKUP: " + nbe);
-            } catch(RemoteException re) {
-                System.out.println("ERROR LOOKUP: " + re);
-            }
 
             System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
 
@@ -89,6 +80,21 @@ class TCPConnection extends Thread {
     // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
 
     public TCPConnection(Socket pclientSocket) {
+
+        try {
+            AuctionInterface iBei = (AuctionInterface) Naming.lookup("rmi://localhost/iBei");
+        } catch(NotBoundException nbe) {
+            System.out.println("ERROR LOOKUP: " + nbe);
+            return;
+        } catch(RemoteException re) {
+            System.out.println("ERROR LOOKUP: " + re);
+            return;
+        } catch(MalformedURLException murle) {
+            System.out.println("ERROR LOOKUP: " + murle);
+            return;
+        }
+
+
         try {
             clientSocket = pclientSocket;
 
@@ -109,7 +115,7 @@ class TCPConnection extends Thread {
                 dataInputStream.read(buffer);
                 String data = new String(buffer);
 
-                System.out.println("[CLIENT] RECIEVED: " + data);
+                System.out.println("[CLIENT] receiveD: " + data);
 
                 String action = parse("type", data);
 
@@ -118,11 +124,9 @@ class TCPConnection extends Thread {
                 byte[] message = reply.getBytes();
                 dataOutputStream.write(message);
             }
-        } catch(EOFException eofe) {
+        } catch(Exception e) {
             System.out.println("[SERVER] THE CLIENT DISCONNECTED");
             Server.numberOfClients--;
-
-            // IF A REQUEST COMES AND THE USER DOESNT GET IT HE SOULD BE NOTIFIED ABOUT IT WHEN HE COMES BACK!!!
 
             try {
                 this.clientSocket.close();
@@ -132,9 +136,6 @@ class TCPConnection extends Thread {
 
             Thread.currentThread().interrupt();
             return;
-        } catch(IOException e) {
-            System.out.println("[SERVER] THE CLIENT DISCONNECTED");
-            Server.numberOfClients--;
         }
     }
 
@@ -146,11 +147,13 @@ class TCPConnection extends Thread {
             username = parse("username", parameters);
             password = parse("password", parameters);
 
-            if(action.equals("login")) {
-                reply = "type: login, ok: true";
-            } else {
-                reply = "type: register, ok: true";
-            }
+            attemptLoginRegister(action, username, password);
+
+            // if(action.equals("login")) {
+            //     reply = "type: login, ok: true";
+            // } else {
+            //     reply = "type: register, ok: true";
+            // }
 
         } else if(action.equals("create_auction")) {
 
@@ -165,8 +168,10 @@ class TCPConnection extends Thread {
 
         } else if(action.equals("detail_auction")) {
             id = parse("id", parameters);
+
         } else if(action.equals("my_auctions")) {
             //ONLY ACTION type: my_auctions
+
         } else if(action.equals("bid")) {
             id = parse("id", parameters);
             amount = parse("amount", parameters);
@@ -233,6 +238,7 @@ class TCPConnection extends Thread {
     private static String attemptLoginRegister(String action, String username, String password) {
         if(action.equals("login")) {
             System.out.println("LOGIN -> SEND THIS TO THE RMI SERVER");
+
         } else {
             System.out.println("REGISTER -> SEND THIS TO THE RMI SERVER");
         }
@@ -266,15 +272,8 @@ class ServerLoad extends Thread {
             return;
         }
 
-        System.out.println("HELLO IAM A SERVER ON THE PORT " + port + " AND IAM AWESOME");
-        System.out.println("MY ADDRESS IS: " + ipAdress);
-        // System.out.println("I HAVE " + numClients + " CONNECTED TO ME");
-
-        // figure out how many clients I have connected and send them in a UDP packet!!!
-        // how to update number of clients as soon as they connect ?
-
-
         sendMyInformation();
+        receiveOthersInfo();
 
     }
 
@@ -285,7 +284,53 @@ class ServerLoad extends Thread {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                System.out.println("hello see you in 60s");
+                String sentence = "THE SERVER HOSTED IN " + ipAdress + " ON PORT " + port + " HAS " + Server.numberOfClients + " CLIENTS CONNECTED TO IT";
+
+                byte [] sendData = sentence.getBytes();
+                DatagramPacket serverInfoPacket = null;
+
+                try {
+                    serverInfoPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName("228.5.6.7"), mcport);
+                } catch(Exception e) {
+                    System.out.println("ERROR: " + e);
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+
+                try {
+                    mcSocket.send(serverInfoPacket);
+                } catch(Exception e) {
+                    System.out.println("ERROR: " + e);
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }, 0, 60000);
+    }
+
+    private static void receiveOthersInfo() {
+        Timer timer = new Timer();
+
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+
+                byte [] receiveData = new byte[1024];
+
+                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+
+                try {
+                    mcSocket.receive(receivePacket);
+                } catch(Exception e) {
+                    System.out.println("ERROR: " + e);
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+
+                String receiveString = new String(receivePacket.getData());
+
+                System.out.println(receiveString);
+
             }
         }, 0, 60000);
     }

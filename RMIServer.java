@@ -166,12 +166,12 @@ class ConnectionToPrimaryServer extends Thread {
         System.out.println("IM THE SECONDARY RMISERVER");
 
         while(true) {
-            BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
             try {
                 udpSocket = new DatagramSocket();
                 udpSocket.setSoTimeout(5000);
             } catch(Exception e) {
                 Thread.currentThread().interrupt();
+                return;
             }
 
             InetAddress IPAddress = null;
@@ -180,6 +180,7 @@ class ConnectionToPrimaryServer extends Thread {
                 IPAddress = InetAddress.getByName("localhost");
             } catch(Exception e) {
                 Thread.currentThread().interrupt();
+                return;
             }
 
             byte[] sendData = new byte[10];
@@ -194,6 +195,7 @@ class ConnectionToPrimaryServer extends Thread {
                 udpSocket.send(sendPacket);
             } catch(Exception e) {
                 Thread.currentThread().interrupt();
+                return;
             }
 
             DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
@@ -202,6 +204,7 @@ class ConnectionToPrimaryServer extends Thread {
                 udpSocket.receive(receivePacket);
             } catch(Exception e) {
                 Thread.currentThread().interrupt();
+                return;
             }
 
             String receivedSentence = new String(receivePacket.getData());
@@ -210,7 +213,7 @@ class ConnectionToPrimaryServer extends Thread {
             for(int i = 0; i < receivedSentence.length(); i++) {
                 if(!(receivedSentence.charAt(i) == '\0')) {
                     sb.append(receivedSentence.charAt(i));
-                }
+                } else break;
             }
 
             String newString = sb.toString();
@@ -226,8 +229,9 @@ class ConnectionToPrimaryServer extends Thread {
                 try {
                     RMIServer myServer = new RMIServer(true);
                 } catch(Exception e) {
-                    System.out.println("RMI SERVER CREATION FUCKED UP");
+                    System.out.println("ERROR: " + e);
                     Thread.currentThread().interrupt();
+                    return;
                 }
 
                 Thread.currentThread().interrupt();
@@ -238,6 +242,7 @@ class ConnectionToPrimaryServer extends Thread {
                 Thread.sleep(5000);
             } catch(Exception e) {
                 Thread.currentThread().interrupt();
+                return;
             }
         }
     }

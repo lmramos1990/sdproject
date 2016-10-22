@@ -146,8 +146,8 @@ class Client {
             request = request.concat(", password: ");
             request = request.concat(password);
 
-            String reply = sendRequest(clientSocket, request);
-
+            String reply = parseReply(sendRequest(clientSocket, request));
+            
             if(reply.equals("type: login, ok: true")) {
                 choice = mainMenu();
             } else {
@@ -161,7 +161,7 @@ class Client {
             request = request.concat(", password: ");
             request = request.concat(password);
 
-            String reply = sendRequest(clientSocket, request);
+            String reply = parseReply(sendRequest(clientSocket, request));
 
             if(reply.equals("type: register, ok: true")) {
                 choice = mainMenu();
@@ -173,6 +173,19 @@ class Client {
         }
 
         return choice;
+    }
+
+    private static String parseReply(String reply) {
+
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = 0; i < reply.length(); i++) {
+            if(!(reply.charAt(i) == '\0')) {
+                sb.append(reply.charAt(i));
+            } else break;
+        }
+
+        return sb.toString();
     }
 
     private static int createAuction() {
@@ -214,7 +227,7 @@ class Client {
         request = request.concat(", amount: ");
         request = request.concat(amount);
 
-        String reply = sendRequest(clientSocket, request);
+        String reply = parseReply(sendRequest(clientSocket, request));
 
         System.out.println("[SERVER] " + reply);
 
@@ -235,7 +248,7 @@ class Client {
         request = request.concat("type: search_auction, code: ");
         request = request.concat(code);
 
-        String reply = sendRequest(clientSocket, request);
+        String reply = parseReply(sendRequest(clientSocket, request));
 
         System.out.println("[SERVER] " + reply);
 
@@ -256,7 +269,7 @@ class Client {
         request = request.concat("type: detail_auction, id: ");
         request = request.concat(id);
 
-        String reply = sendRequest(clientSocket, request);
+        String reply = parseReply(sendRequest(clientSocket, request));
 
         System.out.println("[SERVER] " + reply);
 
@@ -274,7 +287,7 @@ class Client {
 
         request = request.concat("type: my_auctions");
 
-        String reply = sendRequest(clientSocket, request);
+        String reply = parseReply(sendRequest(clientSocket, request));
 
         System.out.println("[SERVER] " + reply);
 
@@ -293,7 +306,7 @@ class Client {
         request = request.concat(", amount: ");
         request = request.concat(amount);
 
-        String reply = sendRequest(clientSocket, request);
+        String reply = parseReply(sendRequest(clientSocket, request));
 
         System.out.println("[SERVER] " + reply);
 
@@ -328,7 +341,7 @@ class Client {
         request = request.concat(", deadline: ");
         request = request.concat(deadline);
 
-        String reply = sendRequest(clientSocket, request);
+        String reply = parseReply(sendRequest(clientSocket, request));
 
         System.out.println("[SERVER] " + reply);
 
@@ -346,7 +359,7 @@ class Client {
         request = request.concat(", text: ");
         request = request.concat(text);
 
-        String reply = sendRequest(clientSocket, request);
+        String reply = parseReply(sendRequest(clientSocket, request));
 
         System.out.println("[SERVER] " + reply);
 
@@ -364,7 +377,7 @@ class Client {
 
         request = request.concat("type: online_users");
 
-        String reply = sendRequest(clientSocket, request);
+        String reply = parseReply(sendRequest(clientSocket, request));
 
         System.out.println("[SERVER] " + reply);
 
@@ -399,27 +412,11 @@ class Client {
     }
 
     private static String getCode() {
-        int code = 0;
-        Scanner sc = new Scanner(System.in);
+        Scanner reader = new Scanner(System.in);
+        System.out.print("INSERT THE CODE: ");
+        String code = reader.nextLine();
 
-        while(code == 0) {
-            try {
-                Scanner reader = new Scanner(System.in);
-                System.out.print("INSERT THE CODE OF THE ARTICLE: ");
-                code = reader.nextInt();
-                String scode = Integer.toString(code);
-
-                if(scode.length() == 0 || scode.length() >= 12) {
-                    System.out.println("ERROR: THIS IS NOT A VALID CODE");
-                    code = 0;
-                }
-            } catch(Exception e) {
-                System.out.println("ERROR: THIS IS NOT A VALID CODE");
-                code = 0;
-            }
-        }
-
-        return Integer.toString(code);
+        return code;
     }
 
     private static String getTitle() {
