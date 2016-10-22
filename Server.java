@@ -27,11 +27,11 @@ class Server {
                 NetworkInterface n = (NetworkInterface) enumeration.nextElement();
                 Enumeration ee = n.getInetAddresses();
 
-                while (ee.hasMoreElements()) {
-                    enumerationAdresses = (InetAddress) ee.nextElement();
-                    break;
-                }
+                enumerationAdresses = (InetAddress) ee.nextElement();
+                System.out.println(enumerationAdresses.getHostAddress());
+                break;
             }
+
             String address = enumerationAdresses.getHostAddress();
 
             new ServerLoad(address, port);
