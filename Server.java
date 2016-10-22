@@ -18,6 +18,23 @@ class Server {
 
         try {
             selectPort();
+
+            Enumeration enumeration = NetworkInterface.getNetworkInterfaces();
+
+            while(enumeration.hasMoreElements()) {
+
+                NetworkInterface n = (NetworkInterface) enumeration.nextElement();
+                Enumeration ee = n.getInetAddresses();
+
+                while (ee.hasMoreElements()) {
+                    InetAddress i = (InetAddress) ee.nextElement();
+                    System.out.println(i.getHostAddress());
+                }
+            }
+
+
+
+
             InetAddress localip = null;
 
             try {
@@ -305,7 +322,7 @@ class ServerLoad extends Thread {
                     return;
                 }
             }
-        }, 0, 60000);
+        }, 60000, 60000);
     }
 
     private static void receiveOthersInfo() {
@@ -332,7 +349,7 @@ class ServerLoad extends Thread {
                 System.out.println(receiveString);
 
             }
-        }, 0, 60000);
+        }, 60000, 60000);
     }
 
     private static void selectPort() {
