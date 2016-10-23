@@ -147,7 +147,7 @@ class Client {
             request = request.concat(password);
 
             String reply = parseReply(sendRequest(clientSocket, request));
-            
+
             if(reply.equals("type: login, ok: true")) {
                 choice = mainMenu();
             } else {
@@ -412,9 +412,20 @@ class Client {
     }
 
     private static String getCode() {
-        Scanner reader = new Scanner(System.in);
-        System.out.print("INSERT THE CODE: ");
-        String code = reader.nextLine();
+        String code = new String();
+        int size = 0;
+
+        while(size == 0) {
+            Scanner reader = new Scanner(System.in);
+            System.out.print("INSERT THE CODE: ");
+            code = reader.nextLine();
+            size = code.length();
+
+            if(code.length() == 0 || code.length() > 13) {
+                System.out.println("ERROR: THIS IS NOT A VALID VALUE");
+                size = 0;
+            }
+        }
 
         return code;
     }

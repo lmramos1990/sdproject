@@ -6,7 +6,10 @@ import java.rmi.*;
 class Server {
     private static ServerSocket serverSocket;
     private static int port = 7000;
+    private static boolean serverOn = false;
     public static int numberOfClients = 0;
+    public static ArrayList <Socket> clientSockets = new ArrayList<Socket>();
+    // public static ArrayList <String> requestQueue = new ArrayList<String>(); <- QUEUE OF REQUESTS (STILL TO IMPLEMENT)
 
     public static void main(String args[]) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
@@ -20,26 +23,26 @@ class Server {
             selectPort();
 
             Enumeration enumeration = NetworkInterface.getNetworkInterfaces();
-            InetAddress enumerationAdresses = null;
+            InetAddress enumerationAddresses = null;
 
             while(enumeration.hasMoreElements()) {
 
                 NetworkInterface n = (NetworkInterface) enumeration.nextElement();
                 Enumeration ee = n.getInetAddresses();
 
-                enumerationAdresses = (InetAddress) ee.nextElement();
-                // System.out.println(enumerationAdresses.getHostAddress());
+                enumerationAddresses = (InetAddress) ee.nextElement();
+                // System.out.println(enumerationAddresses.getHostAddress());
                 break;
             }
 
-            String address = enumerationAdresses.getHostAddress();
-
+            String address = enumerationAddresses.getHostAddress();
             new ServerLoad(address, port);
 
             System.out.println("\t\t ------ HELLO IAM AN AWESOME SERVER ------\n[SERVER] HOSTED ON PORT " + port);
 
             while(true) {
                 Socket clientSocket = serverSocket.accept();
+                clientSockets.add(clientSocket);
                 System.out.println("[SERVER] A CLIENT HAS CONNECTED WITH ME");
                 Server.numberOfClients++;
                 new TCPConnection(clientSocket);
@@ -86,19 +89,21 @@ class TCPConnection extends Thread {
     // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
 
     public TCPConnection(Socket pclientSocket) {
-
-        try {
-            AuctionInterface iBei = (AuctionInterface) Naming.lookup("rmi://localhost/iBei");
-        } catch(NotBoundException nbe) {
-            System.out.println("ERROR LOOKUP: " + nbe);
-            return;
-        } catch(RemoteException re) {
-            System.out.println("ERROR LOOKUP: " + re);
-            return;
-        } catch(MalformedURLException murle) {
-            System.out.println("ERROR LOOKUP: " + murle);
-            return;
-        }
+        // try {
+        //     AuctionInterface iBei = (AuctionInterface) Naming.lookup("rmi://localhost/iBei");
+        // } catch(NotBoundException nbe) {
+        //     System.out.println("ERROR: " + nbe);
+        //     Thread.currentThread().interrupt();
+        //     return;
+        // } catch(RemoteException re) {
+        //     System.out.println("ERROR: " + re);
+        //     Thread.currentThread().interrupt();
+        //     return;
+        // } catch(MalformedURLException murle) {
+        //     System.out.println("ERROR: " + murle);
+        //     Thread.currentThread().interrupt();
+        //     return;
+        // }
 
 
         try {
@@ -109,6 +114,8 @@ class TCPConnection extends Thread {
             this.start();
         } catch(IOException e) {
             System.out.println("ERROR: " + e.getMessage());
+            Thread.currentThread().interrupt();
+            return;
         }
     }
 
@@ -119,9 +126,13 @@ class TCPConnection extends Thread {
             while(true) {
                 byte[] buffer = new byte[1024];
                 dataInputStream.read(buffer);
-                String data = new String(buffer);
 
-                System.out.println("[CLIENT] receiveD: " + data);
+                String data = new String(buffer);
+                data = parseString(data);
+
+                if(!(data.equals(""))) {
+                    System.out.println("[CLIENT] RECEIVED: " + data);
+                }
 
                 String action = parse("type", data);
 
@@ -131,13 +142,15 @@ class TCPConnection extends Thread {
                 dataOutputStream.write(message);
             }
         } catch(Exception e) {
-            System.out.println("[SERVER] THE CLIENT DISCONNECTED");
+            System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
             Server.numberOfClients--;
 
             try {
                 this.clientSocket.close();
             } catch(IOException ioe) {
                 System.out.println("ERROR WHEN TRYING TO CLOSE THE CLIENT SOCKET: " + ioe.getMessage());
+                Thread.currentThread().interrupt();
+                return;
             }
 
             Thread.currentThread().interrupt();
@@ -241,6 +254,19 @@ class TCPConnection extends Thread {
         return string;
     }
 
+    private static String parseString(String reply) {
+
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = 0; i < reply.length(); i++) {
+            if(!(reply.charAt(i) == '\0')) {
+                sb.append(reply.charAt(i));
+            } else break;
+        }
+
+        return sb.toString();
+    }
+
     private static String attemptLoginRegister(String action, String username, String password) {
         if(action.equals("login")) {
             System.out.println("LOGIN -> SEND THIS TO THE RMI SERVER");
@@ -259,28 +285,34 @@ class ServerLoad extends Thread {
     private static MulticastSocket mcSocket;
     private static int mcport = 8000;
     private static int port;
-    private static String ipAdress;
+    private static String ipAddress;
 
-    public ServerLoad(String adress, int tcpport) {
+    public ServerLoad(String address, int tcpport) {
+        ipAddress = address;
         port = tcpport;
-        ipAdress = adress;
         this.start();
     }
 
     public void run() {
-        selectPort();
+        try {
+            mcSocket = new MulticastSocket(mcport);
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e.getMessage());
+            Thread.currentThread().interrupt();
+            return;
+        }
 
         try {
             InetAddress group = InetAddress.getByName("228.5.6.7");
             mcSocket.joinGroup(group);
         } catch(Exception e) {
             System.out.println("ERROR: " + e.getMessage());
+            Thread.currentThread().interrupt();
             return;
         }
 
         sendMyInformation();
         receiveOthersInfo();
-
     }
 
     private static void sendMyInformation() {
@@ -290,7 +322,7 @@ class ServerLoad extends Thread {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                String sentence = "THE SERVER HOSTED IN " + ipAdress + " ON PORT " + port + " HAS " + Server.numberOfClients + " CLIENTS CONNECTED TO IT";
+                String sentence = "THE SERVER HOSTED IN " + ipAddress + " ON PORT " + port + " HAS " + Server.numberOfClients + " CLIENTS CONNECTED TO IT\n";
 
                 byte [] sendData = sentence.getBytes();
                 DatagramPacket serverInfoPacket = null;
@@ -298,64 +330,93 @@ class ServerLoad extends Thread {
                 try {
                     serverInfoPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName("228.5.6.7"), mcport);
                 } catch(Exception e) {
-                    System.out.println("ERROR: " + e);
-                    Thread.currentThread().interrupt();
+                    System.out.println("ERROR: " + e.getMessage());
+                    timer.cancel();
                     return;
                 }
 
                 try {
                     mcSocket.send(serverInfoPacket);
                 } catch(Exception e) {
-                    System.out.println("ERROR: " + e);
-                    Thread.currentThread().interrupt();
+                    System.out.println("ERROR: " + e.getMessage());
+                    timer.cancel();
                     return;
                 }
             }
-        }, 0, 60000);
+        }, 0, 5000);
     }
 
     private static void receiveOthersInfo() {
-        Timer timer = new Timer();
+        ArrayList <String> servers = new ArrayList<String>();
+        int serverCount = 0;
 
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
+        int count = 0;
 
-                byte [] receiveData = new byte[1024];
+        while(true) {
+            byte [] receiveData = new byte[1024];
 
-                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 
-                try {
-                    mcSocket.receive(receivePacket);
-                } catch(Exception e) {
-                    System.out.println("ERROR: " + e);
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-
-                String receiveString = new String(receivePacket.getData());
-
-                System.out.println(receiveString);
-
+            try {
+                mcSocket.receive(receivePacket);
+                count++;
+            } catch(Exception e) {
+                System.out.println("ERROR: " + e.getMessage());
+                Thread.currentThread().interrupt();
+                return;
             }
-        }, 0, 60000);
-    }
 
-    private static void selectPort() {
-        if(isPortAvailable(mcport) == false) {
-            mcport += 1;
-            selectPort();
+            String receivedString = new String(receivePacket.getData());
+
+            receivedString = parseString(receivedString);
+
+            String sentence = "THE SERVER HOSTED IN " + ipAddress + " ON PORT " + port + " HAS " + Server.numberOfClients + " CLIENTS CONNECTED TO IT\n";
+
+            if(receivedString.equals(sentence) && ((count % 2) == 0)) {
+                // System.out.println("SERVER COUNT: " + count / 2);
+                int serverNumber = port - 7000;
+
+                String message = "type: notification_load, server_list: " + (count / 2) + " ,server_" + serverNumber + "_hostname: " + ipAddress + " , server_" + serverNumber + "_port: " + port + " , server_" + serverNumber + "_load: " + Server.numberOfClients + "\n";
+                sendToClients(message);
+                count = 0;
+            }
         }
     }
 
-    private static Boolean isPortAvailable(int port) {
-        try {
-            mcSocket = new MulticastSocket(port);
-        } catch(Exception e) {
-            return false;
+    private static void sendToClients(String message) {
+        ArrayList <Socket> clients = Server.clientSockets;
+        DataOutputStream dataOutputStream = null;
+        Server.numberOfClients = clients.size();
+
+        // System.out.println("array list");
+        for(int i = 0; i < clients.size(); i++) {
+            Socket clientSocket = clients.get(i);
+            try {
+                dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+            } catch(Exception e) {
+                clients.remove(i);
+                return;
+            }
+
+            try {
+                dataOutputStream.write(message.getBytes());
+            } catch(Exception e) {
+                return;
+            }
+        }
+    }
+
+    private static String parseString(String reply) {
+
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = 0; i < reply.length(); i++) {
+            if(!(reply.charAt(i) == '\0')) {
+                sb.append(reply.charAt(i));
+            } else break;
         }
 
-        return true;
+        return sb.toString();
     }
 }
 // AULA
@@ -363,14 +424,6 @@ class ServerLoad extends Thread {
     // ATOMIC INTEGER
     // COPYONWIRTEARAYLIST
     // CONCURRENTHASHMAP
-
-    // USAR UM FICHEIRO DE CONFIGURAÇAO PARA DECIDIR ONDE VAO ESTAR ALOJADOS OS SERVIDORES???? <- maybe not
-    // USAR MULTICAST SOCKETS PARA SABER A CARGA DOS SERVIDORES right!
-
-    // CODIGO ISBN/ESN TEM 13 DIGITOS!!!
-
-
-    // SERVER FAZ LOOKUP E PODE DAR BODE <-- CUIDADO!!
 
 // package pt.uc.dei.sd.ibei.helpers;
 //
