@@ -347,8 +347,6 @@ class ServerLoad extends Thread {
     }
 
     private static void receiveOthersInfo() {
-        ArrayList <String> servers = new ArrayList<String>();
-
         int count = 0;
 
         while(true) {
@@ -372,12 +370,7 @@ class ServerLoad extends Thread {
             String sentence = "THE SERVER HOSTED IN " + ipAddress + " ON PORT " + port + " HAS " + Server.numberOfClients + " CLIENTS CONNECTED TO IT\n";
 
             if(receivedString.equals(sentence) && ((count % 2) == 0)) {
-                System.out.println("SERVER COUNT: " + count / 2);
-                // int serverNumber = port - 7000;
-
-                // String message = "type: notification_load, server_list: " + (count / 2) + " ,server_" + serverNumber + "_hostname: " + ipAddress + " , server_" + serverNumber + "_port: " + port + " , server_" + serverNumber + "_load: " + Server.numberOfClients + "\n";
                 sendToClients(receivedString);
-                count = 0;
             }
         }
     }
