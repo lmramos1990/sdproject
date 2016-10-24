@@ -9,14 +9,40 @@ class Server {
     private static boolean serverOn = false;
     public static int numberOfClients = 0;
     public static ArrayList <Socket> clientSockets = new ArrayList<Socket>();
+    public static AuctionInterface iBei;
     // public static ArrayList <String> requestQueue = new ArrayList<String>(); <- QUEUE OF REQUESTS (STILL TO IMPLEMENT)
 
     public static void main(String args[]) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
 
+        boolean connected = false;
+        int connecting = 0;
+
         if(args.length > 0) {
             System.out.println("ERROR: USAGE IS java TCPServer");
             return;
+        }
+
+        System.out.println("SERVER IS TRYING TO CONNECT TO THE RMI SERVER");
+        while(!connected) {
+            try {
+                connecting++;
+                iBei = (AuctionInterface) Naming.lookup("rmi://localhost/iBei");
+                connected = true;
+            } catch(Exception e) {
+                System.out.println("CONNECTION FAILED\nATTEMPTING ANOTHER TIME");
+            }
+
+            if(connecting == 5) {
+                System.out.println("ERROR: IMPOSSIBLE TO TURN ON THE SERVER AT THIS MOMENT");
+                return;
+            }
+
+            try {
+                Thread.sleep(5000);
+            } catch(Exception e) {
+                return;
+            }
         }
 
         try {
@@ -25,6 +51,7 @@ class Server {
             Enumeration enumeration = NetworkInterface.getNetworkInterfaces();
             InetAddress enumerationAddresses = null;
 
+            //TODO: DAR UMA OLHADA NESTA MERDA
             while(enumeration.hasMoreElements()) {
 
                 NetworkInterface n = (NetworkInterface) enumeration.nextElement();
@@ -47,7 +74,6 @@ class Server {
                 Server.numberOfClients++;
                 new TCPConnection(clientSocket);
             }
-
         } catch(IOException e) {
             System.out.println("ERROR: " + e.getMessage());
         }
@@ -89,26 +115,8 @@ class TCPConnection extends Thread {
     // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
 
     public TCPConnection(Socket pclientSocket) {
-        // try {
-        //     AuctionInterface iBei = (AuctionInterface) Naming.lookup("rmi://localhost/iBei");
-        // } catch(NotBoundException nbe) {
-        //     System.out.println("ERROR: " + nbe);
-        //     Thread.currentThread().interrupt();
-        //     return;
-        // } catch(RemoteException re) {
-        //     System.out.println("ERROR: " + re);
-        //     Thread.currentThread().interrupt();
-        //     return;
-        // } catch(MalformedURLException murle) {
-        //     System.out.println("ERROR: " + murle);
-        //     Thread.currentThread().interrupt();
-        //     return;
-        // }
-
-
         try {
             clientSocket = pclientSocket;
-
             dataInputStream = new DataInputStream(clientSocket.getInputStream());
             dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
             this.start();
@@ -280,8 +288,6 @@ class TCPConnection extends Thread {
 }
 
 class ServerLoad extends Thread {
-    private static DataInputStream dataInputStream;
-    private static DataOutputStream dataOutputStream;
     private static MulticastSocket mcSocket;
     private static int mcport = 8000;
     private static int port;
@@ -322,7 +328,7 @@ class ServerLoad extends Thread {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                String sentence = "THE SERVER HOSTED IN " + ipAddress + " ON PORT " + port + " HAS " + Server.numberOfClients + " CLIENTS CONNECTED TO IT\n";
+                String sentence = "ip: " + ipAddress + ", port: " + Integer.toString(port) + ", numberofclients: " + Server.numberOfClients;
 
                 byte [] sendData = sentence.getBytes();
                 DatagramPacket serverInfoPacket = null;
@@ -343,10 +349,12 @@ class ServerLoad extends Thread {
                     return;
                 }
             }
-        }, 0, 5000);
+        }, 0, 1000);
     }
 
     private static void receiveOthersInfo() {
+        ArrayList<String> serversList = new ArrayList<String>();
+        boolean threadRunning = false;
         int count = 0;
 
         while(true) {
@@ -367,35 +375,142 @@ class ServerLoad extends Thread {
 
             receivedString = parseString(receivedString);
 
-            String sentence = "THE SERVER HOSTED IN " + ipAddress + " ON PORT " + port + " HAS " + Server.numberOfClients + " CLIENTS CONNECTED TO IT\n";
+            String address = parse("ip", receivedString);
+            String sport = parse("port", receivedString);
 
-            if(receivedString.equals(sentence) && ((count % 2) == 0)) {
-                sendToClients(receivedString);
+            String serverInfo = "ip: " + address + ", port: " + sport + ", count: " + Integer.toString(0);
+
+            if(count % 2 == 0) {
+                if(serversList.size() == 0) {
+                    serversList.add(serverInfo);
+                } else {
+                    boolean found = false;
+                    int foundCounter = 0;
+                    int foundIndex = 0;
+
+                    for(int i = 0; i < serversList.size(); i++) {
+                        for(int j = 0; j < serversList.size(); j++) {
+                            if(!(parse("ip", serverInfo).equals(parse("ip", serversList.get(j))) && parse("port", serverInfo).equals(parse("port", serversList.get(j))))) {
+                                found = false;
+                            } else {
+                                found = true;
+                                foundIndex = j;
+                                break;
+                            }
+                        }
+
+                        if(found && i == serversList.size() - 1) {
+                            String resetCounter = "ip: " + parse("ip", serversList.get(foundIndex)) + ", port: " + parse("port", serversList.get(foundIndex)) + ", count: " + Integer.toString(0);
+                            serversList.set(foundIndex, resetCounter);
+                        } else if(!found && i == serversList.size() - 1) {
+                            serversList.add(serverInfo);
+                            break;
+                        }
+                    }
+
+                    for(int i = 0; i < serversList.size(); i++) {
+                        int counter = Integer.parseInt(parse("count", serversList.get(i)));
+                        counter += 1;
+                        String newString = "ip: " + parse("ip", serversList.get(i)) + ", port: " + parse("port", serversList.get(i)) + ", count: " + Integer.toString(counter);
+                        serversList.set(i, newString);
+                    }
+
+                    for(int i = 0; i < serversList.size(); i++) {
+                        for(int j = 0; j < serversList.size(); j++) {
+                            int counter = Integer.parseInt(parse("count", serversList.get(j)));
+                            if(counter == 15) {
+                                serversList.remove(j);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if(!threadRunning) {
+                threadRunning = true;
+                Timer timer = new Timer();
+                timer.scheduleAtFixedRate(new TimerTask() {
+
+                    @Override
+                    public void run() {
+                        ArrayList <Socket> clients = Server.clientSockets;
+                        DataOutputStream dataOutputStream = null;
+                        Server.numberOfClients = clients.size();
+                        int index = 0;
+
+                        for(int i = 0; i < serversList.size(); i++) {
+                            if(ipAddress.equals(parse("ip", serversList.get(i)))) {
+                                index = i;
+                                break;
+                            }
+                        }
+
+                        String message = "type: notification_load, server_list: " + Integer.toString(serversList.size()) +
+                        ", server_" + Integer.toString(index) + "_hostname: " + ipAddress + ", server_" + Integer.toString(index) +
+                        "_port: " + port + ", server_" + Integer.toString(index) + "_load: " + Server.numberOfClients + "\n";
+
+                        for(int i = 0; i < clients.size(); i++) {
+                            Socket clientSocket = clients.get(i);
+
+                            try {
+                                dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+                            } catch(Exception e) {
+                                clients.remove(i);
+                                return;
+                            }
+
+                            try {
+                                dataOutputStream.write(message.getBytes());
+                            } catch(Exception e) {
+                                return;
+                            }
+                        }
+                    }
+                }, 0, 60000);
             }
         }
     }
 
-    private static void sendToClients(String message) {
-        ArrayList <Socket> clients = Server.clientSockets;
-        DataOutputStream dataOutputStream = null;
-        Server.numberOfClients = clients.size();
+    private static String parse(String parameter, String request) {
+        int j = 0, k = 0;
+        int plen = parameter.length();
 
-        // System.out.println("array list");
-        for(int i = 0; i < clients.size(); i++) {
-            Socket clientSocket = clients.get(i);
-            try {
-                dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
-            } catch(Exception e) {
-                clients.remove(i);
-                return;
+        for(int i = 0; i < request.length(); i++) {
+            if(j != plen && (request.charAt(i) == parameter.charAt(j))) {
+                j++;
             }
 
-            try {
-                dataOutputStream.write(message.getBytes());
-            } catch(Exception e) {
-                return;
+            if(j == plen) {
+                j = i;
+                break;
             }
         }
+
+        for(int i = 0; i < request.length(); i++) {
+            if(request.charAt(i) == ',' && j < i) {
+                k = i;
+                break;
+            }
+        }
+
+        String string = new String();
+
+        if(k == 0) {
+            k = request.length();
+            string = request.substring(j + 1, k);
+        } else {
+            string = request.substring(j + 1, k);
+        }
+
+        StringBuilder sb = new StringBuilder(string);
+
+        while(string.charAt(0) == ' ' || string.charAt(0) == ':') {
+            sb.deleteCharAt(0);
+            string = sb.toString();
+        }
+
+        return string;
     }
 
     private static String parseString(String reply) {
@@ -449,7 +564,8 @@ class ServerLoad extends Thread {
 //     }
 //
 //     public static void main(String[] args) {
-//     	String a = "type : search_auction , items_count : 2, items_0_id : 101, items_0_code : 9780451524935, items_0_title : 1984, items_1_id : 103, items_1_code : 9780451524935, items_1_title : 1984 usado";
+//     	String a = "type : search_auction , items_count : 2, items_0_id : 101, items_0_code :
+//                  9780451524935, items_0_title : 1984, items_1_id : 103, items_1_code : 9780451524935, items_1_title : 1984 usado";
 //     	HashMap<String, String> m = ProtocolParser.parse(a);
 //
 //     	assert(m.get("type").equals("search_auction"));
