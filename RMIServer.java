@@ -55,8 +55,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         try {
             RMIServer rmiServer = new RMIServer(false);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return;
+            System.out.println("ERROR: RMIREGISTRY IS NOT INITIALIZED");
+            System.exit(0);
         }
     }
 
@@ -67,10 +67,12 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
 
     public String login(String username, String password) throws RemoteException {
-        return new String();
+        System.out.println("FODASSE");
+        return "O JOEL E UM BURRO DO CARALHO!";
     }
     public String register(String username, String password) throws RemoteException {
-        return new String();
+        System.out.println("FODASSE");
+        return "O JOEL E UM BURRO DO CARALHO!";
     }
     public String createAuction(String username, String code, String title, String description, String deadline, String amount) throws RemoteException {
         return new String();
@@ -134,8 +136,6 @@ class PrimaryServer extends Thread {
                 Thread.currentThread().interrupt();
                 return;
             }
-
-            System.out.println("PING FROM THE SECONDARY SERVER");
 
             String sentence = "Y";
 
@@ -247,8 +247,8 @@ class SecondaryServer extends Thread {
                     return;
                 }
 
-                byte[] sendData = new byte[13];
-                byte[] receiveData = new byte[3];
+                byte[] sendData = new byte[1];
+                byte[] receiveData = new byte[1];
                 String sentence = "A";
 
                 sendData = sentence.getBytes();

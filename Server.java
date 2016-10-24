@@ -129,26 +129,42 @@ class TCPConnection extends Thread {
 
     public void run() {
         String reply = new String();
+        ArrayList<String> requests = new ArrayList<String>();
+        String data = new String();
 
         try {
             while(true) {
                 byte[] buffer = new byte[1024];
                 dataInputStream.read(buffer);
 
-                String data = new String(buffer);
+                data = new String(buffer);
                 data = parseString(data);
 
-                if(!(data.equals(""))) {
-                    System.out.println("[CLIENT] RECEIVED: " + data);
+                parseFile(requests, data);
+
+                // System.out.println("REQUESTS LIST");
+                // for(int i = 0; i < requests.size(); i++) {
+                //     System.out.println(requests.get(i));
+                // }
+                // System.out.println("DATA: " + data);
+
+                while(!requests.isEmpty()) {
+
+                    String request = requests.get(0);
+                    String action = parse("type", request);
+
+                    reply = courseOfAction(action, request);
+
+                    // System.out.println(reply);
+
+                    byte [] message = reply.getBytes();
+                    dataOutputStream.write(message);
+                    requests.remove(0);
                 }
-
-                String action = parse("type", data);
-
-                reply = courseOfAction(action, data);
-
-                byte[] message = reply.getBytes();
-                dataOutputStream.write(message);
             }
+
+
+
         } catch(Exception e) {
             System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
             Server.numberOfClients--;
@@ -166,15 +182,23 @@ class TCPConnection extends Thread {
         }
     }
 
+    private static void parseFile(ArrayList<String> requests, String file) {
+
+        String [] lines = file.split("\\r?\\n");
+
+        for(int i = 0; i < lines.length; i++) {
+            requests.add(lines[i]);
+        }
+    }
+
     private static String courseOfAction(String action, String parameters) {
         String reply = new String();
-
         if(action.equals("login") || action.equals("register")) {
 
             username = parse("username", parameters);
             password = parse("password", parameters);
 
-            attemptLoginRegister(action, username, password);
+            reply = attemptLoginRegister(action, username, password);
 
             // if(action.equals("login")) {
             //     reply = "type: login, ok: true";
@@ -215,7 +239,7 @@ class TCPConnection extends Thread {
             // ONLY ACTION type: online_users
 
         } else {
-            return "ERROR: THIS IS'NT A VALID REQUEST";
+            return "ERROR: THIS IS'NT A VALID REQUEST\n";
         }
 
         return reply;
@@ -276,14 +300,24 @@ class TCPConnection extends Thread {
     }
 
     private static String attemptLoginRegister(String action, String username, String password) {
+        String reply = new String();
         if(action.equals("login")) {
-            System.out.println("LOGIN -> SEND THIS TO THE RMI SERVER");
-
+            try {
+                reply = Server.iBei.login(username, password);
+                return reply;
+            } catch(RemoteException re) {
+                System.out.println("REMOTE EXCEPTION");
+            }
         } else {
-            System.out.println("REGISTER -> SEND THIS TO THE RMI SERVER");
+            try {
+                reply = Server.iBei.register(username, password);
+                return reply;
+            } catch(RemoteException re) {
+                System.out.println("REMOTE EXCEPTION");
+            }
         }
 
-        return action;
+        return reply;
     }
 }
 
