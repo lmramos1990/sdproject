@@ -2,14 +2,21 @@ import java.util.*;
 import java.net.*;
 import java.io.*;
 import java.rmi.*;
+import java.sql.*;
 import java.rmi.server.UnicastRemoteObject;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
-    public static int rmiregistryport = 0;
     private static final long serialVersionUID = 1L;
     private static Properties properties = new Properties();
     private static String rmiRegistryIP = new String();
+
+    private static String user = "bd";
+    private static String pass = "oracle";
+    private static String url = "jdbc:oracle:thin:@localhost:1521:XE";
+    private static Connection connection;
+
     public static String rmiServerIP = new String();
+    public static int rmiregistryport = 0;
 
     protected RMIServer() throws RemoteException {
         super();
@@ -25,6 +32,18 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         if(online == true) {
             try {
                 Naming.rebind(toBind, rmiServer);
+
+                try {
+                    Class.forName("oracle.jdbc.OracleDriver");
+
+                    System.out.println("[RMISERVER] ESTABLISHING CONNECTION TO THE DATABASE");
+                    connection = DriverManager.getConnection(url, user, pass);
+                    System.out.println("[RMISERVER] CONNECTION TO THE DATABASE ESTABLISHED");
+                } catch(Exception e) {
+                    System.out.println("ERROR: CREATING THE CONNECTION TO THE DATABASE");
+                    System.exit(0);
+                }
+
                 primaryRMIServer();
             } catch(Exception e) {
                 System.out.println("ERROR: " + e.getMessage());
@@ -33,6 +52,18 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         } else {
             try {
                 Naming.bind(toBind, rmiServer);
+
+                try {
+                    Class.forName("oracle.jdbc.OracleDriver");
+
+                    System.out.println("[RMISERVER] ESTABLISHING CONNECTION TO THE DATABASE");
+                    connection = DriverManager.getConnection(url, user, pass);
+                    System.out.println("[RMISERVER] CONNECTION TO THE DATABASE ESTABLISHED");
+                } catch(Exception e) {
+                    System.out.println("ERROR: CREATING THE CONNECTION TO THE DATABASE");
+                    System.exit(0);
+                }
+
                 primaryRMIServer();
 
             } catch(AlreadyBoundException abe) {
@@ -53,8 +84,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             System.out.println("ERROR: USAGE IS java RMIServer");
             return;
         }
-
-        RMIServer.rmiregistryport = getPort();
 
         try {
             RMIServer rmiServer = new RMIServer(false);
@@ -82,6 +111,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
 			rmiRegistryIP = prop.getProperty("rmiRegistryIP");
             rmiServerIP = prop.getProperty("rmiServerIP");
+            rmiregistryport = Integer.parseInt(prop.getProperty("rmiregistryport"));
 
 		} catch (Exception e) {
 			System.out.println("Exception: " + e);
@@ -95,6 +125,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     }
 
     private static void primaryRMIServer() {
+        System.out.println("[RMISERVER] IM THE PRIMARY SERVER");
+
         PrimaryServer primaryServer = new PrimaryServer();
     }
 
@@ -102,6 +134,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized String login(String username, String password) throws RemoteException {
         System.out.println("[RMISERVER] LOGIN REQUEST");
+
+
+
 
         // CONNECT TO THE DATABASE
 
@@ -177,8 +212,6 @@ class PrimaryServer extends Thread {
     }
 
     public void run() {
-        System.out.println("[RMISERVER] IM THE PRIMARY SERVER");
-
         try {
             udpSocket = new DatagramSocket(9876);
         } catch(Exception e) {
@@ -231,7 +264,7 @@ class SecondaryServer extends Thread {
     public void run() {
         try {
             udpSocket = new DatagramSocket();
-            udpSocket.setSoTimeout(1000);
+            udpSocket.setSoTimeout(500);
         } catch(Exception e) {
             System.out.println("ERROR: " + e.getMessage());
             Thread.currentThread().interrupt();
@@ -292,7 +325,7 @@ class SecondaryServer extends Thread {
             @Override
             public void run() {
                 try {
-                    udpSocket.setSoTimeout(5000);
+                    udpSocket.setSoTimeout(2000);
                 } catch(Exception e) {
                     System.out.println("ERROR: " + e.getMessage());
                     timer.cancel();
@@ -350,7 +383,7 @@ class SecondaryServer extends Thread {
                     System.out.println("PRIMARY SERVER FAILED TO RESPOND");
                 } else System.out.println("PRIMARY SERVER IS ALIVE");
 
-                if(count == 3) {
+                if(count == 12) {
                     try {
                         RMIServer myServer = new RMIServer(true);
                     } catch(Exception e) {
@@ -363,7 +396,7 @@ class SecondaryServer extends Thread {
                     return;
                 }
             }
-        }, 0, 5000);
+        }, 0, 2500);
 
         Thread.currentThread().interrupt();
         return;

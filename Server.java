@@ -6,13 +6,13 @@ import java.rmi.*;
 class Server {
     private static ServerSocket serverSocket;
     private static int port = 7000;
-    private static boolean serverOn = false;
+    private static String rmiRegistryIP = new String();
+    private static String rmiServerIP = new String();
+
     public static int numberOfClients = 0;
     public static ArrayList <Socket> clientSockets = new ArrayList<Socket>();
     public static ArrayList<ClientObject> listOfClients = new ArrayList<ClientObject>();
     public static AuctionInterface iBei;
-    private static String rmiRegistryIP = new String();
-    private static String rmiServerIP = new String();
 
     public static void main(String args[]) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
@@ -27,19 +27,19 @@ class Server {
 
         readProperties();
 
-        System.out.println("SERVER IS TRYING TO CONNECT TO THE RMI SERVER");
+        System.out.println("[SERVER] TRYING TO ESTABLISH A CONNECTION TO THE RMI SERVER");
         while(!connected) {
             try {
                 connecting++;
-                iBei = (AuctionInterface) Naming.lookup("rmi://" + rmiRegistryIP + "/iBei");
+                iBei = (AuctionInterface) Naming.lookup("iBei");
                 connected = true;
             } catch(Exception e) {
                 e.printStackTrace();
-                System.out.println("CONNECTION FAILED\nATTEMPTING ANOTHER TIME");
+                System.out.println("[SERVER] CONNECTION FAILED\n[SERVER] ATTEMPTING ANOTHER TIME");
             }
 
             if(connecting == 5) {
-                System.out.println("ERROR: IMPOSSIBLE TO TURN ON THE SERVER AT THIS MOMENT");
+                System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
                 return;
             }
 
@@ -138,6 +138,7 @@ class TCPConnection extends Thread {
     private static ClientObject client;
 
     private static String username = new String();
+    private static boolean online = false;
 
     public TCPConnection(Socket pclientSocket) {
         this.username = new String();
@@ -173,7 +174,7 @@ class TCPConnection extends Thread {
                     String request = requests.get(0);
                     String action = parse("type", request);
 
-                    if(!request.equals("")) System.out.println("[CLIENT] REQUESTED: " + request);
+                    if(!request.equals("")) System.out.println("[CLIENT] " + request);
 
                     reply = courseOfAction(action, request);
 
@@ -188,7 +189,7 @@ class TCPConnection extends Thread {
             System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
             Server.numberOfClients--;
 
-            if(!username.equals("")) Server.listOfClients.remove(Server.listOfClients.indexOf(client));
+            if(!username.equals("") && online) Server.listOfClients.remove(Server.listOfClients.indexOf(client));
 
             try {
                 this.clientSocket.close();
@@ -215,115 +216,121 @@ class TCPConnection extends Thread {
     private static String courseOfAction(String action, String parameters) {
         String reply = new String();
 
-        if(!username.equals("") || (action.equals("login") || action.equals("register"))) {
-            if(action.equals("login") || action.equals("register")) {
+        if(!online && action.equals("login") || action.equals("register")) {
 
-                username = parse("username", parameters);
-                String password = parse("password", parameters);
+            username = parse("username", parameters);
+            String password = parse("password", parameters);
 
-                reply = attemptLoginRegister(action, username, password);
+            reply = attemptLoginRegister(action, username, password);
 
-                if(reply.equals("type: login, ok: true")) {
-                    client = new ClientObject(clientSocket, username);
-                    Server.listOfClients.add(client);
-                }
-
-            } else if(action.equals("create_auction")) {
-
-                String code = parse("code", parameters);
-                String title = parse("title", parameters);
-                String description = parse("description", parameters);
-                String deadline = parse("deadeline", parameters);
-                String amount = parse("amount", parameters);
-
-                try {
-                    reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
-                } catch(RemoteException re) {
-                    System.out.println("REMOTE EXCEPTION");
-                    System.out.println("REDO LOOKUP");
-                }
-
-
-            } else if(action.equals("search_auction")) {
-                String code = parse("code", parameters);
-
-                try {
-                    reply = Server.iBei.searchAuction(username, code);
-                } catch(RemoteException re) {
-                    System.out.println("REMOTE EXCEPTION");
-                    System.out.println("REDO LOOKUP");
-                }
-
-            } else if(action.equals("detail_auction")) {
-                String id = parse("id", parameters);
-
-                try {
-                    reply = Server.iBei.detailAuction(username, id);
-                } catch(RemoteException re) {
-                    System.out.println("REMOTE EXCEPTION");
-                    System.out.println("REDO LOOKUP");
-                }
-
-            } else if(action.equals("my_auctions")) {
-                //ONLY ACTION type: my_auctions
-
-                try {
-                    reply = Server.iBei.myAuctions(username);
-                } catch(RemoteException re) {
-                    System.out.println("REMOTE EXCEPTION");
-                    System.out.println("REDO LOOKUP");
-                }
-
-            } else if(action.equals("bid")) {
-                String id = parse("id", parameters);
-                String amount = parse("amount", parameters);
-
-                try {
-                    reply = Server.iBei.bid(username, id, amount);
-                } catch(RemoteException re) {
-                    System.out.println("REMOTE EXCEPTION");
-                    System.out.println("REDO LOOKUP");
-                }
-
-            } else if(action.equals("edit_auction")) {
-                String id = parse("id", parameters);
-                String title = parse("title", parameters);
-                String description = parse("description", parameters);
-                String deadline = parse("deadline", parameters);
-
-                try {
-                    reply = Server.iBei.editAuction(username, id, title, description, deadline);
-                } catch(RemoteException re) {
-                    System.out.println("REMOTE EXCEPTION");
-                    System.out.println("REDO LOOKUP");
-                }
-
-            } else if(action.equals("message")) {
-                String id = parse("id", parameters);
-                String text = parse("text", parameters);
-
-                try {
-                    reply = Server.iBei.message(username, id, text);
-                } catch(RemoteException re) {
-                    System.out.println("REMOTE EXCEPTION");
-                    System.out.println("REDO LOOKUP");
-                }
-
-            } else if(action.equals("online_users")) {
-
-                try {
-                    reply = Server.iBei.onlineUsers(username);
-                } catch(RemoteException re) {
-                    re.printStackTrace();
-                    System.out.println("REMOTE EXCEPTION onlineUsers");
-                    System.out.println("REDO LOOKUP");
-                }
-
-            } else {
-                return "ERROR: THIS IS NOT A VALID REQUEST";
+            if(reply.equals("type: login, ok: true")) {
+                client = new ClientObject(clientSocket, username);
+                Server.listOfClients.add(client);
+                online = true;
             }
+
+        } else if(online && action.equals("create_auction")) {
+
+            String code = parse("code", parameters);
+            String title = parse("title", parameters);
+            String description = parse("description", parameters);
+            String deadline = parse("deadeline", parameters);
+            String amount = parse("amount", parameters);
+
+            try {
+                reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
+            } catch(RemoteException re) {
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION create_auction");
+                System.out.println("REDO LOOKUP");
+            }
+
+
+        } else if(online && action.equals("search_auction")) {
+            String code = parse("code", parameters);
+
+            try {
+                reply = Server.iBei.searchAuction(username, code);
+            } catch(RemoteException re) {
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION search_auction");
+                System.out.println("REDO LOOKUP");
+            }
+
+        } else if(online && action.equals("detail_auction")) {
+            String id = parse("id", parameters);
+
+            try {
+                reply = Server.iBei.detailAuction(username, id);
+            } catch(RemoteException re) {
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION detail_auction");
+                System.out.println("REDO LOOKUP");
+            }
+
+        } else if(online && action.equals("my_auctions")) {
+            //ONLY ACTION type: my_auctions
+
+            try {
+                reply = Server.iBei.myAuctions(username);
+            } catch(RemoteException re) {
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION my_auctions");
+                System.out.println("REDO LOOKUP");
+            }
+
+        } else if(online && action.equals("bid")) {
+            String id = parse("id", parameters);
+            String amount = parse("amount", parameters);
+
+            try {
+                reply = Server.iBei.bid(username, id, amount);
+            } catch(RemoteException re) {
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION bid");
+                System.out.println("REDO LOOKUP");
+            }
+
+        } else if(online && action.equals("edit_auction")) {
+            String id = parse("id", parameters);
+            String title = parse("title", parameters);
+            String description = parse("description", parameters);
+            String deadline = parse("deadline", parameters);
+
+            try {
+                reply = Server.iBei.editAuction(username, id, title, description, deadline);
+            } catch(RemoteException re) {
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION edit_auction");
+                System.out.println("REDO LOOKUP");
+            }
+
+        } else if(online && action.equals("message")) {
+            String id = parse("id", parameters);
+            String text = parse("text", parameters);
+
+            try {
+                reply = Server.iBei.message(username, id, text);
+            } catch(RemoteException re) {
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION message");
+                System.out.println("REDO LOOKUP");
+            }
+
+        } else if(online && action.equals("online_users")) {
+
+            try {
+                reply = Server.iBei.onlineUsers(username);
+            } catch(RemoteException re) {
+                re.printStackTrace();
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION onlineUsers");
+                System.out.println("REDO LOOKUP");
+            }
+        } else if(!online) {
+            return "[SERVER] PLEASE LOG IN BEFORE MAKING REQUESTS";
         } else {
-            return "USER IS NOT LOGGED IN";
+            return "[SERVER] THIS IS NOT A VALID REQUEST";
         }
 
         return reply;
@@ -387,10 +394,14 @@ class TCPConnection extends Thread {
         String reply = new String();
         if(action.equals("login")) {
             try {
+
+                System.out.println(username + " " + password);
+
                 reply = Server.iBei.login(username, password);
                 return reply;
             } catch(RemoteException re) {
-                System.out.println("REMOTE EXCEPTION");
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION login");
                 System.out.println("REDO LOOKUP");
             }
         } else {
@@ -398,7 +409,8 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.register(username, password);
                 return reply;
             } catch(RemoteException re) {
-                System.out.println("REMOTE EXCEPTION");
+                re.printStackTrace();
+                System.out.println("REMOTE EXCEPTION register");
                 System.out.println("REDO LOOKUP");
             }
         }
