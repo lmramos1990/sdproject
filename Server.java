@@ -215,62 +215,115 @@ class TCPConnection extends Thread {
 
     private static String courseOfAction(String action, String parameters) {
         String reply = new String();
-        if(action.equals("login") || action.equals("register")) {
 
-            username = parse("username", parameters);
-            String password = parse("password", parameters);
+        if(!username.equals("") || (action.equals("login") || action.equals("register"))) {
+            if(action.equals("login") || action.equals("register")) {
 
-            reply = attemptLoginRegister(action, username, password);
+                username = parse("username", parameters);
+                String password = parse("password", parameters);
 
-            if(reply.equals("type: login, ok: true")) {
-                client = new ClientObject(clientSocket, username);
-                Server.listOfClients.add(client);
+                reply = attemptLoginRegister(action, username, password);
+
+                if(reply.equals("type: login, ok: true")) {
+                    client = new ClientObject(clientSocket, username);
+                    Server.listOfClients.add(client);
+                }
+
+            } else if(action.equals("create_auction")) {
+
+                String code = parse("code", parameters);
+                String title = parse("title", parameters);
+                String description = parse("description", parameters);
+                String deadline = parse("deadeline", parameters);
+                String amount = parse("amount", parameters);
+
+                try {
+                    reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
+                } catch(RemoteException re) {
+                    System.out.println("REMOTE EXCEPTION");
+                    System.out.println("REDO LOOKUP");
+                }
+
+
+            } else if(action.equals("search_auction")) {
+                String code = parse("code", parameters);
+
+                try {
+                    reply = Server.iBei.searchAuction(username, code);
+                } catch(RemoteException re) {
+                    System.out.println("REMOTE EXCEPTION");
+                    System.out.println("REDO LOOKUP");
+                }
+
+            } else if(action.equals("detail_auction")) {
+                String id = parse("id", parameters);
+
+                try {
+                    reply = Server.iBei.detailAuction(username, id);
+                } catch(RemoteException re) {
+                    System.out.println("REMOTE EXCEPTION");
+                    System.out.println("REDO LOOKUP");
+                }
+
+            } else if(action.equals("my_auctions")) {
+                //ONLY ACTION type: my_auctions
+
+                try {
+                    reply = Server.iBei.myAuctions(username);
+                } catch(RemoteException re) {
+                    System.out.println("REMOTE EXCEPTION");
+                    System.out.println("REDO LOOKUP");
+                }
+
+            } else if(action.equals("bid")) {
+                String id = parse("id", parameters);
+                String amount = parse("amount", parameters);
+
+                try {
+                    reply = Server.iBei.bid(username, id, amount);
+                } catch(RemoteException re) {
+                    System.out.println("REMOTE EXCEPTION");
+                    System.out.println("REDO LOOKUP");
+                }
+
+            } else if(action.equals("edit_auction")) {
+                String id = parse("id", parameters);
+                String title = parse("title", parameters);
+                String description = parse("description", parameters);
+                String deadline = parse("deadline", parameters);
+
+                try {
+                    reply = Server.iBei.editAuction(username, id, title, description, deadline);
+                } catch(RemoteException re) {
+                    System.out.println("REMOTE EXCEPTION");
+                    System.out.println("REDO LOOKUP");
+                }
+
+            } else if(action.equals("message")) {
+                String id = parse("id", parameters);
+                String text = parse("text", parameters);
+
+                try {
+                    reply = Server.iBei.message(username, id, text);
+                } catch(RemoteException re) {
+                    System.out.println("REMOTE EXCEPTION");
+                    System.out.println("REDO LOOKUP");
+                }
+
+            } else if(action.equals("online_users")) {
+
+                try {
+                    reply = Server.iBei.onlineUsers(username);
+                } catch(RemoteException re) {
+                    System.out.println("REMOTE EXCEPTION");
+                    System.out.println("REDO LOOKUP");
+                }
+
+            } else {
+                return "ERROR: THIS IS'NT A VALID REQUEST";
             }
-
-        } else if(action.equals("create_auction")) {
-
-            String code = parse("code", parameters);
-            String title = parse("title", parameters);
-            String description = parse("description", parameters);
-            String deadline = parse("deadeline", parameters);
-            String amount = parse("amount", parameters);
-
-            try {
-                reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
-            } catch(RemoteException re) {
-                System.out.println("REMOTE EXCEPTION");
-                System.out.println("REDO LOOKUP");
-            }
-
-
-        } else if(action.equals("search_auction")) {
-            String code = parse("code", parameters);
-
-            
-
-        } else if(action.equals("detail_auction")) {
-            String id = parse("id", parameters);
-
-        } else if(action.equals("my_auctions")) {
-            //ONLY ACTION type: my_auctions
-
-        } else if(action.equals("bid")) {
-            String id = parse("id", parameters);
-            String amount = parse("amount", parameters);
-
-        } else if(action.equals("edit_auction")) {
-            String id = parse("id", parameters);
-            String deadline = parse("deadline", parameters);
-
-        } else if(action.equals("message")) {
-            String id = parse("id", parameters);
-            String text = parse("text", parameters);
-
-        } else if(action.equals("online_users")) {
-            // ONLY ACTION type: online_users
-
         } else {
-            return "ERROR: THIS IS'NT A VALID REQUEST";
+            return "USER IS NOT LOGGED IN";
         }
 
         return reply;
