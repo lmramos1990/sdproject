@@ -135,12 +135,33 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String login(String username, String password) throws RemoteException {
         System.out.println("[RMISERVER] LOGIN REQUEST");
 
+        String reply = "type: login, ok: true";
+        String tempUser = new String();
+        String tempPass = new String();
+        int tempStatus = -1;
 
+        try {
+            Statement statement = connection.createStatement();
+            String query = "SELECT username, pass, status FROM client WHERE to_char(username) = " + "'" + username + "' AND to_char(pass) = " + "'" + password + "' AND status = 0";
+            System.out.println(query);
 
+            ResultSet resultSet = statement.executeQuery(query);
 
-        // CONNECT TO THE DATABASE
+            while(resultSet.next()) {
+                tempUser = resultSet.getString("username");
+                tempPass = resultSet.getString("pass");
+                tempStatus = resultSet.getInt("status");
 
-        return "type: login, ok: true";
+                System.out.println("FROM THE DATABASE\nUSERNAME: " + tempUser + " PASSWORD: " + tempPass + " STATUS: " + tempStatus);
+            }
+            resultSet.close();
+        } catch(Exception e) {
+            System.out.println("ERROR: " + e.getMessage());
+            System.out.println("NAO RETORNOU NADA NO COMANDO DESTA MERDA");
+            reply = "type: login, ok: false";
+        }
+
+        return reply;
     }
 
     public synchronized String register(String username, String password) throws RemoteException {

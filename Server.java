@@ -38,7 +38,7 @@ class Server {
                 System.out.println("[SERVER] CONNECTION FAILED\n[SERVER] ATTEMPTING ANOTHER TIME");
             }
 
-            if(connecting == 5) {
+            if(connecting == 3) {
                 System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
                 return;
             }
@@ -56,14 +56,12 @@ class Server {
             Enumeration enumeration = NetworkInterface.getNetworkInterfaces();
             InetAddress enumerationAddresses = null;
 
-            //TODO: DAR UMA OLHADA NESTA cena
             while(enumeration.hasMoreElements()) {
 
                 NetworkInterface n = (NetworkInterface) enumeration.nextElement();
                 Enumeration ee = n.getInetAddresses();
 
                 enumerationAddresses = (InetAddress) ee.nextElement();
-                // System.out.println(enumerationAddresses.getHostAddress());
                 break;
             }
 
@@ -139,6 +137,7 @@ class TCPConnection extends Thread {
 
     private static String username = new String();
     private static boolean online = false;
+    private static int connecting = 0;
 
     public TCPConnection(Socket pclientSocket) {
         this.username = new String();
@@ -166,10 +165,6 @@ class TCPConnection extends Thread {
 
                 parseFile(requests, data);
 
-                // System.out.println("REQUESTS LIST");
-                // for(int i = 0; i < requests.size(); i++) {
-                //     System.out.println(requests.get(i));
-
                 while(!requests.isEmpty()) {
                     String request = requests.get(0);
                     String action = parse("type", request);
@@ -182,8 +177,6 @@ class TCPConnection extends Thread {
                     requests.remove(0);
                 }
             }
-
-
 
         } catch(Exception e) {
             System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
@@ -223,7 +216,7 @@ class TCPConnection extends Thread {
 
             reply = attemptLoginRegister(action, username, password);
 
-            if(reply.equals("type: login, ok: true")) {
+            if(reply.equals("type: login, ok: true") || reply.equals("type: register, ok: true")) {
                 client = new ClientObject(clientSocket, username);
                 Server.listOfClients.add(client);
                 online = true;
@@ -237,14 +230,7 @@ class TCPConnection extends Thread {
             String deadline = parse("deadeline", parameters);
             String amount = parse("amount", parameters);
 
-            try {
-                reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION create_auction");
-                System.out.println("REDO LOOKUP");
-            }
-
+            reply = createAuction(username, code, title, description, deadline, amount);
 
         } else if(online && action.equals("search_auction")) {
             String code = parse("code", parameters);
@@ -336,6 +322,65 @@ class TCPConnection extends Thread {
         return reply;
     }
 
+    private static String attemptLoginRegister(String action, String username, String password) {
+        String reply = new String();
+
+        if(action.equals("login")) {
+            try {
+                reply = Server.iBei.login(username, password);
+            } catch(RemoteException re) {
+                connectToRMI();
+                reply = attemptLoginRegister(action, username, password);
+            }
+        } else {
+            try {
+                reply = Server.iBei.register(username, password);
+            } catch(RemoteException re) {
+                connectToRMI();
+                reply = attemptLoginRegister(action, username, password);
+            }
+        }
+
+        connecting = 0;
+        return reply;
+    }
+
+    private static String createAuction(String username, String code, String title, String description, String deadline, String amount) {
+        String reply = new String();
+
+        try {
+            reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
+
+        } catch(RemoteException re) {
+            connectToRMI();
+
+        }
+
+        connecting = 0;
+        return reply;
+    }
+
+    private static void connectToRMI() {
+
+        try {
+            connecting++;
+            Server.iBei = (AuctionInterface) Naming.lookup("iBei");
+        } catch(Exception e) {
+            System.out.println("[SERVER] CONNECTION FAILED\n[SERVER] ATTEMPTING ANOTHER TIME");
+        }
+
+        if(connecting == 7) {
+            System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
+            return;
+        }
+
+        try {
+            Thread.sleep(5000);
+        } catch(Exception e) {
+            return;
+        }
+    }
+
     private static String parse(String parameter, String request) {
         int j = 0, k = 0;
         int plen = parameter.length();
@@ -388,34 +433,6 @@ class TCPConnection extends Thread {
         }
 
         return sb.toString();
-    }
-
-    private static String attemptLoginRegister(String action, String username, String password) {
-        String reply = new String();
-        if(action.equals("login")) {
-            try {
-
-                System.out.println(username + " " + password);
-
-                reply = Server.iBei.login(username, password);
-                return reply;
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION login");
-                System.out.println("REDO LOOKUP");
-            }
-        } else {
-            try {
-                reply = Server.iBei.register(username, password);
-                return reply;
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION register");
-                System.out.println("REDO LOOKUP");
-            }
-        }
-
-        return reply;
     }
 }
 
