@@ -189,8 +189,7 @@ class TCPConnection extends Thread {
             System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
             Server.numberOfClients--;
 
-            // DA MERDA SE O SOCKET NAO ESTIVER ASSOCIADO A UM CLIENTE
-            Server.listOfClients.remove(Server.listOfClients.indexOf(client));
+            if(!username.equals("")) Server.listOfClients.remove(Server.listOfClients.indexOf(client));
 
             try {
                 this.clientSocket.close();
@@ -235,15 +234,19 @@ class TCPConnection extends Thread {
             String description = parse("description", parameters);
             String deadline = parse("deadeline", parameters);
             String amount = parse("amount", parameters);
+
             try {
                 reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
             } catch(RemoteException re) {
                 System.out.println("REMOTE EXCEPTION");
+                System.out.println("REDO LOOKUP");
             }
 
 
         } else if(action.equals("search_auction")) {
             String code = parse("code", parameters);
+
+            
 
         } else if(action.equals("detail_auction")) {
             String id = parse("id", parameters);
@@ -335,6 +338,7 @@ class TCPConnection extends Thread {
                 return reply;
             } catch(RemoteException re) {
                 System.out.println("REMOTE EXCEPTION");
+                System.out.println("REDO LOOKUP");
             }
         } else {
             try {
@@ -342,6 +346,7 @@ class TCPConnection extends Thread {
                 return reply;
             } catch(RemoteException re) {
                 System.out.println("REMOTE EXCEPTION");
+                System.out.println("REDO LOOKUP");
             }
         }
 
