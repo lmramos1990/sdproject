@@ -46,8 +46,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public static void main(String[] args) {
 
-        // System.getProperties().put("java.security.policy", "policy.all");
-        // System.setSecurityManager(new RMISecurityManager());
+        System.getProperties().put("java.security.policy", "policy.all");
+        System.setSecurityManager(new RMISecurityManager());
 
         if(args.length > 0) {
             System.out.println("ERROR: USAGE IS java RMIServer");

@@ -34,6 +34,7 @@ class Server {
                 iBei = (AuctionInterface) Naming.lookup("rmi://" + rmiRegistryIP + "/iBei");
                 connected = true;
             } catch(Exception e) {
+                e.printStackTrace();
                 System.out.println("CONNECTION FAILED\nATTEMPTING ANOTHER TIME");
             }
 
@@ -319,7 +320,7 @@ class TCPConnection extends Thread {
                 }
 
             } else {
-                return "ERROR: THIS IS'NT A VALID REQUEST";
+                return "ERROR: THIS IS NOT A VALID REQUEST";
             }
         } else {
             return "USER IS NOT LOGGED IN";
