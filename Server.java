@@ -98,8 +98,8 @@ class Server {
 }
 
 class TCPConnection extends Thread {
-    DataInputStream dataInputStream;
-    DataOutputStream dataOutputStream;
+    BufferedReader inFromServer = null;
+    PrintWriter outToServer;
     Socket clientSocket;
 
     // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
@@ -117,8 +117,8 @@ class TCPConnection extends Thread {
     public TCPConnection(Socket pclientSocket) {
         try {
             clientSocket = pclientSocket;
-            dataInputStream = new DataInputStream(clientSocket.getInputStream());
-            dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+            inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            outToServer = new PrintWriter(clientSocket.getOutputStream(), true);
             this.start();
         } catch(IOException e) {
             System.out.println("ERROR: " + e.getMessage());
@@ -134,10 +134,7 @@ class TCPConnection extends Thread {
 
         try {
             while(true) {
-                byte[] buffer = new byte[1024];
-                dataInputStream.read(buffer);
-
-                data = new String(buffer);
+                data = inFromServer.readLine();
                 data = parseString(data);
 
                 parseFile(requests, data);
@@ -145,20 +142,16 @@ class TCPConnection extends Thread {
                 // System.out.println("REQUESTS LIST");
                 // for(int i = 0; i < requests.size(); i++) {
                 //     System.out.println(requests.get(i));
-                // }
-                // System.out.println("DATA: " + data);
 
                 while(!requests.isEmpty()) {
-
                     String request = requests.get(0);
                     String action = parse("type", request);
 
+                    if(!request.equals("")) System.out.println("[CLIENT] REQUESTED: " + request);
+
                     reply = courseOfAction(action, request);
 
-                    // System.out.println(reply);
-
-                    byte [] message = reply.getBytes();
-                    dataOutputStream.write(message);
+                    outToServer.println(reply);
                     requests.remove(0);
                 }
             }
@@ -200,12 +193,6 @@ class TCPConnection extends Thread {
 
             reply = attemptLoginRegister(action, username, password);
 
-            // if(action.equals("login")) {
-            //     reply = "type: login, ok: true";
-            // } else {
-            //     reply = "type: register, ok: true";
-            // }
-
         } else if(action.equals("create_auction")) {
 
             code = parse("code", parameters);
@@ -213,6 +200,12 @@ class TCPConnection extends Thread {
             description = parse("description", parameters);
             deadline = parse("deadeline", parameters);
             amount = parse("amount", parameters);
+            try {
+                reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
+            } catch(RemoteException re) {
+                System.out.println("REMOTE EXCEPTION");
+            }
+
 
         } else if(action.equals("search_auction")) {
             code = parse("code", parameters);
@@ -239,7 +232,7 @@ class TCPConnection extends Thread {
             // ONLY ACTION type: online_users
 
         } else {
-            return "ERROR: THIS IS'NT A VALID REQUEST\n";
+            return "ERROR: THIS IS'NT A VALID REQUEST";
         }
 
         return reply;
@@ -362,7 +355,7 @@ class ServerLoad extends Thread {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                String sentence = "ip: " + ipAddress + ", port: " + Integer.toString(port) + ", numberofclients: " + Server.numberOfClients;
+                String sentence = "ip: " + ipAddress + ", port: " + Integer.toString(port) + ", numberofclients: " + Server.numberOfClients + ", count: 0";
 
                 byte [] sendData = sentence.getBytes();
                 DatagramPacket serverInfoPacket = null;
@@ -383,7 +376,7 @@ class ServerLoad extends Thread {
                     return;
                 }
             }
-        }, 0, 1000);
+        }, 0, 1500);
     }
 
     private static void receiveOthersInfo() {
@@ -405,57 +398,51 @@ class ServerLoad extends Thread {
                 return;
             }
 
-            String receivedString = new String(receivePacket.getData());
+            String serverInfo = new String(receivePacket.getData());
+            serverInfo = parseString(serverInfo);
 
-            receivedString = parseString(receivedString);
+            if(serversList.size() == 0) {
+                serversList.add(serverInfo);
+            } else {
+                boolean found = false;
+                // int foundCounter = 0;
+                int foundIndex = 0;
 
-            String address = parse("ip", receivedString);
-            String sport = parse("port", receivedString);
-
-            String serverInfo = "ip: " + address + ", port: " + sport + ", count: " + Integer.toString(0);
-
-            if(count % 2 == 0) {
-                if(serversList.size() == 0) {
-                    serversList.add(serverInfo);
-                } else {
-                    boolean found = false;
-                    int foundCounter = 0;
-                    int foundIndex = 0;
-
-                    for(int i = 0; i < serversList.size(); i++) {
-                        for(int j = 0; j < serversList.size(); j++) {
-                            if(!(parse("ip", serverInfo).equals(parse("ip", serversList.get(j))) && parse("port", serverInfo).equals(parse("port", serversList.get(j))))) {
-                                found = false;
-                            } else {
-                                found = true;
-                                foundIndex = j;
-                                break;
-                            }
-                        }
-
-                        if(found && i == serversList.size() - 1) {
-                            String resetCounter = "ip: " + parse("ip", serversList.get(foundIndex)) + ", port: " + parse("port", serversList.get(foundIndex)) + ", count: " + Integer.toString(0);
-                            serversList.set(foundIndex, resetCounter);
-                        } else if(!found && i == serversList.size() - 1) {
-                            serversList.add(serverInfo);
+                for(int i = 0; i < serversList.size(); i++) {
+                    for(int j = 0; j < serversList.size(); j++) {
+                        if(!(parse("ip", serverInfo).equals(parse("ip", serversList.get(j))) && parse("port", serverInfo).equals(parse("port", serversList.get(j))))) {
+                            found = false;
+                        } else {
+                            found = true;
+                            foundIndex = j;
                             break;
                         }
                     }
 
-                    for(int i = 0; i < serversList.size(); i++) {
-                        int counter = Integer.parseInt(parse("count", serversList.get(i)));
-                        counter += 1;
-                        String newString = "ip: " + parse("ip", serversList.get(i)) + ", port: " + parse("port", serversList.get(i)) + ", count: " + Integer.toString(counter);
-                        serversList.set(i, newString);
+                    if(found && i == serversList.size() - 1) {
+                        String resetCounter = "ip: " + parse("ip", serversList.get(foundIndex)) + ", port: " + parse("port", serversList.get(foundIndex)) + ", numberofclients: " + parse("numberofclients", serversList.get(foundIndex)) + ", count: 0";
+                        serversList.set(foundIndex, resetCounter);
+                    } else if(!found && i == serversList.size() - 1) {
+                        serversList.add(serverInfo);
+                        break;
                     }
+                }
 
-                    for(int i = 0; i < serversList.size(); i++) {
-                        for(int j = 0; j < serversList.size(); j++) {
-                            int counter = Integer.parseInt(parse("count", serversList.get(j)));
-                            if(counter == 15) {
-                                serversList.remove(j);
-                                break;
-                            }
+                for(int i = 0; i < serversList.size(); i++) {
+                    int counter = 0;
+                    String sCounter = parse("count", serversList.get(i));
+                    counter = Integer.parseInt(sCounter);
+                    counter = counter + 1;
+                    String newString = "ip: " + parse("ip", serversList.get(i)) + ", port: " + parse("port", serversList.get(i)) + ", numberofclients: " + parse("numberofclients", serversList.get(i)) + ", count: " + counter;
+                    serversList.set(i, newString);
+                }
+
+                for(int i = 0; i < serversList.size(); i++) {
+                    for(int j = 0; j < serversList.size(); j++) {
+                        int counter = Integer.parseInt(parse("count", serversList.get(j)));
+                        if(counter >= 15) {
+                            serversList.remove(j);
+                            break;
                         }
                     }
                 }
@@ -469,33 +456,36 @@ class ServerLoad extends Thread {
                     @Override
                     public void run() {
                         ArrayList <Socket> clients = Server.clientSockets;
-                        DataOutputStream dataOutputStream = null;
+                        PrintWriter outToServer;
                         Server.numberOfClients = clients.size();
-                        int index = 0;
+                        String message = new String();
+
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("type: notification_load, server_list: " + serversList.size() + ", ");
 
                         for(int i = 0; i < serversList.size(); i++) {
-                            if(ipAddress.equals(parse("ip", serversList.get(i)))) {
-                                index = i;
-                                break;
-                            }
+                            String aux = "server_" + i + "_hostname: " + parse("ip", serversList.get(i)) + ", server_" + i +
+                            "_port: " + parse("port", serversList.get(i)) + ", server_" + i + "_load: " + parse("numberofclients", serversList.get(i));
+                            sb.append(aux);
+                            if(i != serversList.size() - 1) sb.append(", ");
                         }
 
-                        String message = "type: notification_load, server_list: " + Integer.toString(serversList.size()) +
-                        ", server_" + Integer.toString(index) + "_hostname: " + ipAddress + ", server_" + Integer.toString(index) +
-                        "_port: " + port + ", server_" + Integer.toString(index) + "_load: " + Server.numberOfClients + "\n";
+                        message = sb.toString();
+
+                        System.out.println("MESSAGE: " + message);
 
                         for(int i = 0; i < clients.size(); i++) {
                             Socket clientSocket = clients.get(i);
 
                             try {
-                                dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
+                                outToServer = new PrintWriter(clientSocket.getOutputStream(), true);
                             } catch(Exception e) {
                                 clients.remove(i);
                                 return;
                             }
 
                             try {
-                                dataOutputStream.write(message.getBytes());
+                                outToServer.println(message);
                             } catch(Exception e) {
                                 return;
                             }

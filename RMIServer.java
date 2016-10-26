@@ -6,8 +6,8 @@ import java.rmi.server.UnicastRemoteObject;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public static int rmiregistryport = 0;
-
     private static final long serialVersionUID = 1L;
+    private static Properties properties = new Properties();
 
     protected RMIServer() throws RemoteException {
         super();
@@ -16,7 +16,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     protected RMIServer(boolean online) throws RemoteException {
         RMIServer rmiServer = new RMIServer();
 
-        String toBind = "rmi://localhost:" + Integer.toString(rmiregistryport) + "/iBei";
+        String registryIP = readProperties();
+
+        String toBind = "rmi://" + registryIP + ":" + Integer.toString(rmiregistryport) + "/iBei";
 
         if(online == true) {
             try {
@@ -60,24 +62,58 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
+    public String readProperties() {
+        InputStream inputStream = null;
+        String result = new String();
+
+        try {
+			Properties prop = new Properties();
+			String propFileName = "config.properties";
+
+			inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
+
+			if (inputStream != null) {
+				prop.load(inputStream);
+			} else {
+				throw new FileNotFoundException("property file '" + propFileName + "' not found in the classpath");
+			}
+
+			result = prop.getProperty("registryIP");
+
+		} catch (Exception e) {
+			System.out.println("Exception: " + e);
+		} finally {
+            try {
+                inputStream.close();
+            } catch(Exception e) {
+                System.out.println("ERROR: " + e.getMessage());
+            }
+		}
+
+		return result;
+    }
+
     private static void primaryRMIServer() {
         PrimaryServer primaryServer = new PrimaryServer();
     }
 
 
 
-    public String login(String username, String password) throws RemoteException {
+    public synchronized String login(String username, String password) throws RemoteException {
         System.out.println("FODASSE");
         return "O JOEL E UM BURRO DO CARALHO!";
     }
-    public String register(String username, String password) throws RemoteException {
+
+    public synchronized String register(String username, String password) throws RemoteException {
         System.out.println("FODASSE");
         return "O JOEL E UM BURRO DO CARALHO!";
     }
-    public String createAuction(String username, String code, String title, String description, String deadline, String amount) throws RemoteException {
+
+    public synchronized String createAuction(String username, String code, String title, String description, String deadline, String amount) throws RemoteException {
         return new String();
     }
-    public String searchAuction(String code) throws RemoteException {
+
+    public synchronized String searchAuction(String code) throws RemoteException {
         return new String();
     }
 

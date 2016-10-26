@@ -211,7 +211,7 @@ class Client {
         deadline = deadline.concat(day);
         deadline = deadline.concat(" ");
         deadline = deadline.concat(hour);
-        deadline = deadline.concat(":");
+        deadline = deadline.concat("-");
         deadline = deadline.concat(minutes);
 
         String request = new String();
