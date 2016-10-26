@@ -94,7 +94,7 @@ class Server {
 
             inputStream = new FileInputStream(propFileName);
 
-            if (inputStream != null) {
+            if(inputStream != null) {
                 prop.load(inputStream);
             } else {
                 throw new FileNotFoundException("ERROR: PROPERTY '" + propFileName + "' NOT FOUND IN THE CLASSPATH");
@@ -103,7 +103,7 @@ class Server {
             rmiRegistryIP = prop.getProperty("rmiRegistryIP");
             rmiServerIP = prop.getProperty("rmiServerIP");
 
-        } catch (Exception e) {
+        } catch(Exception e) {
             System.out.println("Exception: " + e);
         } finally {
             try {
@@ -138,10 +138,10 @@ class TCPConnection extends Thread {
     private static Socket clientSocket;
     private static ClientObject client;
 
-    // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
     private static String username = new String();
 
     public TCPConnection(Socket pclientSocket) {
+        this.username = new String();
         try {
             clientSocket = pclientSocket;
             inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));

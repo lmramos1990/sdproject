@@ -2,15 +2,6 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface AuctionInterface extends Remote {
-	// createAuction();
-	// searchAuction();
-	// auctionDetails();
-	// myAuctions();
-	// makeBid();
-	// editAuction();
-	// commentInAuction();
-	// listOnlineUsers();
-
 
 	public String login(String username, String password) throws RemoteException;
 	public String register(String username, String password) throws RemoteException;
@@ -22,6 +13,5 @@ public interface AuctionInterface extends Remote {
 	public String editAuction(String username, String id, String title, String description, String deadline) throws RemoteException;
 	public String message(String username, String id, String text) throws RemoteException;
 	public String onlineUsers(String username) throws RemoteException;
-	
-	// public String
+
 }
