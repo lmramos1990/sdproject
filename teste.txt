@@ -1,4 +1,0 @@
-type: login, username: teste, password: teste
-type: login, username: teste1, password: teste1
-type: register, username: pierre, password: omidyar
-type: create_auction, code
