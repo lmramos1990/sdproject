@@ -14,8 +14,6 @@ class Server {
     private static String rmiRegistryIP = new String();
     private static String rmiServerIP = new String();
 
-    // public static ArrayList <String> requestQueue = new ArrayList<String>(); <- QUEUE OF REQUESTS (STILL TO IMPLEMENT)
-
     public static void main(String args[]) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
 
@@ -57,7 +55,7 @@ class Server {
             Enumeration enumeration = NetworkInterface.getNetworkInterfaces();
             InetAddress enumerationAddresses = null;
 
-            //TODO: DAR UMA OLHADA NESTA MERDA
+            //TODO: DAR UMA OLHADA NESTA cena
             while(enumeration.hasMoreElements()) {
 
                 NetworkInterface n = (NetworkInterface) enumeration.nextElement();
@@ -315,7 +313,8 @@ class TCPConnection extends Thread {
                 try {
                     reply = Server.iBei.onlineUsers(username);
                 } catch(RemoteException re) {
-                    System.out.println("REMOTE EXCEPTION");
+                    re.printStackTrace();
+                    System.out.println("REMOTE EXCEPTION onlineUsers");
                     System.out.println("REDO LOOKUP");
                 }
 
