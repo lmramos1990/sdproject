@@ -1,7 +1,10 @@
+package sdproject;
+
 import java.util.*;
 import java.net.*;
 import java.io.*;
 import java.rmi.*;
+import java.rmi.registry.LocateRegistry;
 
 class Server {
     private static ServerSocket serverSocket;
@@ -13,6 +16,7 @@ class Server {
     public static ArrayList <Socket> clientSockets = new ArrayList<Socket>();
     public static ArrayList<ClientObject> listOfClients = new ArrayList<ClientObject>();
     public static AuctionInterface iBei;
+    public static int rmiregistryport = -1;
 
     public static void main(String args[]) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
@@ -30,8 +34,11 @@ class Server {
         System.out.println("[SERVER] TRYING TO ESTABLISH A CONNECTION TO THE RMI SERVER");
         while(!connected) {
             try {
+                for(int i = 0; i < LocateRegistry.getRegistry(rmiregistryport).list().length; i++) {
+                    System.out.println(LocateRegistry.getRegistry(rmiregistryport).list());
+                }
                 connecting++;
-                iBei = (AuctionInterface) Naming.lookup("iBei");
+                iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiregistryport).lookup("iBei");
                 connected = true;
             } catch(Exception e) {
                 e.printStackTrace();
@@ -99,6 +106,7 @@ class Server {
 
             rmiRegistryIP = prop.getProperty("rmiRegistryIP");
             rmiServerIP = prop.getProperty("rmiServerIP");
+            rmiregistryport = Integer.parseInt(prop.getProperty("rmiregistryport"));
 
         } catch(Exception e) {
             System.out.println("Exception: " + e);
@@ -353,7 +361,7 @@ class TCPConnection extends Thread {
 
         } catch(RemoteException re) {
             connectToRMI();
-
+            reply = createAuction(username, code, title, description, deadline, amount);
         }
 
         connecting = 0;
@@ -364,7 +372,7 @@ class TCPConnection extends Thread {
 
         try {
             connecting++;
-            Server.iBei = (AuctionInterface) Naming.lookup("iBei");
+            Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiregistryport).lookup("iBei");
         } catch(Exception e) {
             System.out.println("[SERVER] CONNECTION FAILED\n[SERVER] ATTEMPTING ANOTHER TIME");
         }

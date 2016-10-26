@@ -1,9 +1,12 @@
+package sdproject;
+
 import java.util.*;
 import java.net.*;
 import java.io.*;
 import java.rmi.*;
 import java.sql.*;
 import java.rmi.server.UnicastRemoteObject;
+import java.rmi.registry.LocateRegistry;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
@@ -31,7 +34,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         if(online == true) {
             try {
-                Naming.rebind(toBind, rmiServer);
+                LocateRegistry.getRegistry(rmiregistryport).rebind(toBind, rmiServer);
 
                 try {
                     Class.forName("oracle.jdbc.OracleDriver");
@@ -51,7 +54,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             }
         } else {
             try {
-                Naming.bind(toBind, rmiServer);
+                LocateRegistry.getRegistry(rmiregistryport).bind(toBind, rmiServer);
 
                 try {
                     Class.forName("oracle.jdbc.OracleDriver");
@@ -68,9 +71,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             } catch(AlreadyBoundException abe) {
                 SecondaryServer secondaryServer = new SecondaryServer();
-            } catch(MalformedURLException murle) {
-                System.out.println("ERROR: " + murle.getMessage());
-                return;
             }
         }
     }
