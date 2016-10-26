@@ -8,6 +8,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public static int rmiregistryport = 0;
     private static final long serialVersionUID = 1L;
     private static Properties properties = new Properties();
+    private static String rmiRegistryIP = new String();
+    public static String rmiServerIP = new String();
 
     protected RMIServer() throws RemoteException {
         super();
@@ -16,9 +18,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     protected RMIServer(boolean online) throws RemoteException {
         RMIServer rmiServer = new RMIServer();
 
-        String registryIP = readProperties();
+        readProperties();
 
-        String toBind = "rmi://" + registryIP + ":" + Integer.toString(rmiregistryport) + "/iBei";
+        String toBind = "rmi://" + rmiRegistryIP + ":" + Integer.toString(rmiregistryport) + "/iBei";
 
         if(online == true) {
             try {
@@ -58,27 +60,28 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             RMIServer rmiServer = new RMIServer(false);
         } catch(Exception e) {
             System.out.println("ERROR: RMIREGISTRY IS NOT INITIALIZED");
+            e.printStackTrace();
             System.exit(0);
         }
     }
 
-    public String readProperties() {
+    public static void readProperties() {
         InputStream inputStream = null;
-        String result = new String();
 
         try {
 			Properties prop = new Properties();
 			String propFileName = "config.properties";
 
-			inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
+			inputStream = new FileInputStream(propFileName);
 
 			if (inputStream != null) {
 				prop.load(inputStream);
 			} else {
-				throw new FileNotFoundException("property file '" + propFileName + "' not found in the classpath");
+				throw new FileNotFoundException("ERROR: PROPERTY '" + propFileName + "' NOT FOUND IN THE CLASSPATH");
 			}
 
-			result = prop.getProperty("registryIP");
+			rmiRegistryIP = prop.getProperty("rmiRegistryIP");
+            rmiServerIP = prop.getProperty("rmiServerIP");
 
 		} catch (Exception e) {
 			System.out.println("Exception: " + e);
@@ -89,8 +92,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 System.out.println("ERROR: " + e.getMessage());
             }
 		}
-
-		return result;
     }
 
     private static void primaryRMIServer() {
@@ -100,8 +101,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
 
     public synchronized String login(String username, String password) throws RemoteException {
-        System.out.println("FODASSE");
-        return "O JOEL E UM BURRO DO CARALHO!";
+        System.out.println("[RMISERVER] LOGIN REQUEST");
+        return "type: login, ok: true";
     }
 
     public synchronized String register(String username, String password) throws RemoteException {
@@ -215,7 +216,7 @@ class SecondaryServer extends Thread {
 
         try {
             // SUBJECT TO CHANGE!!!
-            ipAddress = InetAddress.getByName("localhost");
+            ipAddress = InetAddress.getByName(RMIServer.rmiServerIP);
         } catch(Exception e) {
             System.out.println("ERROR: " + e.getMessage());
             Thread.currentThread().interrupt();
@@ -276,7 +277,7 @@ class SecondaryServer extends Thread {
 
                 try {
                     // SUBJECT TO CHANGE!!!
-                    ipAddress = InetAddress.getByName("localhost");
+                    ipAddress = InetAddress.getByName(RMIServer.rmiServerIP);
                 } catch(Exception e) {
                     System.out.println("ERROR: " + e.getMessage());
                     timer.cancel();

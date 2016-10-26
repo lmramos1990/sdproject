@@ -9,7 +9,11 @@ class Server {
     private static boolean serverOn = false;
     public static int numberOfClients = 0;
     public static ArrayList <Socket> clientSockets = new ArrayList<Socket>();
+    public static ArrayList<ClientObject> listOfClients = new ArrayList<ClientObject>();
     public static AuctionInterface iBei;
+    private static String rmiRegistryIP = new String();
+    private static String rmiServerIP = new String();
+
     // public static ArrayList <String> requestQueue = new ArrayList<String>(); <- QUEUE OF REQUESTS (STILL TO IMPLEMENT)
 
     public static void main(String args[]) {
@@ -23,11 +27,13 @@ class Server {
             return;
         }
 
+        readProperties();
+
         System.out.println("SERVER IS TRYING TO CONNECT TO THE RMI SERVER");
         while(!connected) {
             try {
                 connecting++;
-                iBei = (AuctionInterface) Naming.lookup("rmi://localhost/iBei");
+                iBei = (AuctionInterface) Naming.lookup("rmi://" + rmiRegistryIP + "/iBei");
                 connected = true;
             } catch(Exception e) {
                 System.out.println("CONNECTION FAILED\nATTEMPTING ANOTHER TIME");
@@ -79,6 +85,35 @@ class Server {
         }
     }
 
+    public static void readProperties() {
+        InputStream inputStream = null;
+
+        try {
+            Properties prop = new Properties();
+            String propFileName = "config.properties";
+
+            inputStream = new FileInputStream(propFileName);
+
+            if (inputStream != null) {
+                prop.load(inputStream);
+            } else {
+                throw new FileNotFoundException("ERROR: PROPERTY '" + propFileName + "' NOT FOUND IN THE CLASSPATH");
+            }
+
+            rmiRegistryIP = prop.getProperty("rmiRegistryIP");
+            rmiServerIP = prop.getProperty("rmiServerIP");
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e);
+        } finally {
+            try {
+                inputStream.close();
+            } catch(Exception e) {
+                System.out.println("ERROR: " + e.getMessage());
+            }
+        }
+    }
+
     private static void selectPort() {
         if(isPortAvailable(port) == false) {
             port += 1;
@@ -100,19 +135,11 @@ class Server {
 class TCPConnection extends Thread {
     BufferedReader inFromServer = null;
     PrintWriter outToServer;
-    Socket clientSocket;
+    private static Socket clientSocket;
+    private static ClientObject client;
 
     // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
     private static String username = new String();
-    private static String password = new String();
-    private static String code = new String();
-    private static String title = new String();
-    private static String description = new String();
-    private static String deadline = new String();
-    private static String amount = new String();
-    private static String id = new String();
-    private static String text = new String();
-    // SOME OF THESE VARIABLES MAY CHANGE TO LOCAL OVER TIME (BEWARE)
 
     public TCPConnection(Socket pclientSocket) {
         try {
@@ -162,6 +189,9 @@ class TCPConnection extends Thread {
             System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
             Server.numberOfClients--;
 
+            // DA MERDA SE O SOCKET NAO ESTIVER ASSOCIADO A UM CLIENTE
+            Server.listOfClients.remove(Server.listOfClients.indexOf(client));
+
             try {
                 this.clientSocket.close();
             } catch(IOException ioe) {
@@ -189,17 +219,22 @@ class TCPConnection extends Thread {
         if(action.equals("login") || action.equals("register")) {
 
             username = parse("username", parameters);
-            password = parse("password", parameters);
+            String password = parse("password", parameters);
 
             reply = attemptLoginRegister(action, username, password);
 
+            if(reply.equals("type: login, ok: true")) {
+                client = new ClientObject(clientSocket, username);
+                Server.listOfClients.add(client);
+            }
+
         } else if(action.equals("create_auction")) {
 
-            code = parse("code", parameters);
-            title = parse("title", parameters);
-            description = parse("description", parameters);
-            deadline = parse("deadeline", parameters);
-            amount = parse("amount", parameters);
+            String code = parse("code", parameters);
+            String title = parse("title", parameters);
+            String description = parse("description", parameters);
+            String deadline = parse("deadeline", parameters);
+            String amount = parse("amount", parameters);
             try {
                 reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
             } catch(RemoteException re) {
@@ -208,25 +243,25 @@ class TCPConnection extends Thread {
 
 
         } else if(action.equals("search_auction")) {
-            code = parse("code", parameters);
+            String code = parse("code", parameters);
 
         } else if(action.equals("detail_auction")) {
-            id = parse("id", parameters);
+            String id = parse("id", parameters);
 
         } else if(action.equals("my_auctions")) {
             //ONLY ACTION type: my_auctions
 
         } else if(action.equals("bid")) {
-            id = parse("id", parameters);
-            amount = parse("amount", parameters);
+            String id = parse("id", parameters);
+            String amount = parse("amount", parameters);
 
         } else if(action.equals("edit_auction")) {
-            id = parse("id", parameters);
-            deadline = parse("deadline", parameters);
+            String id = parse("id", parameters);
+            String deadline = parse("deadline", parameters);
 
         } else if(action.equals("message")) {
-            id = parse("id", parameters);
-            text = parse("text", parameters);
+            String id = parse("id", parameters);
+            String text = parse("text", parameters);
 
         } else if(action.equals("online_users")) {
             // ONLY ACTION type: online_users
@@ -376,7 +411,7 @@ class ServerLoad extends Thread {
                     return;
                 }
             }
-        }, 0, 1500);
+        }, 0, 1000);
     }
 
     private static void receiveOthersInfo() {
@@ -420,7 +455,7 @@ class ServerLoad extends Thread {
                     }
 
                     if(found && i == serversList.size() - 1) {
-                        String resetCounter = "ip: " + parse("ip", serversList.get(foundIndex)) + ", port: " + parse("port", serversList.get(foundIndex)) + ", numberofclients: " + parse("numberofclients", serversList.get(foundIndex)) + ", count: 0";
+                        String resetCounter = "ip: " + parse("ip", serversList.get(foundIndex)) + ", port: " + parse("port", serversList.get(foundIndex)) + ", numberofclients: " + parse("numberofclients", serverInfo) + ", count: 0";
                         serversList.set(foundIndex, resetCounter);
                     } else if(!found && i == serversList.size() - 1) {
                         serversList.add(serverInfo);
@@ -429,10 +464,8 @@ class ServerLoad extends Thread {
                 }
 
                 for(int i = 0; i < serversList.size(); i++) {
-                    int counter = 0;
-                    String sCounter = parse("count", serversList.get(i));
-                    counter = Integer.parseInt(sCounter);
-                    counter = counter + 1;
+                    int counter = Integer.parseInt(parse("count", serversList.get(i)));
+                    counter += 1;
                     String newString = "ip: " + parse("ip", serversList.get(i)) + ", port: " + parse("port", serversList.get(i)) + ", numberofclients: " + parse("numberofclients", serversList.get(i)) + ", count: " + counter;
                     serversList.set(i, newString);
                 }
@@ -446,6 +479,8 @@ class ServerLoad extends Thread {
                         }
                     }
                 }
+
+                //UPDATE LIST VALUES
             }
 
             if(!threadRunning) {
@@ -457,7 +492,7 @@ class ServerLoad extends Thread {
                     public void run() {
                         ArrayList <Socket> clients = Server.clientSockets;
                         PrintWriter outToServer;
-                        Server.numberOfClients = clients.size();
+                        // Server.numberOfClients = clients.size();
                         String message = new String();
 
                         StringBuilder sb = new StringBuilder();
@@ -467,12 +502,11 @@ class ServerLoad extends Thread {
                             String aux = "server_" + i + "_hostname: " + parse("ip", serversList.get(i)) + ", server_" + i +
                             "_port: " + parse("port", serversList.get(i)) + ", server_" + i + "_load: " + parse("numberofclients", serversList.get(i));
                             sb.append(aux);
+
                             if(i != serversList.size() - 1) sb.append(", ");
                         }
 
                         message = sb.toString();
-
-                        System.out.println("MESSAGE: " + message);
 
                         for(int i = 0; i < clients.size(); i++) {
                             Socket clientSocket = clients.get(i);
@@ -550,56 +584,3 @@ class ServerLoad extends Thread {
         return sb.toString();
     }
 }
-// AULA
-    // CENAS PARA TRABALHAR CONCURRENTEMENTE (WhAT?)
-    // ATOMIC INTEGER
-    // COPYONWIRTEARAYLIST
-    // CONCURRENTHASHMAP
-
-// package pt.uc.dei.sd.ibei.helpers;
-//
-// import java.util.Arrays;
-// import java.util.HashMap;
-// import java.util.List;
-// import java.util.NoSuchElementException;
-// import java.util.stream.Collectors;
-// import java.util.stream.IntStream;
-//
-// public class ProtocolParser {
-//     public static HashMap<String, String> parse(String line) {
-// 		HashMap<String, String> g = new HashMap<>();
-// 		Arrays.stream(line.split(",")).map(s -> s.split(":")).forEach( i -> g.put(i[0].trim(), i[1].trim()) );
-// 		return g;
-// 	}
-//
-//     public static List<HashMap<String, String>> getList(HashMap<String, String> map, String field) {
-//     	if (!map.containsKey(field + "_count")) {
-//     		throw new NoSuchElementException();
-//     	}
-//     	int count = Integer.parseInt(map.get(field + "_count"));
-//     	return IntStream.range(0, count).mapToObj((int i) -> {
-//     		HashMap<String, String> im = new HashMap<>();
-//     		String prefix = field + "_" + i;
-// 			map.keySet().stream().filter((t) -> t.startsWith(prefix)).forEach((k) -> {
-// 				im.put(k.substring(prefix.length()+1), map.get(k));
-// 			});
-// 			return im;
-//     	}).collect(Collectors.toList());
-//     }
-//
-//     public static void main(String[] args) {
-//     	String a = "type : search_auction , items_count : 2, items_0_id : 101, items_0_code :
-//                  9780451524935, items_0_title : 1984, items_1_id : 103, items_1_code : 9780451524935, items_1_title : 1984 usado";
-//     	HashMap<String, String> m = ProtocolParser.parse(a);
-//
-//     	assert(m.get("type").equals("search_auction"));
-//     	assert(ProtocolParser.getList(m, "items").size() > 0);
-//     	assert(ProtocolParser.getList(m, "items").get(0).get("id").equals("101"));
-//     	assert(ProtocolParser.getList(m, "items").get(1).get("code").equals("9780451524935"));
-//
-//     	for (HashMap<String, String> element : ProtocolParser.getList(m, "items")) {
-//     		assert(Integer.parseInt(element.get("id")) > 0);
-//     	}
-//
-//     }
-// }
