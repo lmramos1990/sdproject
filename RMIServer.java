@@ -107,21 +107,37 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         return "type: login, ok: true";
     }
-
+    
     public synchronized String register(String username, String password) throws RemoteException {
-        System.out.println("[RMISERVER] REGISTER REQUEST");
-
-        // CONNECT TO THE DATABASE
-
-        return "type: register, ok: true";
+        return "register";
     }
-
+    
     public synchronized String createAuction(String username, String code, String title, String description, String deadline, String amount) throws RemoteException {
-        return new String();
+        return "create_auction";
     }
-
-    public synchronized String searchAuction(String code) throws RemoteException {
-        return new String();
+    
+    public synchronized String searchAuction(String username, String code) throws RemoteException {
+        return "search_auction";
+    }
+    public synchronized String detailAuction(String username, String id) throws RemoteException {
+        return "detailAuction";
+    }
+    public synchronized String myAuctions(String username) throws RemoteException {
+        return "myAuctions";
+    }
+    public synchronized String bid(String username, String id, String amount) throws RemoteException {
+        return "bid";
+    }
+    public synchronized String editAuction(String username, String id, String title, String description, String deadline) throws RemoteException {
+        return "editAuction";
+    }
+    
+    public synchronized String message(String username, String id, String text) throws RemoteException {
+        return "message";
+    }
+    
+    public synchronized String onlineUsers(String username) throws RemoteException {
+        return "online_users";
     }
 
     private static int getPort() {
