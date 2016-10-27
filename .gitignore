@@ -163,8 +163,6 @@ $RECYCLE.BIN/
 .mtj.tmp/
 
 # Package Files #
-!ojdbc6.jar
-*.jar
 *.war
 *.ear
 
