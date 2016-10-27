@@ -10,7 +10,6 @@ import java.rmi.registry.Registry;
 class Server {
     private static ServerSocket serverSocket;
     private static int port = 7000;
-    private static String rmiRegistryIP = new String();
     private static String rmiServerIP = new String();
 
     public static int numberOfClients = 0;
@@ -18,6 +17,7 @@ class Server {
     public static ArrayList<ClientObject> listOfClients = new ArrayList<ClientObject>();
     public static AuctionInterface iBei;
     public static int rmiregistryport = -1;
+    public static String rmiRegistryIP = new String();
 
     public static void main(String args[]) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
@@ -370,7 +370,7 @@ class TCPConnection extends Thread {
 
         try {
             connecting++;
-            Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiRegistryIP, rmiregistryport).lookup("iBei");
+            Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
         } catch(Exception e) {
             System.out.println("[SERVER] CONNECTION FAILED\n[SERVER] ATTEMPTING ANOTHER TIME");
         }
