@@ -141,12 +141,13 @@ class TCPConnection extends Thread {
     private static Socket clientSocket;
     private static ClientObject client;
 
-    private static String username = new String();
+    private static String username;
     private static boolean online = false;
     private static int connecting = 0;
 
     public TCPConnection(Socket pclientSocket) {
         this.username = new String();
+
         try {
             clientSocket = pclientSocket;
             inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -160,9 +161,9 @@ class TCPConnection extends Thread {
     }
 
     public void run() {
-        String reply = new String();
         ArrayList<String> requests = new ArrayList<String>();
         String data = new String();
+        String reply = new String();
 
         try {
             while(true) {
@@ -189,6 +190,7 @@ class TCPConnection extends Thread {
             Server.numberOfClients--;
 
             if(!username.equals("") && online) Server.listOfClients.remove(Server.listOfClients.indexOf(client));
+            online = false;
 
             try {
                 this.clientSocket.close();
