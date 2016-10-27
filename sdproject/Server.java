@@ -370,14 +370,14 @@ class TCPConnection extends Thread {
 
         try {
             connecting++;
-            Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiregistryport).lookup("iBei");
+            Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiRegistryIP, rmiregistryport).lookup("iBei");
         } catch(Exception e) {
             System.out.println("[SERVER] CONNECTION FAILED\n[SERVER] ATTEMPTING ANOTHER TIME");
         }
 
         if(connecting == 7) {
             System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
-            return;
+            System.exit(0);
         }
 
         try {
