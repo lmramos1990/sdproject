@@ -7,6 +7,7 @@ import java.rmi.*;
 import java.sql.*;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
@@ -29,12 +30,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         RMIServer rmiServer = new RMIServer();
 
         readProperties();
-
-        String toBind = "rmi://" + rmiRegistryIP + ":" + Integer.toString(rmiregistryport) + "/iBei";
+        Registry registry = LocateRegistry.createRegistry(rmiregistryport);
 
         if(online == true) {
             try {
-                LocateRegistry.getRegistry(rmiregistryport).rebind(toBind, rmiServer);
+                registry.rebind("iBei", rmiServer);
 
                 try {
                     Class.forName("oracle.jdbc.OracleDriver");
@@ -54,7 +54,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             }
         } else {
             try {
-                LocateRegistry.getRegistry(rmiregistryport).bind(toBind, rmiServer);
+                registry.bind("iBei", rmiServer);
 
                 try {
                     Class.forName("oracle.jdbc.OracleDriver");
@@ -88,9 +88,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         try {
             RMIServer rmiServer = new RMIServer(false);
         } catch(Exception e) {
-            System.out.println("ERROR: RMIREGISTRY IS NOT INITIALIZED");
-            e.printStackTrace();
-            System.exit(0);
+            SecondaryServer secondaryServer = new SecondaryServer();
         }
     }
 

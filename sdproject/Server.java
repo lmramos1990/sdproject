@@ -5,6 +5,7 @@ import java.net.*;
 import java.io.*;
 import java.rmi.*;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 
 class Server {
     private static ServerSocket serverSocket;
@@ -34,11 +35,8 @@ class Server {
         System.out.println("[SERVER] TRYING TO ESTABLISH A CONNECTION TO THE RMI SERVER");
         while(!connected) {
             try {
-                for(int i = 0; i < LocateRegistry.getRegistry(rmiregistryport).list().length; i++) {
-                    System.out.println(LocateRegistry.getRegistry(rmiregistryport).list());
-                }
                 connecting++;
-                iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiregistryport).lookup("iBei");
+                iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiRegistryIP, rmiregistryport).lookup("iBei");
                 connected = true;
             } catch(Exception e) {
                 e.printStackTrace();
