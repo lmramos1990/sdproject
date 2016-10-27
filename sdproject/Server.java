@@ -243,47 +243,22 @@ class TCPConnection extends Thread {
         } else if(online && action.equals("search_auction")) {
             String code = parse("code", parameters);
 
-            try {
-                reply = Server.iBei.searchAuction(username, code);
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION search_auction");
-                System.out.println("REDO LOOKUP");
-            }
+            reply = searchAuction(username, code);
 
         } else if(online && action.equals("detail_auction")) {
             String id = parse("id", parameters);
 
-            try {
-                reply = Server.iBei.detailAuction(username, id);
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION detail_auction");
-                System.out.println("REDO LOOKUP");
-            }
+            reply = detailAuction(username, id);
 
         } else if(online && action.equals("my_auctions")) {
-            //ONLY ACTION type: my_auctions
 
-            try {
-                reply = Server.iBei.myAuctions(username);
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION my_auctions");
-                System.out.println("REDO LOOKUP");
-            }
+            reply = myAuctions(username);
 
         } else if(online && action.equals("bid")) {
             String id = parse("id", parameters);
             String amount = parse("amount", parameters);
 
-            try {
-                reply = Server.iBei.bid(username, id, amount);
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION bid");
-                System.out.println("REDO LOOKUP");
-            }
+            reply = bid(username, id, amount);
 
         } else if(online && action.equals("edit_auction")) {
             String id = parse("id", parameters);
@@ -291,36 +266,18 @@ class TCPConnection extends Thread {
             String description = parse("description", parameters);
             String deadline = parse("deadline", parameters);
 
-            try {
-                reply = Server.iBei.editAuction(username, id, title, description, deadline);
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION edit_auction");
-                System.out.println("REDO LOOKUP");
-            }
+            reply = editAuction(username, id, title, description, deadline);
 
         } else if(online && action.equals("message")) {
             String id = parse("id", parameters);
             String text = parse("text", parameters);
 
-            try {
-                reply = Server.iBei.message(username, id, text);
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION message");
-                System.out.println("REDO LOOKUP");
-            }
+            reply = message(username, id, text);
 
         } else if(online && action.equals("online_users")) {
 
-            try {
-                reply = Server.iBei.onlineUsers(username);
-            } catch(RemoteException re) {
-                re.printStackTrace();
-                re.printStackTrace();
-                System.out.println("REMOTE EXCEPTION onlineUsers");
-                System.out.println("REDO LOOKUP");
-            }
+            reply = onlineUsers(username);
+
         } else if(!online) {
             return "[SERVER] PLEASE LOG IN BEFORE MAKING REQUESTS";
         } else {
@@ -362,6 +319,104 @@ class TCPConnection extends Thread {
         } catch(RemoteException re) {
             connectToRMI();
             reply = createAuction(username, code, title, description, deadline, amount);
+        }
+
+        connecting = 0;
+        return reply;
+    }
+
+    private static String searchAuction(String username, String code) {
+        String reply = new String();
+
+        try {
+            reply = Server.iBei.searchAuction(username, code);
+        } catch(RemoteException re) {
+            connectToRMI();
+            reply = searchAuction(username, code);
+        }
+
+        connecting = 0;
+        return reply;
+    }
+
+    private static String detailAuction(String username, String id) {
+        String reply = new String();
+
+        try {
+            reply = Server.iBei.detailAuction(username, id);
+        } catch(RemoteException re) {
+            connectToRMI();
+            reply = detailAuction(username, id);
+        }
+
+        connecting = 0;
+        return reply;
+    }
+
+    private static String myAuctions(String username) {
+        String reply = new String();
+
+        try {
+            reply = Server.iBei.myAuctions(username);
+        } catch(RemoteException re) {
+            connectToRMI();
+            reply = myAuctions(username);
+        }
+
+        connecting = 0;
+        return reply;
+    }
+
+    private static String bid(String username, String id, String amount) {
+        String reply = new String();
+
+        try {
+            reply = Server.iBei.bid(username, id, amount);
+        } catch(RemoteException re) {
+            connectToRMI();
+            reply = bid(username, id, amount);
+        }
+
+        connecting = 0;
+        return reply;
+    }
+
+    private static String editAuction(String username, String id, String title, String description, String deadline) {
+        String reply = new String();
+
+        try {
+            reply = Server.iBei.editAuction(username, id, title, description, deadline);
+        } catch(RemoteException re) {
+            connectToRMI();
+            reply = editAuction(username, id, title, description, deadline);
+        }
+
+        connecting = 0;
+        return reply;
+    }
+
+    private static String message(String username, String id, String text) {
+        String reply = new String();
+
+        try {
+            reply = Server.iBei.message(username, id, text);
+        } catch(RemoteException re) {
+            connectToRMI();
+            reply = message(username, id, text);
+        }
+
+        connecting = 0;
+        return reply;
+    }
+
+    private static String onlineUsers(String username) {
+        String reply = new String();
+
+        try {
+            reply = Server.iBei.onlineUsers(username);
+        } catch(RemoteException re) {
+            connectToRMI();
+            reply = onlineUsers(username);
         }
 
         connecting = 0;
