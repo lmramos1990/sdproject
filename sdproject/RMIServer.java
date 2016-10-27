@@ -124,39 +124,44 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     private static void primaryRMIServer() {
         System.out.println("[RMISERVER] IM THE PRIMARY SERVER");
-
         PrimaryServer primaryServer = new PrimaryServer();
     }
-
-
 
     public synchronized String login(String username, String password) throws RemoteException {
         System.out.println("[RMISERVER] LOGIN REQUEST");
 
-        String reply = "type: login, ok: true";
-        String tempUser = new String();
-        String tempPass = new String();
-        int tempStatus = -1;
+        String reply = new String();
 
         try {
             Statement statement = connection.createStatement();
-            String query = "SELECT username, pass, status FROM client WHERE to_char(username) = " + "'" + username + "' AND to_char(pass) = " + "'" + password + "' AND status = 0";
-            System.out.println(query);
+            String query = "SELECT client_id, username, pass, status FROM client WHERE to_char(username) = " + "'" + username + "' AND to_char(pass) = " + "'" + password + "' AND status = 0";
 
             ResultSet resultSet = statement.executeQuery(query);
 
-            while(resultSet.next()) {
-                tempUser = resultSet.getString("username");
-                tempPass = resultSet.getString("pass");
-                tempStatus = resultSet.getInt("status");
+            if(!resultSet.next()) {
+                reply = "type: login, ok: false";
+            } else {
+                int id = resultSet.getInt("client_id");
 
-                System.out.println("FROM THE DATABASE\nUSERNAME: " + tempUser + " PASSWORD: " + tempPass + " STATUS: " + tempStatus);
+                String updateQuery = "UPDATE client SET status = 1 WHERE client_id = '" + id + "'";
+                Statement updateStatement = connection.createStatement();
+
+                ResultSet updateResultSet = updateStatement.executeQuery(updateQuery);
+
+                if(updateResultSet.next()) {
+                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                    connection.commit();
+                } else {
+                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                }
+
+                updateResultSet.close();
+
+                reply = "type: login, ok: true";
             }
             resultSet.close();
         } catch(Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            System.out.println("NAO RETORNOU NADA NO COMANDO DESTA MERDA");
-            reply = "type: login, ok: false";
+            e.printStackTrace();
         }
 
         return reply;
@@ -165,13 +170,92 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String register(String username, String password) throws RemoteException {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
-        // CONNECT TO THE DATABASE
+        String reply = new String();
 
-        return "type: register, ok: true";
+        try {
+            Statement verifyUserStatement = connection.createStatement();
+            String verifyQuery = "SELECT username, pass FROM client WHERE to_char(username) = " + "'" + username + "' AND to_char(pass) = " + "'" + password + "'";
+
+            ResultSet verifyResultSet = verifyUserStatement.executeQuery(verifyQuery);
+
+            if(verifyResultSet.next()) {
+                reply = "type: register, ok: false";
+            } else {
+                Statement getLastId = connection.createStatement();
+                String lastIdQuery = "SELECT MAX(client_id) FROM client";
+
+                ResultSet lastIdResultSet = getLastId.executeQuery(lastIdQuery);
+
+                if(!lastIdResultSet.next()) {
+                    Statement insertStatement = connection.createStatement();
+                    String insertQuery = "INSERT INTO client (client_id, username, pass, status) VALUES (1, '" + username + "', '" + password + "', 1)";
+
+                    ResultSet insertResultSet = insertStatement.executeQuery(insertQuery);
+
+                    if(insertResultSet.next()) {
+                        System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                        connection.commit();
+                    } else {
+                        System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                    }
+
+                    reply = "type: register, ok: true";
+
+                    insertResultSet.close();
+                } else {
+                    int lastId = lastIdResultSet.getInt("max(client_id)");
+                    lastId += 1;
+
+                    Statement insertStatement = connection.createStatement();
+                    String insertQuery = "INSERT INTO client (client_id, username, pass, status) VALUES (" + lastId + ", '" + username + "', '" + password + "', 1)";
+                    ResultSet insertResultSet = insertStatement.executeQuery(insertQuery);
+
+                    if(insertResultSet.next()) {
+                        System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                        connection.commit();
+                    } else {
+                        System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                    }
+
+                    reply = "type: register, ok: true";
+
+                    insertResultSet.close();
+                }
+
+                lastIdResultSet.close();
+            }
+
+            verifyResultSet.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return reply;
     }
 
     public synchronized String createAuction(String username, String code, String title, String description, String deadline, String amount) throws RemoteException {
-        return "create_auction";
+        System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
+
+        String reply = new String();
+
+        // VERIFICAR SE JA EXISTE
+        //          SE SIM RETORNA FALSE
+        //          SENAO CRIA O AUCTION E RETORNA TRUE
+
+        // INSERT INTO Auction (auction_id, client_id, title, description, maximum_value, deadline, closed) VALUES (valor incremental, clientId, 'title', 'description', amount, CURRENT_TIMESTAMP, 0)
+        // SELECT
+        try {
+            // Statement createAuctionStatement = connection.createStatement();
+            // String createAuctionQuery = ""
+
+            // Statement
+
+
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return reply;
     }
 
     public synchronized String searchAuction(String username, String code) throws RemoteException {
@@ -195,7 +279,49 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     }
 
     public synchronized String onlineUsers(String username) throws RemoteException {
-        return "online_users";
+        System.out.println("[RMISERVER] ONLINE USERS REQUEST");
+        String reply = new String();
+        String user = new String();
+        ArrayList<String> onlineUsers = new ArrayList<String>();
+
+        try {
+            Statement onlineUsersStatement = connection.createStatement();
+            String onlineUsersQuery = "SELECT username FROM client WHERE status = 1";
+            ResultSet onlineUsersResultSet = onlineUsersStatement.executeQuery(onlineUsersQuery);
+
+            if(onlineUsersResultSet.next()) {
+
+                user = onlineUsersResultSet.getString("username");
+                onlineUsers.add(user);
+
+                while(onlineUsersResultSet.next()) {
+                    user = onlineUsersResultSet.getString("username");
+                    onlineUsers.add(user);
+                }
+
+                StringBuilder sb = new StringBuilder();
+                sb.append("type: online_users, users_count: " + onlineUsers.size());
+                for(int i = 0; i < onlineUsers.size(); i++) {
+                    sb.append(" users_" + i + "_username: " + onlineUsers.get(i));
+                }
+
+                reply = sb.toString();
+
+            } else {
+                reply = "type: online_users , users_count: 0";
+            }
+
+            onlineUsersResultSet.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+
+        return reply;
+    }
+
+    public synchronized void logOut(String username) {
+        System.out.println("EXECUTE LOGOUT");
     }
 
     private static int getPort() {

@@ -4,6 +4,7 @@ import java.util.*;
 import java.net.*;
 import java.io.*;
 import java.rmi.*;
+import java.sql.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
@@ -11,6 +12,7 @@ class Server {
     private static ServerSocket serverSocket;
     private static int port = 7000;
     private static String rmiServerIP = new String();
+    private static String databaseIP = new String();
 
     public static int numberOfClients = 0;
     public static ArrayList <Socket> clientSockets = new ArrayList<Socket>();
@@ -18,6 +20,11 @@ class Server {
     public static AuctionInterface iBei;
     public static int rmiregistryport = -1;
     public static String rmiRegistryIP = new String();
+
+    private static String user = "bd";
+    private static String pass = "oracle";
+    // private static String url = "jdbc:oracle:thin:@localhost:1521:XE";
+    public static Connection connection;
 
     public static void main(String args[]) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
@@ -31,6 +38,14 @@ class Server {
         }
 
         readProperties();
+
+        try {
+            Class.forName("oracle.jdbc.OracleDriver");
+            String url = "jdbc:oracle:thin:@" + databaseIP + ":1521:XE";
+            connection = DriverManager.getConnection(url, user, pass);
+        } catch(Exception e) {
+            System.out.println("ERROR CONNECTING TO THE DATABASE");
+        }
 
         System.out.println("[SERVER] TRYING TO ESTABLISH A CONNECTION TO THE RMI SERVER");
         while(!connected) {
@@ -104,6 +119,7 @@ class Server {
 
             rmiRegistryIP = prop.getProperty("rmiRegistryIP");
             rmiServerIP = prop.getProperty("rmiServerIP");
+            databaseIP = prop.getProperty("databaseIP");
             rmiregistryport = Integer.parseInt(prop.getProperty("rmiregistryport"));
 
         } catch(Exception e) {
@@ -144,6 +160,7 @@ class TCPConnection extends Thread {
     private static String username;
     private static boolean online = false;
     private static int connecting = 0;
+    private static int logoutCounter = 0;
 
     public TCPConnection(Socket pclientSocket) {
         this.username = new String();
@@ -189,8 +206,22 @@ class TCPConnection extends Thread {
             System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
             Server.numberOfClients--;
 
-            if(!username.equals("") && online) Server.listOfClients.remove(Server.listOfClients.indexOf(client));
-            online = false;
+            if(!username.equals("") && online) {
+                try {
+                    Statement logOut = Server.connection.createStatement();
+                    String logOutQuery = "UPDATE client SET status = 0 WHERE to_char(username) = '" + client.getUsername() + "'";
+                    ResultSet logOutResultSet = logOut.executeQuery(logOutQuery);
+                    Server.connection.commit();
+                } catch(Exception e2) {
+                    e2.printStackTrace();
+                }
+
+
+
+                Server.listOfClients.remove(Server.listOfClients.indexOf(client));
+                online = false;
+            }
+
 
             try {
                 this.clientSocket.close();
@@ -201,6 +232,38 @@ class TCPConnection extends Thread {
             }
 
             Thread.currentThread().interrupt();
+            return;
+        }
+    }
+
+    private static void logOut(String username) {
+
+        System.out.println("logout in process");
+
+        while(logoutCounter != 5) {
+            try {
+                logoutCounter++;
+                Server.iBei.logOut(username);
+            } catch(Exception e) {}
+        }
+
+        logoutCounter = 0;
+    }
+
+    private static void logOutReconnect() {
+        try {
+            logoutCounter++;
+            Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+        } catch(Exception e) {
+            System.out.println("[SERVER] LOGOUT STILL IN PROCESS");
+        }
+
+        try {
+            Thread.sleep(5000);
+        } catch(Exception e) {}
+
+        if(connecting == 5) {
+            System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
             return;
         }
     }
@@ -217,7 +280,7 @@ class TCPConnection extends Thread {
     private static String courseOfAction(String action, String parameters) {
         String reply = new String();
 
-        if(!online && action.equals("login") || action.equals("register")) {
+        if(!online && (action.equals("login") || action.equals("register"))) {
 
             username = parse("username", parameters);
             String password = parse("password", parameters);
@@ -279,9 +342,9 @@ class TCPConnection extends Thread {
             reply = onlineUsers(username);
 
         } else if(!online) {
-            return "[SERVER] PLEASE LOG IN BEFORE MAKING REQUESTS";
+            reply = "[SERVER] PLEASE LOG IN BEFORE MAKING REQUESTS";
         } else {
-            return "[SERVER] THIS IS NOT A VALID REQUEST";
+            reply = "[SERVER] THIS IS NOT A VALID REQUEST";
         }
 
         return reply;
