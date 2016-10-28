@@ -272,7 +272,7 @@ class TCPConnection extends Thread {
         } else if(online && action.equals("search_auction")) {
             String code = parse("code", parameters);
 
-            reply = searchAuction(username, code);
+            reply = searchAuction(code);
 
         } else if(online && action.equals("detail_auction")) {
             String id = parse("id", parameters);
@@ -284,9 +284,9 @@ class TCPConnection extends Thread {
             reply = myAuctions(username);
 
         } else if(online && action.equals("bid")) {
-            String id = parse("id", parameters);
-            String amount = parse("amount", parameters);
-
+            String [] splitedString = parameters.split("bid");
+            String id = parse("id", splitedString[1]);
+            String amount = parse("amount", splitedString[1]);
             reply = bid(username, id, amount);
 
         } else if(online && action.equals("edit_auction")) {
@@ -356,14 +356,14 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private static String searchAuction(String username, String code) {
+    private static String searchAuction(String code) {
         String reply = new String();
 
         try {
-            reply = Server.iBei.searchAuction(username, code);
+            reply = Server.iBei.searchAuction(code);
         } catch(RemoteException re) {
             connectToRMI();
-            reply = searchAuction(username, code);
+            reply = searchAuction(code);
         }
 
         connecting = 0;

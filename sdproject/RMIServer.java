@@ -240,7 +240,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
 
         String reply = new String();
-        String format = "yyyy-mm-dd hh24-mi";
+        String format = "yyyy-mm-dd HH24-MI";
         int clientId = 0;
         int articleId = 0;
         int lastAuctionId = 0;
@@ -346,21 +346,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 createAuctionResultSet.close();
             }
             getLastAuctionIdResultSet.close();
-
-
-            Statement test = connection.createStatement();
-            String query = "SELECT deadline FROM auction";
-            System.out.println("oa");
-
-            ResultSet rs = test.executeQuery(query);
-
-            while(rs.next()) {
-                System.out.println("DATA: " + rs.getDate("deadline"));
-            }
-
-            rs.close();
-
-
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -368,24 +353,276 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return reply;
     }
 
-    public synchronized String searchAuction(String username, String code) throws RemoteException {
-        return "search_auction";
+    public synchronized String searchAuction(String code) throws RemoteException {
+        System.out.println("[RMISERVER] SEARCH AUCTION REQUEST");
+        String reply = new String();
+
+        try {
+            Statement verifyArticleStatement = connection.createStatement();
+            String verifyArticleQuery = "SELECT article_id FROM article WHERE to_char(articlecode) = '" + code + "'";
+            ResultSet verifyArticleResultSet = verifyArticleStatement.executeQuery(verifyArticleQuery);
+
+            if(!verifyArticleResultSet.next()) {
+                reply = "type: search_auction, items_count = 0";
+            } else {
+                Statement verifyArticleInAuctionStatement = connection.createStatement();
+                String verifyArticleInAuctionQuery = "SELECT auction_id, title, closed FROM auction WHERE article_id = " + verifyArticleResultSet.getInt("article_id");
+                ResultSet verifyArticleInAuctionResultSet = verifyArticleInAuctionStatement.executeQuery(verifyArticleInAuctionQuery);
+
+                if(!verifyArticleInAuctionResultSet.next()) {
+                    reply = "type: search_auction, items_count = 0";
+                } else {
+                    ArrayList <String> items = new ArrayList<String>();
+                    int count = 0;
+
+                    while(verifyArticleInAuctionResultSet.next()) {
+                        boolean closed = verifyArticleInAuctionResultSet.getInt("closed") == 0 ? false : true;
+                        String item = ", items_" + count + "_id: " + verifyArticleResultSet.getInt("article_id") + ", items_" + count + "_code: " + code + ", items_" + count + "_title: " + verifyArticleInAuctionResultSet.getString("title") + ", items_" + count + "_closed: " + closed;
+                        count++;
+                        items.add(item);
+                    }
+
+                    reply = "type: search_auction, items_count: " + items.size() + ", ";
+
+                    StringBuilder sb = new StringBuilder(reply);
+
+                    for(int i = 0;i < items.size(); i++) {
+                        sb.append(items.get(i));
+                    }
+
+                    reply = sb.toString();
+
+                    verifyArticleInAuctionResultSet.close();
+                }
+
+                verifyArticleInAuctionResultSet.close();
+            }
+            verifyArticleResultSet.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return reply;
     }
+
     public synchronized String detailAuction(String username, String id) throws RemoteException {
-        return "detail_auction";
+        System.out.println("[RMISERVER] DETAIL AUCTION REQUEST");
+        String reply = new String();
+
+        try {
+            Statement verifyAuctionIdStatement = connection.createStatement();
+            String verifyAuctionIdQuery = "SELECT auction_id, title, description, deadline FROM auction WHERE auction_id = " + id;
+            ResultSet verifyAuctionIdResultSet = verifyAuctionIdStatement.executeQuery(verifyAuctionIdQuery);
+
+            if(!verifyAuctionIdResultSet.next()) {
+                reply = "type: detail_auction, ok: false";
+            } else {
+                String initialReply = "type: detail_auction, title: " + verifyAuctionIdResultSet.getString("title") + ", description: " + verifyAuctionIdResultSet.getString("description") + ", deadline: " + verifyAuctionIdResultSet.getString("deadline") + ", messages_count: ";
+
+                Statement getAuctionMessagesStatement = connection.createStatement();
+                String getAuctionMessagesQuery = "SELECT user_id, text FROM message WHERE auction_id =" + id;
+                ResultSet getAuctionMessagesResultSet = getAuctionMessagesStatement.executeQuery(getAuctionMessagesQuery);
+
+                if(!getAuctionMessagesResultSet.next()) {
+                    String messagePartReply = "0, ";
+                } else {
+
+                    ArrayList <String> items = new ArrayList<String>();
+                    int count = 0;
+
+                    while(getAuctionMessagesResultSet.next()) {
+                        Statement getUserStatement = connection.createStatement();
+                        String getUserQuery = "SELECT username FROM client WHERE client_id = " + getAuctionMessagesResultSet.getInt("client_id");
+                        ResultSet getUserResultSet = getUserStatement.executeQuery(getUserQuery);
+
+                        getUserResultSet.next();
+                        String item = ", messages_" + count + "_user: " + getUserResultSet.getString("username") + ", messages_" + count + "_text: " + getAuctionMessagesResultSet.getString("text");
+                        items.add(item);
+                    }
+                    getAuctionMessagesResultSet.close();
+
+                    StringBuilder sb = new StringBuilder(initialReply);
+                    sb.append("messages_count: " + items.size() + ", ");
+                    for(int i = 0; i < items.size(); i++) {
+                        sb.append(items.get(i));
+                    }
+
+                    reply = sb.toString();
+                }
+                getAuctionMessagesResultSet.close();
+            }
+
+            verifyAuctionIdResultSet.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        return reply;
     }
+
     public synchronized String myAuctions(String username) throws RemoteException {
         return "my_auctions";
     }
+
     public synchronized String bid(String username, String id, String amount) throws RemoteException {
-        return "bid";
+        System.out.println("[RMISERVER] BID REQUEST");
+        String reply = new String();
+
+        try {
+
+            Statement verifyUserStatement = connection.createStatement();
+            String verifyUserQuery = "SELECT client_id FROM client WHERE to_char(username) = '" + username + "'";
+            ResultSet verifyUserResultSet = verifyUserStatement.executeQuery(verifyUserQuery);
+
+            verifyUserResultSet.next();
+
+            Statement verifyAuctionIdStatement = connection.createStatement();
+            String verifyAuctionIdQuery = "SELECT auction_id, closed, maximum_value FROM auction WHERE auction_id = " + id;
+            ResultSet verifyAuctionIdResultSet = verifyAuctionIdStatement.executeQuery(verifyAuctionIdQuery);
+
+            if(!verifyAuctionIdResultSet.next()) {
+                reply = "type: bid, ok: false";
+            } else {
+                if(verifyAuctionIdResultSet.getInt("closed") == 1 || verifyAuctionIdResultSet.getFloat("maximum_value") < Float.parseFloat(amount)) {
+                    reply = "type: bid, ok: false";
+                } else {
+                    // VERIFICAR O ULTIMO BID ID
+                    Statement getLastBidIdStatement = connection.createStatement();
+                    String getLastBidIdQuery = "SELECT max(bid_id) FROM bid";
+                    ResultSet getLastBidIdResultSet = getLastBidIdStatement.executeQuery(getLastBidIdQuery);
+
+                    if(!getLastBidIdResultSet.next()) {
+                        Statement createBidStatement = connection.createStatement();
+                        String createBidQuery = "INSERT INTO bid(bid_id, client_id, auction_id, value) VALUES (1, " + verifyUserResultSet.getInt("client_id") + ", " + verifyAuctionIdResultSet.getInt("auction_id") + ", " + amount + ")";
+                        ResultSet createBidResultSet = createBidStatement.executeQuery(createBidQuery);
+
+                        if(createBidResultSet.next()) {
+                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                            connection.commit();
+                            reply = "type: bid, ok: true";
+                        } else {
+                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                        }
+                        createBidResultSet.close();
+                    } else {
+                        int lastBidId = getLastBidIdResultSet.getInt("max(bid_id)");
+                        lastBidId += 1;
+
+                        Statement createBidStatement = connection.createStatement();
+                        String createBidQuery = "INSERT INTO bid(bid_id, client_id, auction_id, value) VALUES (" + lastBidId + ", " + verifyUserResultSet.getInt("client_id") + ", " + verifyAuctionIdResultSet.getInt("auction_id") + ", " + amount + ")";
+                        ResultSet createBidResultSet = createBidStatement.executeQuery(createBidQuery);
+
+                        if(createBidResultSet.next()) {
+                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                            connection.commit();
+                        } else {
+                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                        }
+                        createBidResultSet.close();
+                    }
+
+                    Statement updateStatement = connection.createStatement();
+                    String updateQuery = "UPDATE auction SET maximum_value = " + amount + " WHERE auction_id = " + id;
+                    ResultSet updateResultSet = updateStatement.executeQuery(updateQuery);
+
+                    if(updateResultSet.next()) {
+                        System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                        connection.commit();
+                        reply = "type: bid, ok: true";
+                    } else {
+                        System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                    }
+                    updateResultSet.close();
+                }
+            }
+            verifyUserResultSet.close();
+            verifyAuctionIdResultSet.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        if(reply.equals("type: bid: ok: true")) {
+            System.out.println("[RMISERVER] NOTIFICAR UTILIZADORES");
+        }
+
+        return reply;
     }
+
     public synchronized String editAuction(String username, String id, String title, String description, String deadline) throws RemoteException {
         return "edit_auction";
     }
 
     public synchronized String message(String username, String id, String text) throws RemoteException {
-        return "message";
+        System.out.println("[RMISERVER] MESSAGE REQUEST");
+        String reply = new String();
+
+        try {
+            Statement verifyUserStatement = connection.createStatement();
+            String verifyUserQuery = "SELECT client_id FROM client WHERE to_char(username) = '" + username + "'";
+            ResultSet verifyUserResultSet = verifyUserStatement.executeQuery(verifyUserQuery);
+
+            verifyUserResultSet.next();
+
+            Statement verifyAuctionIdStatement = connection.createStatement();
+            String verifyAuctionIdQuery = "SELECT auction_id, closed FROM auction WHERE auction_id = " + id;
+            ResultSet verifyAuctionIdResultSet = verifyAuctionIdStatement.executeQuery(verifyAuctionIdQuery);
+
+            if(!verifyAuctionIdResultSet.next()) {
+                reply = "type: message, ok: false";
+            } else {
+                if(verifyAuctionIdResultSet.getInt("closed") == 1) {
+                    reply = "type: message, ok: false";
+                } else {
+                    Statement getLastMessageIdStatement = connection.createStatement();
+                    String getLastMessageIdQuery = "SELECT max(message_id) FROM message";
+                    ResultSet getLastMessageIdResultSet = getLastMessageIdStatement.executeQuery(getLastMessageIdQuery);
+
+                    if(!getLastMessageIdResultSet.next()) {
+                        Statement createMessageStatement = connection.createStatement();
+                        String createMessageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES (1, " + verifyUserResultSet.getInt("client_id") + ", " + verifyAuctionIdResultSet.getInt("auction_id") + ", '" + text + "')";
+                        System.out.println("MESSAGE QUERY: " + createMessageQuery);
+                        ResultSet createMessageResultSet = createMessageStatement.executeQuery(createMessageQuery);
+
+                        if(createMessageResultSet.next()) {
+                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                            connection.commit();
+                            reply = "type: message, ok: true";
+                        } else {
+                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                        }
+
+                        createMessageResultSet.close();
+                    } else {
+                        int lastMessageId = getLastMessageIdResultSet.getInt("max(message_id)");
+                        lastMessageId += 1;
+
+                        Statement createMessageStatement = connection.createStatement();
+                        String createMessageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES (" + lastMessageId + ", " + verifyUserResultSet.getInt("client_id") + ", " + verifyAuctionIdResultSet.getInt("auction_id") + ", '" + text + "')";
+                        ResultSet createMessageResultSet = createMessageStatement.executeQuery(createMessageQuery);
+
+                        if(createMessageResultSet.next()) {
+                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                            connection.commit();
+                            reply = "type: message, ok: true";
+                        } else {
+                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                        }
+
+                        createMessageResultSet.close();
+                    }
+                }
+            }
+            verifyUserResultSet.close();
+            verifyAuctionIdResultSet.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        if(reply.equals("type: message, ok: true")) {
+            System.out.println("[RMISERVER] SEND NOTIFICATION TO THE CLIENTS");
+        }
+
+        return reply;
     }
 
     public synchronized String onlineUsers(String username) throws RemoteException {
