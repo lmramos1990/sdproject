@@ -216,8 +216,6 @@ class TCPConnection extends Thread {
                     e2.printStackTrace();
                 }
 
-
-
                 Server.listOfClients.remove(Server.listOfClients.indexOf(client));
                 online = false;
             }
@@ -232,38 +230,6 @@ class TCPConnection extends Thread {
             }
 
             Thread.currentThread().interrupt();
-            return;
-        }
-    }
-
-    private static void logOut(String username) {
-
-        System.out.println("logout in process");
-
-        while(logoutCounter != 5) {
-            try {
-                logoutCounter++;
-                Server.iBei.logOut(username);
-            } catch(Exception e) {}
-        }
-
-        logoutCounter = 0;
-    }
-
-    private static void logOutReconnect() {
-        try {
-            logoutCounter++;
-            Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-        } catch(Exception e) {
-            System.out.println("[SERVER] LOGOUT STILL IN PROCESS");
-        }
-
-        try {
-            Thread.sleep(5000);
-        } catch(Exception e) {}
-
-        if(connecting == 5) {
-            System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
             return;
         }
     }
@@ -298,7 +264,7 @@ class TCPConnection extends Thread {
             String code = parse("code", parameters);
             String title = parse("title", parameters);
             String description = parse("description", parameters);
-            String deadline = parse("deadeline", parameters);
+            String deadline = parse("deadline", parameters);
             String amount = parse("amount", parameters);
 
             reply = createAuction(username, code, title, description, deadline, amount);
@@ -375,6 +341,8 @@ class TCPConnection extends Thread {
 
     private static String createAuction(String username, String code, String title, String description, String deadline, String amount) {
         String reply = new String();
+
+        System.out.println(deadline);
 
         try {
             reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
