@@ -158,6 +158,8 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
 
         PrintWriter toTheClient = null;
 
+        System.out.println("OLA");
+
         for(int i = 0; i < envolvedUsers.size(); i++) {
             for(int j = 0; j < Server.listOfClients.size(); j++) {
                 if(envolvedUsers.get(i).equals(Server.listOfClients.get(j).getUsername())) {
@@ -265,8 +267,6 @@ class TCPConnection extends Thread {
             } else {
                 username = parse("username", parameters);
                 String password = parse("password", parameters);
-
-                System.out.println(username + " " + password);
 
                 reply = logIn(username, password);
 

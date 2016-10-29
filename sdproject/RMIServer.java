@@ -846,8 +846,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                             envolvedUsers.add(notificationResultSet.getString("username"));
                         }
 
-                        if(envolvedUsers.size() == 0) {
-                            System.out.println("FODEME CARALHO!");
+                        if(!envolvedUsers.size() == 0) {
+                            RMIServer.notificationCenter.receiveNotification(notificationMessage, envolvedUsers);
                         }
 
                         RMIServer.notificationCenter.receiveNotification(notificationMessage, envolvedUsers);
@@ -876,14 +876,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         ArrayList<String> envolvedUsers = new ArrayList<String>();
 
                         while(notificationResultSet.next()) {
+                            System.out.println(notificationResultSet.getString("username"));
                             envolvedUsers.add(notificationResultSet.getString("username"));
                         }
 
-                        if(envolvedUsers.size() == 0) {
-                            System.out.println("FODEME CARALHO!");
+                        if(!envolvedUsers.size() == 0) {
+                            RMIServer.notificationCenter.receiveNotification(notificationMessage, envolvedUsers);
                         }
-
-                        RMIServer.notificationCenter.receiveNotification(notificationMessage, envolvedUsers);
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
@@ -976,29 +975,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             e.printStackTrace();
         }
     }
-
-    private static int getPort() {
-        int port = 0;
-
-        while(port <= 1024) {
-            System.out.print("INSERT PORT: ");
-            try {
-                Scanner reader = new Scanner(System.in);
-                port = reader.nextInt();
-
-                if(port <= 1024) {
-                    System.out.println("THIS IS NOT A VALID VALUE FOR THE PORT");
-                    port = 0;
-                }
-            } catch(Exception e) {
-                System.out.println("THIS IS NOT A VALID VALUE FOR THE PORT");
-                port = 0;
-            }
-        }
-
-        return port;
-    }
-
 }
 
 class PrimaryServer extends Thread {
