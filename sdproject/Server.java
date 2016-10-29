@@ -9,8 +9,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 
-class Server implements NotificationCenter {
+class Server extends UnicastRemoteObject implements NotificationCenter {
     public static ServerSocket serverSocket;
     private static int port = 7000;
     private static String rmiServerIP = new String();
@@ -22,6 +23,10 @@ class Server implements NotificationCenter {
     public static AuctionInterface iBei;
     public static int rmiregistryport = -1;
     public static String rmiRegistryIP = new String();
+
+    Server() throws RemoteException {
+        super();
+    }
 
     public static void main(String args[]) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
@@ -37,13 +42,22 @@ class Server implements NotificationCenter {
         readProperties();
 
         System.out.println("[SERVER] TRYING TO ESTABLISH A CONNECTION TO THE RMI SERVER");
+        Server server = null;
+
+        try {
+            server = new Server();
+        } catch(RemoteException re) {
+            re.printStackTrace();
+        }
+
+
         while(!connected) {
             try {
                 connecting++;
                 iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiRegistryIP, rmiregistryport).lookup("iBei");
+                iBei.subscribe((NotificationCenter) server);
                 connected = true;
-            } catch(Exception e) {
-            }
+            } catch(Exception e) {}
 
             if(connecting == 6) {
                 System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
@@ -140,8 +154,22 @@ class Server implements NotificationCenter {
         return true;
     }
 
-    public void receiveNotification(String notification) {
-        System.out.println(notification)
+    public void receiveNotification(String notification, ArrayList<String> envolvedUsers) {
+
+        PrintWriter toTheClient = null;
+
+        for(int i = 0; i < envolvedUsers.size(); i++) {
+            for(int j = 0; j < Server.listOfClients.size(); j++) {
+                if(envolvedUsers.get(i).equals(Server.listOfClients.get(j).getUsername())) {
+                    System.out.println(Server.listOfClients.get(j).getUsername());
+                    try {
+                        toTheClient = new PrintWriter(Server.listOfClients.get(j).getClientSocket().getOutputStream(), true);
+                        toTheClient.println(notification);
+                    } catch(Exception e) {e.printStackTrace();}
+
+                }
+            }
+        }
     }
 
 }
@@ -183,19 +211,15 @@ class TCPConnection extends Thread {
                     data = parseString(data);
                     parseFile(requests, data);
 
-                    while(!requests.isEmpty()) {
-                        String request = requests.get(0);
-                        String action = parse("type", request);
-                        action = cleanUpStrings(action);
+                    String action = parse("type", data);
+                    action = cleanUpStrings(action);
 
-                        if(!request.equals("")) System.out.println("[CLIENT] " + request);
+                    if(!data.equals("")) System.out.println("[CLIENT] " + data);
 
-                        reply = courseOfAction(action, request);
+                    reply = courseOfAction(action, data);
 
-                        outToServer.println(reply);
-                        requests.remove(0);
-                    }
-                } else{
+                    outToServer.println(reply);
+                } else {
                     reply = "[SERVER] THIS IS NOT A VALID REQUEST";
                     outToServer.println(reply);
                 }
@@ -241,6 +265,8 @@ class TCPConnection extends Thread {
             } else {
                 username = parse("username", parameters);
                 String password = parse("password", parameters);
+
+                System.out.println(username + " " + password);
 
                 reply = logIn(username, password);
 
@@ -318,8 +344,8 @@ class TCPConnection extends Thread {
             if(!parameters.contains("title")) title = "";
             if(!parameters.contains("description")) description = "";
             if(!parameters.contains("deadline")) deadline = "";
-            if(!parameters.contains("code")) deadline = "";
-            if(!parameters.contains("amount")) deadline = "";
+            if(!parameters.contains("code")) code = "";
+            if(!parameters.contains("amount")) amount = "";
 
             reply = editAuction(username, id, title, description, deadline, code, amount);
 

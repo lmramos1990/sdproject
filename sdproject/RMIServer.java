@@ -25,7 +25,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public static String rmiServerIP = new String();
     public static int rmiregistryport = 0;
 
-    static NotificationCenter notificationCenter;
+    public static NotificationCenter notificationCenter;
 
     protected RMIServer() throws RemoteException {
         super();
@@ -77,6 +77,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 SecondaryServer secondaryServer = new SecondaryServer();
             }
         }
+    }
+
+    public void subscribe(NotificationCenter nc) throws RemoteException {
+        notificationCenter = nc;
     }
 
     public static void main(String[] args) {
@@ -214,7 +218,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     lastId += 1;
 
                     Statement insertStatement = connection.createStatement();
-                    String insertQuery = "INSERT INTO client (client_id, username, pass, status) VALUES (" + lastId + ", '" + username + "', '" + password + "', 0, '" + uuid + "')";
+                    String insertQuery = "INSERT INTO client (client_id, username, pass, status, uuid) VALUES (" + lastId + ", '" + username + "', '" + password + "', 0, '" + uuid + "')";
                     ResultSet insertResultSet = insertStatement.executeQuery(insertQuery);
 
                     if(insertResultSet.next()) {
@@ -784,8 +788,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                         updateAmountResultSet.close();
                     }
+
+                    reply = "type: edit_auction, ok: true";
                 }
                 verifyAuctionIdResultSet.close();
+
             }
             verifyUserResultSet.close();
         } catch(Exception e) {
@@ -827,6 +834,23 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
                         connection.commit();
                         reply = "type: message, ok: true";
+                        String notificationMessage = "type: notification_message, id: " + id + ", user: " + username + ", text: " + text;
+
+                        Statement notificationStatement = connection.createStatement();
+                        String notificationQuery = "SELECT c.username FROM auction a, client c WHERE auction_id = " + id + " AND c.client_id = a.client_id";
+                        ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
+
+                        ArrayList<String> envolvedUsers = new ArrayList<String>();
+
+                        while(notificationResultSet.next()) {
+                            envolvedUsers.add(notificationResultSet.getString("username"));
+                        }
+
+                        if(envolvedUsers.size() == 0) {
+                            System.out.println("FODEME CARALHO!");
+                        }
+
+                        RMIServer.notificationCenter.receiveNotification(notificationMessage, envolvedUsers);
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
@@ -843,7 +867,23 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
                         connection.commit();
                         reply = "type: message, ok: true";
+                        String notificationMessage = "type: notification_message, id: " + id + ", user: " + username + ", text: " + text;
 
+                        Statement notificationStatement = connection.createStatement();
+                        String notificationQuery = "SELECT c.username FROM auction a, client c WHERE auction_id = " + id + " AND c.client_id = a.client_id";
+                        ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
+
+                        ArrayList<String> envolvedUsers = new ArrayList<String>();
+
+                        while(notificationResultSet.next()) {
+                            envolvedUsers.add(notificationResultSet.getString("username"));
+                        }
+
+                        if(envolvedUsers.size() == 0) {
+                            System.out.println("FODEME CARALHO!");
+                        }
+
+                        RMIServer.notificationCenter.receiveNotification(notificationMessage, envolvedUsers);
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
@@ -1199,7 +1239,6 @@ class DateChecker extends Thread {
                         if(updateDateResultSet.next()) {
                             System.out.println("[RMISERVER] AN AUCTION HAS JUST ENDED");
                             RMIServer.connection.commit();
-                            // E ALTURA DE NOTIFICAR OS FDPS ENVOLVIDOS
                         }
                     }
                 }

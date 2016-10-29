@@ -4,6 +4,9 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface AuctionInterface extends Remote {
+
+	public void subscribe(NotificationCenter nc) throws RemoteException;
+
 	public String login(String username, String password) throws RemoteException;
 	public String register(String username, String password, String uuid) throws RemoteException;
 	public String createAuction(String username, String code, String title, String description, String deadline, String amount, String uuid) throws RemoteException;
