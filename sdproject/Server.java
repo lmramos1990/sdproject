@@ -4,12 +4,14 @@ import java.util.*;
 import java.net.*;
 import java.io.*;
 import java.rmi.*;
-import java.sql.*;
+import java.text.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
 class Server {
-    private static ServerSocket serverSocket;
+    public static ServerSocket serverSocket;
     private static int port = 7000;
     private static String rmiServerIP = new String();
     private static String databaseIP = new String();
@@ -20,10 +22,6 @@ class Server {
     public static AuctionInterface iBei;
     public static int rmiregistryport = -1;
     public static String rmiRegistryIP = new String();
-
-    private static String user = "bd";
-    private static String pass = "oracle";
-    public static Connection connection;
 
     public static void main(String args[]) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
@@ -38,14 +36,6 @@ class Server {
 
         readProperties();
 
-        try {
-            Class.forName("oracle.jdbc.OracleDriver");
-            String url = "jdbc:oracle:thin:@" + databaseIP + ":1521:XE";
-            connection = DriverManager.getConnection(url, user, pass);
-        } catch(Exception e) {
-            System.out.println("ERROR CONNECTING TO THE DATABASE");
-        }
-
         System.out.println("[SERVER] TRYING TO ESTABLISH A CONNECTION TO THE RMI SERVER");
         while(!connected) {
             try {
@@ -53,19 +43,20 @@ class Server {
                 iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiRegistryIP, rmiregistryport).lookup("iBei");
                 connected = true;
             } catch(Exception e) {
-                e.printStackTrace();
-                System.out.println("[SERVER] CONNECTION FAILED\n[SERVER] ATTEMPTING ANOTHER TIME");
             }
 
-            if(connecting == 3) {
+            if(connecting == 6) {
                 System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
                 return;
             }
 
-            try {
-                Thread.sleep(5000);
-            } catch(Exception e) {
-                return;
+            if(!connected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception e) {
+                    return;
+                }
             }
         }
 
@@ -153,19 +144,17 @@ class Server {
 class TCPConnection extends Thread {
     BufferedReader inFromServer = null;
     PrintWriter outToServer;
-    private static Socket clientSocket;
-    private static ClientObject client;
+    Socket clientSocket;
+    ClientObject client;
 
-    private static String username;
-    private static boolean online = false;
-    private static int connecting = 0;
-    private static int logoutCounter = 0;
+    private String username;
+    private int connecting = 0;
 
     public TCPConnection(Socket pclientSocket) {
         this.username = new String();
+        this.clientSocket = pclientSocket;
 
         try {
-            clientSocket = pclientSocket;
             inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             outToServer = new PrintWriter(clientSocket.getOutputStream(), true);
             this.start();
@@ -184,49 +173,44 @@ class TCPConnection extends Thread {
         try {
             while(true) {
                 data = inFromServer.readLine();
-                data = parseString(data);
 
-                parseFile(requests, data);
+                if(!data.isEmpty()) {
+                    data = parseString(data);
+                    parseFile(requests, data);
 
-                while(!requests.isEmpty()) {
-                    String request = requests.get(0);
-                    String action = parse("type", request);
+                    while(!requests.isEmpty()) {
+                        String request = requests.get(0);
+                        String action = parse("type", request);
+                        action = cleanUpStrings(action);
 
-                    if(!request.equals("")) System.out.println("[CLIENT] " + request);
+                        if(!request.equals("")) System.out.println("[CLIENT] " + request);
 
-                    reply = courseOfAction(action, request);
+                        reply = courseOfAction(action, request);
 
+                        outToServer.println(reply);
+                        requests.remove(0);
+                    }
+                } else{
+                    reply = "[SERVER] THIS IS NOT A VALID REQUEST";
                     outToServer.println(reply);
-                    requests.remove(0);
                 }
             }
-
         } catch(Exception e) {
             System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
             Server.numberOfClients--;
 
-            if(!username.equals("") && online) {
-                try {
-                    Statement logOut = Server.connection.createStatement();
-                    String logOutQuery = "UPDATE client SET status = 0 WHERE to_char(username) = '" + client.getUsername() + "'";
-                    ResultSet logOutResultSet = logOut.executeQuery(logOutQuery);
-                    Server.connection.commit();
-                    logOutResultSet.close();
-                } catch(Exception e2) {
-                    e2.printStackTrace();
-                }
-
+            if(!username.equals("")) {
                 Server.listOfClients.remove(Server.listOfClients.indexOf(client));
-                online = false;
-            }
 
+                logOutUser(username);
 
-            try {
-                this.clientSocket.close();
-            } catch(IOException ioe) {
-                System.out.println("ERROR WHEN TRYING TO CLOSE THE CLIENT SOCKET: " + ioe.getMessage());
-                Thread.currentThread().interrupt();
-                return;
+                try {
+                    clientSocket.close();
+                } catch(IOException ioe) {
+                    System.out.println("ERROR WHEN TRYING TO CLOSE THE CLIENT SOCKET: " + ioe.getMessage());
+                    Thread.currentThread().interrupt();
+                    return;
+                }
             }
 
             Thread.currentThread().interrupt();
@@ -234,7 +218,7 @@ class TCPConnection extends Thread {
         }
     }
 
-    private static void parseFile(ArrayList<String> requests, String file) {
+    private void parseFile(ArrayList<String> requests, String file) {
 
         String [] lines = file.split("\\r?\\n");
 
@@ -243,76 +227,107 @@ class TCPConnection extends Thread {
         }
     }
 
-    private static String courseOfAction(String action, String parameters) {
+    private String courseOfAction(String action, String parameters) {
         String reply = new String();
 
-        if(!online && (action.equals("login") || action.equals("register"))) {
+        if(action.equals("login")) {
+            if(!parameters.contains("username") || !parameters.contains("password")) {
+                reply = "type: login, ok: false";
+            } else {
+                username = parse("username", parameters);
+                String password = parse("password", parameters);
 
-            username = parse("username", parameters);
-            String password = parse("password", parameters);
+                reply = logIn(username, password);
 
-            reply = attemptLoginRegister(action, username, password);
-
-            if(reply.equals("type: login, ok: true") || reply.equals("type: register, ok: true")) {
-                client = new ClientObject(clientSocket, username);
-                Server.listOfClients.add(client);
-                online = true;
+                if(reply.equals("type: login, ok: true")) {
+                    client = new ClientObject(clientSocket, username);
+                    Server.listOfClients.add(client);
+                }
             }
+        } else if(action.equals("register")) {
+            String uuid = UUID.randomUUID().toString();
+            if(!parameters.contains("username") || !parameters.contains("password")) {
+                reply = "type: register, ok: false";
+            } else {
+                String registryUsername = parse("username", parameters);
+                String password = parse("password", parameters);
 
-        } else if(online && action.equals("create_auction")) {
+                reply = register(registryUsername, password, uuid);
+                cleanUpUUIDs("client");
+            }
+        } else if(action.equals("create_auction")) {
+            String uuid = UUID.randomUUID().toString();
+            if(!parameters.contains("code") || !parameters.contains("title") || !parameters.contains("description") || !parameters.contains("deadline") || !parameters.contains("amount")) {
+                reply = "type: create_auction, ok: false";
+            } else {
+                String code = parse("code", parameters);
+                String title = parse("title", parameters);
+                String description = parse("description", parameters);
+                String deadline = parse("deadline", parameters);
+                String amount = parse("amount", parameters);
 
-            String code = parse("code", parameters);
-            String title = parse("title", parameters);
-            String description = parse("description", parameters);
-            String deadline = parse("deadline", parameters);
-            String amount = parse("amount", parameters);
+                DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH-mm");
+                java.util.Date dateobj = new java.util.Date();
+                String date = df.format(dateobj);
 
-            reply = createAuction(username, code, title, description, deadline, amount);
-
-        } else if(online && action.equals("search_auction")) {
-            String code = parse("code", parameters);
-
-            reply = searchAuction(code);
-
-        } else if(online && action.equals("detail_auction")) {
-            String id = parse("id", parameters);
-
-            reply = detailAuction(username, id);
-
-        } else if(online && action.equals("my_auctions")) {
-
+                if(date.compareTo(deadline) >= 0) {
+                    reply = "type: create_auction, ok: false";
+                } else {
+                    reply = createAuction(username, code, title, description, deadline, amount, uuid);
+                    cleanUpUUIDs("auction");
+                }
+            }
+        } else if(action.equals("search_auction")) {
+            if(!parameters.contains("code")) {
+                reply = "type: search_auction, items_count: 0";
+            } else {
+                String code = parse("code", parameters);
+                reply = searchAuction(code);
+            }
+        } else if(action.equals("detail_auction")) {
+            if(!parameters.contains("id")) {
+                reply = "type: detail_auction, ok: false";
+            } else {
+                String id = parse("id", parameters);
+                reply = detailAuction(username, id);
+            }
+        } else if(action.equals("my_auctions")) {
             reply = myAuctions(username);
-
-        } else if(online && action.equals("bid")) {
-            String [] splitedString = parameters.split("bid");
-            String id = parse("id", splitedString[1]);
-            String amount = parse("amount", splitedString[1]);
-            reply = bid(username, id, amount);
-
-        } else if(online && action.equals("edit_auction")) {
+        } else if(action.equals("bid")) {
+            if(!parameters.contains("id") || !parameters.contains("amount")) {
+                reply = "type: bid, ok: false";
+            } else {
+                String [] splitedString = parameters.split("bid");
+                String id = parse("id", splitedString[1]);
+                String amount = parse("amount", splitedString[1]);
+                reply = bid(username, id, amount);
+            }
+        } else if(action.equals("edit_auction")) {
             String id = parse("id", parameters);
             String title = parse("title", parameters);
             String description = parse("description", parameters);
             String deadline = parse("deadline", parameters);
+            String code = parse("code", parameters);
+            String amount = parse("amount", parameters);
 
             if(!parameters.contains("title")) title = "";
             if(!parameters.contains("description")) description = "";
             if(!parameters.contains("deadline")) deadline = "";
+            if(!parameters.contains("code")) deadline = "";
+            if(!parameters.contains("amount")) deadline = "";
 
-            reply = editAuction(username, id, title, description, deadline);
+            reply = editAuction(username, id, title, description, deadline, code, amount);
 
-        } else if(online && action.equals("message")) {
-            String id = parse("id", parameters);
-            String text = parse("text", parameters);
-
-            reply = message(username, id, text);
-
-        } else if(online && action.equals("online_users")) {
-
+        } else if(action.equals("message")) {
+            if(!parameters.contains("id") || !parameters.contains("text")) {
+                reply = "type: message, ok: false";
+            } else {
+                String id = parse("id", parameters);
+                String text = parse("text", parameters);
+                reply = message(username, id, text);
+            }
+        } else if(action.equals("online_users")) {
             reply = onlineUsers(username);
-
-        } else if(!online) {
-            reply = "[SERVER] PLEASE LOG IN BEFORE MAKING REQUESTS";
         } else {
             reply = "[SERVER] THIS IS NOT A VALID REQUEST";
         }
@@ -320,166 +335,355 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private static String attemptLoginRegister(String action, String username, String password) {
+    private String logIn(String username, String password) {
         String reply = new String();
 
-        if(action.equals("login")) {
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
             try {
+                retries++;
                 reply = Server.iBei.login(username, password);
-            } catch(RemoteException re) {
-                connectToRMI();
-                reply = attemptLoginRegister(action, username, password);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
             }
-        } else {
+
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
+            }
+        }
+
+        return reply;
+    }
+
+    private String register(String username, String password, String uuid) {
+        String reply = new String();
+
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
             try {
-                reply = Server.iBei.register(username, password);
-            } catch(RemoteException re) {
-                connectToRMI();
-                reply = attemptLoginRegister(action, username, password);
+                retries++;
+                reply = Server.iBei.register(username, password, uuid);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
             }
         }
 
-        connecting = 0;
         return reply;
     }
 
-    private static String createAuction(String username, String code, String title, String description, String deadline, String amount) {
+    private String createAuction(String username, String code, String title, String description, String deadline, String amount, String uuid) {
         String reply = new String();
 
-        System.out.println(deadline);
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.createAuction(username, code, title, description, deadline, amount, uuid);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
 
-        try {
-            reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
-
-        } catch(RemoteException re) {
-            connectToRMI();
-            reply = createAuction(username, code, title, description, deadline, amount);
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
+            }
         }
 
-        connecting = 0;
         return reply;
     }
 
-    private static String searchAuction(String code) {
+    private String searchAuction(String code) {
         String reply = new String();
 
-        try {
-            reply = Server.iBei.searchAuction(code);
-        } catch(RemoteException re) {
-            connectToRMI();
-            reply = searchAuction(code);
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.searchAuction(code);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
+            }
         }
 
-        connecting = 0;
         return reply;
     }
 
-    private static String detailAuction(String username, String id) {
+    private String detailAuction(String username, String id) {
         String reply = new String();
 
-        try {
-            reply = Server.iBei.detailAuction(username, id);
-        } catch(RemoteException re) {
-            connectToRMI();
-            reply = detailAuction(username, id);
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.detailAuction(username, id);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
+            }
         }
 
-        connecting = 0;
         return reply;
     }
 
-    private static String myAuctions(String username) {
+    private String myAuctions(String username) {
         String reply = new String();
 
-        try {
-            reply = Server.iBei.myAuctions(username);
-        } catch(RemoteException re) {
-            connectToRMI();
-            reply = myAuctions(username);
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.myAuctions(username);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
+            }
         }
 
-        connecting = 0;
         return reply;
     }
 
-    private static String bid(String username, String id, String amount) {
+    private String bid(String username, String id, String amount) {
         String reply = new String();
 
-        try {
-            reply = Server.iBei.bid(username, id, amount);
-        } catch(RemoteException re) {
-            connectToRMI();
-            reply = bid(username, id, amount);
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.bid(username, id, amount);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
+            }
         }
 
-        connecting = 0;
         return reply;
     }
 
-    private static String editAuction(String username, String id, String title, String description, String deadline) {
+    private String editAuction(String username, String id, String title, String description, String deadline, String code, String amount) {
         String reply = new String();
 
-        try {
-            reply = Server.iBei.editAuction(username, id, title, description, deadline);
-        } catch(RemoteException re) {
-            connectToRMI();
-            reply = editAuction(username, id, title, description, deadline);
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.editAuction(username, id, title, description, deadline, code, amount);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
+            }
         }
 
-        connecting = 0;
         return reply;
     }
 
-    private static String message(String username, String id, String text) {
+    private String message(String username, String id, String text) {
         String reply = new String();
 
-        try {
-            reply = Server.iBei.message(username, id, text);
-        } catch(RemoteException re) {
-            connectToRMI();
-            reply = message(username, id, text);
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.message(username, id, text);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
+            }
         }
 
-        connecting = 0;
         return reply;
     }
 
-    private static String onlineUsers(String username) {
+    private String onlineUsers(String username) {
         String reply = new String();
 
-        try {
-            reply = Server.iBei.onlineUsers(username);
-        } catch(RemoteException re) {
-            connectToRMI();
-            reply = onlineUsers(username);
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.onlineUsers(username);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+                } catch(Exception sleep) {
+                    return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
+                }
+            }
         }
 
-        connecting = 0;
         return reply;
     }
 
-    private static void connectToRMI() {
+    private void logOutUser(String username) {
+        String reply = new String();
 
-        try {
-            connecting++;
-            Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-        } catch(Exception e) {
-            System.out.println("[SERVER] CONNECTION FAILED\n[SERVER] ATTEMPTING ANOTHER TIME");
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                Server.iBei.logOutUser(username);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                } catch(Exception sleep) {
+                    return;
+                }
+            }
         }
 
-        if(connecting == 7) {
-            System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
-            System.exit(0);
-        }
-
-        try {
-            Thread.sleep(5000);
-        } catch(Exception e) {
-            return;
-        }
+        return;
     }
 
-    private static String parse(String parameter, String request) {
+    private String parse(String parameter, String request) {
         int j = 0, k = 0;
         int plen = parameter.length();
 
@@ -520,7 +724,7 @@ class TCPConnection extends Thread {
         return string;
     }
 
-    private static String parseString(String reply) {
+    private String parseString(String reply) {
 
         StringBuilder sb = new StringBuilder();
 
@@ -531,6 +735,46 @@ class TCPConnection extends Thread {
         }
 
         return sb.toString();
+    }
+
+    private String cleanUpStrings(String string) {
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = 0; i < string.length(); i++) {
+            if(!(string.charAt(i) == ' ')) {
+                sb.append(string.charAt(i));
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private void cleanUpUUIDs(String table) {
+        String reply = new String();
+
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                Server.iBei.cleanUpUUIDs(table);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                } catch(Exception sleep) {
+                    return;
+                }
+            }
+        }
+
+        return;
     }
 }
 

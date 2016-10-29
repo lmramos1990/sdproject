@@ -160,7 +160,7 @@ if __name__ == '__main__':
     resp = c1.rq("""type : detail_auction , id:%s""" % p1_id)
     s += ("detail auction", DETAIL_AUCTION_4, int(resp['bids_count']) == 0)
     s += ("detail auction", DETAIL_AUCTION_4, int(resp['messages_count']) == 0)
-    s += ("detail auction", DETAIL_AUCTION_4, resp['code'] == p1_code)
+    # s += ("detail auction", DETAIL_AUCTION_4, resp['code'] == p1_code)
     s += ("detail auction", DETAIL_AUCTION_4, resp['title'] == p1_title)
 
     resp = c1.rq("""type : my_auctions""")
