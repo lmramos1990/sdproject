@@ -25,6 +25,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public static String rmiServerIP = new String();
     public static int rmiregistryport = 0;
 
+    static NotificationCenter notificationCenter;
+
     protected RMIServer() throws RemoteException {
         super();
     }
@@ -811,46 +813,43 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             if(!verifyAuctionIdResultSet.next()) {
                 reply = "type: message, ok: false";
             } else {
-                // if(verifyAuctionIdResultSet.getInt("closed") == 1) {
-                //     reply = "type: message, ok: false";
-                // } else {
-                    Statement getLastMessageIdStatement = connection.createStatement();
-                    String getLastMessageIdQuery = "SELECT max(message_id) FROM message";
-                    ResultSet getLastMessageIdResultSet = getLastMessageIdStatement.executeQuery(getLastMessageIdQuery);
+                Statement getLastMessageIdStatement = connection.createStatement();
+                String getLastMessageIdQuery = "SELECT max(message_id) FROM message";
+                ResultSet getLastMessageIdResultSet = getLastMessageIdStatement.executeQuery(getLastMessageIdQuery);
 
-                    if(!getLastMessageIdResultSet.next()) {
-                        Statement createMessageStatement = connection.createStatement();
-                        String createMessageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES (1, " + verifyUserResultSet.getInt("client_id") + ", " + verifyAuctionIdResultSet.getInt("auction_id") + ", '" + text + "')";
-                        System.out.println("MESSAGE QUERY: " + createMessageQuery);
-                        ResultSet createMessageResultSet = createMessageStatement.executeQuery(createMessageQuery);
+                if(!getLastMessageIdResultSet.next()) {
+                    Statement createMessageStatement = connection.createStatement();
+                    String createMessageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES (1, " + verifyUserResultSet.getInt("client_id") + ", " + verifyAuctionIdResultSet.getInt("auction_id") + ", '" + text + "')";
+                    System.out.println("MESSAGE QUERY: " + createMessageQuery);
+                    ResultSet createMessageResultSet = createMessageStatement.executeQuery(createMessageQuery);
 
-                        if(createMessageResultSet.next()) {
-                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                            connection.commit();
-                            reply = "type: message, ok: true";
-                        } else {
-                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                        }
-                        createMessageResultSet.close();
+                    if(createMessageResultSet.next()) {
+                        System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                        connection.commit();
+                        reply = "type: message, ok: true";
                     } else {
-                        int lastMessageId = getLastMessageIdResultSet.getInt("max(message_id)");
-                        lastMessageId += 1;
-
-                        Statement createMessageStatement = connection.createStatement();
-                        String createMessageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES (" + lastMessageId + ", " + verifyUserResultSet.getInt("client_id") + ", " + verifyAuctionIdResultSet.getInt("auction_id") + ", '" + text + "')";
-                        ResultSet createMessageResultSet = createMessageStatement.executeQuery(createMessageQuery);
-
-                        if(createMessageResultSet.next()) {
-                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                            connection.commit();
-                            reply = "type: message, ok: true";
-                        } else {
-                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                        }
-                        createMessageResultSet.close();
+                        System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
-                    getLastMessageIdResultSet.close();
-                // }
+                    createMessageResultSet.close();
+                } else {
+                    int lastMessageId = getLastMessageIdResultSet.getInt("max(message_id)");
+                    lastMessageId += 1;
+
+                    Statement createMessageStatement = connection.createStatement();
+                    String createMessageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES (" + lastMessageId + ", " + verifyUserResultSet.getInt("client_id") + ", " + verifyAuctionIdResultSet.getInt("auction_id") + ", '" + text + "')";
+                    ResultSet createMessageResultSet = createMessageStatement.executeQuery(createMessageQuery);
+
+                    if(createMessageResultSet.next()) {
+                        System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                        connection.commit();
+                        reply = "type: message, ok: true";
+
+                    } else {
+                        System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                    }
+                    createMessageResultSet.close();
+                }
+                getLastMessageIdResultSet.close();
             }
             verifyUserResultSet.close();
             verifyAuctionIdResultSet.close();

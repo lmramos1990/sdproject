@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
-class Server {
+class Server implements NotificationCenter {
     public static ServerSocket serverSocket;
     private static int port = 7000;
     private static String rmiServerIP = new String();
@@ -139,6 +139,11 @@ class Server {
 
         return true;
     }
+
+    public void receiveNotification(String notification) {
+        System.out.println(notification)
+    }
+
 }
 
 class TCPConnection extends Thread {
