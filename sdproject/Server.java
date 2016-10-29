@@ -23,7 +23,6 @@ class Server {
 
     private static String user = "bd";
     private static String pass = "oracle";
-    // private static String url = "jdbc:oracle:thin:@localhost:1521:XE";
     public static Connection connection;
 
     public static void main(String args[]) {
@@ -212,6 +211,7 @@ class TCPConnection extends Thread {
                     String logOutQuery = "UPDATE client SET status = 0 WHERE to_char(username) = '" + client.getUsername() + "'";
                     ResultSet logOutResultSet = logOut.executeQuery(logOutQuery);
                     Server.connection.commit();
+                    logOutResultSet.close();
                 } catch(Exception e2) {
                     e2.printStackTrace();
                 }
@@ -294,6 +294,10 @@ class TCPConnection extends Thread {
             String title = parse("title", parameters);
             String description = parse("description", parameters);
             String deadline = parse("deadline", parameters);
+
+            if(!parameters.contains("title")) title = "";
+            if(!parameters.contains("description")) description = "";
+            if(!parameters.contains("deadline")) deadline = "";
 
             reply = editAuction(username, id, title, description, deadline);
 
