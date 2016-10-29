@@ -688,11 +688,12 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         String reply = new String();
 
         // SAVE A COPY OF THIS AUCTION BEFORE CHANGING THE ACTUAL ONE
+        code = "";
 
         try {
 
             Statement verifyUserStatement = connection.createStatement();
-            String verifyUserQuery = "SELECT a.auction_id FROM auction a, client c WHERE (to_char(c.username) = 'lmramos' AND a.client_id = c.client_id AND auction_id = 2)";
+            String verifyUserQuery = "SELECT a.auction_id FROM auction a, client c WHERE (to_char(c.username) = '" + username + "' AND a.client_id = c.client_id AND auction_id = " + id + ")";
             ResultSet verifyUserResultSet = verifyUserStatement.executeQuery(verifyUserQuery);
 
             if(!verifyUserResultSet.next()) {
@@ -755,7 +756,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     if(!code.equals("")) {
                         Statement updateCodeStatement = connection.createStatement();
                         String updateCodeQuery = "UPDATE auction SET code = to_char('" + code + "') WHERE auction_id = '" + id + "'";
-                        ResultSet updateCodeResultSet = updateDeadlineStatement.executeQuery(updateDeadlineQuery);
+                        ResultSet updateCodeResultSet = updateCodeStatement.executeQuery(updateCodeQuery);
 
                         if(updateCodeResultSet.next()) {
                             System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
@@ -769,8 +770,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                     if(!amount.equals("")) {
                         Statement updateAmountStatement = connection.createStatement();
-                        String updateDescriptionQuery = "UPDATE auction SET amount = to_char('" + Float.parseFloat(amount) + "') WHERE auction_id = '" + id + "'";
-                        ResultSet updateAmountlineResultSet = updateAmountStatement.executeQuery(updateAmountQuery);
+                        String updateAmountQuery = "UPDATE auction SET amount = to_char('" + Float.parseFloat(amount) + "') WHERE auction_id = '" + id + "'";
+                        ResultSet updateAmountResultSet = updateAmountStatement.executeQuery(updateAmountQuery);
 
                         if(updateAmountResultSet.next()) {
                             System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
