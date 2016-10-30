@@ -19,4 +19,5 @@ public interface AuctionInterface extends Remote {
 	public String onlineUsers(String username) throws RemoteException;
 	public void logOutUser(String username) throws RemoteException;
 	public void cleanUpUUIDs(String table) throws RemoteException;
+	public void getNotifications(String username) throws RemoteException;
 }

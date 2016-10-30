@@ -921,7 +921,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                                     if(!getLastNotificationResultSet.next()) {
                                         Statement pushNotification = connection.createStatement();
-                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + usersIds.get(i) + ", 1, '" + notificationMessage + "')";
+                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message, read) VALUES (" + usersIds.get(i) + ", 1, '" + notificationMessage + "', 0)";
                                         ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
 
                                         if(pnResultSet.next()) {
@@ -936,7 +936,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                                         lastNotificationId += 1;
 
                                         Statement pushNotification = connection.createStatement();
-                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + usersIds.get(i) + ", " + lastNotificationId + ", '" + notificationMessage + "')";
+                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message, read) VALUES (" + usersIds.get(i) + ", " + lastNotificationId + ", '" + notificationMessage + "', 0)";
                                         ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
 
                                         if(pnResultSet.next()) {
@@ -1007,7 +1007,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                                     if(!getLastNotificationResultSet.next()) {
                                         Statement pushNotification = connection.createStatement();
-                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + usersIds.get(i) + ", 1, '" + notificationMessage + "')";
+                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message, read) VALUES (" + usersIds.get(i) + ", 1, '" + notificationMessage + "', 0)";
                                         ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
 
                                         if(pnResultSet.next()) {
@@ -1022,7 +1022,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                                         lastNotificationId += 1;
 
                                         Statement pushNotification = connection.createStatement();
-                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + usersIds.get(i) + ", " + lastNotificationId + ", '" + notificationMessage + "')";
+                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message, read) VALUES (" + usersIds.get(i) + ", " + lastNotificationId + ", '" + notificationMessage + "', 0)";
                                         ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
 
                                         if(pnResultSet.next()) {
@@ -1126,6 +1126,35 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             thingrs.close();
         } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void getNotifications(String username) throws RemoteException {
+        try {
+            Statement getNotifications = connection.createStatement();
+            String getNotificationsQ = "SELECT a.message, c.client_id FROM client c, notification a WHERE to_char(c.username) = '" + username + "' and c.client_id = a.client_id and read = 0";
+            ResultSet getNotificationsRS = getNotifications.executeQuery(getNotificationsQ);
+
+            ArrayList<String> involvedUsers = new ArrayList<String>();
+
+            involvedUsers.add(username);
+            int clientId = 0;
+
+            while(getNotificationsRS.next()) {
+                clientId = getNotificationsRS.getInt("client_id");
+                for(int j = 0; j < serverList.size(); j++) {
+                    serverList.get(j).receiveNotification(getNotificationsRS.getString("message"), involvedUsers);
+                }
+            }
+
+            Statement update = connection.createStatement();
+            String queryupdate = "UPDATE notification SET read = 1 WHERE client_id = " + clientId;
+            ResultSet resultseth = update.executeQuery(queryupdate);
+
+            resultseth.close();
+            getNotificationsRS.close();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

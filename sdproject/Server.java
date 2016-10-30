@@ -160,7 +160,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         for(int i = 0; i < envolvedUsers.size(); i++) {
             for(int j = 0; j < Server.listOfClients.size(); j++) {
                 if(envolvedUsers.get(i).equals(Server.listOfClients.get(j).getUsername())) {
-                    System.out.println(Server.listOfClients.get(j).getUsername());
                     try {
                         toTheClient = new PrintWriter(Server.listOfClients.get(j).getClientSocket().getOutputStream(), true);
                         toTheClient.println(notification);
@@ -269,6 +268,7 @@ class TCPConnection extends Thread {
                 if(reply.equals("type: login, ok: true")) {
                     client = new ClientObject(clientSocket, username);
                     Server.listOfClients.add(client);
+                    getNotifications(username);
                 }
             }
         } else if(action.equals("register")) {
@@ -693,12 +693,37 @@ class TCPConnection extends Thread {
     }
 
     private void logOutUser(String username) {
-        String reply = new String();
-
         boolean reconnected = false;
         while(!reconnected) {
             try {
                 Server.iBei.logOutUser(username);
+                reconnected = true;
+            } catch(Exception e) {
+                try{
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
+                } catch(Exception e2) {
+                    reconnected = false;
+                }
+            }
+
+            if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                } catch(Exception sleep) {
+                    return;
+                }
+            }
+        }
+
+        return;
+    }
+
+    private void getNotifications(String username) {
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                Server.iBei.getNotifications(username);
                 reconnected = true;
             } catch(Exception e) {
                 try{
