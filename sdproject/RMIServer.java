@@ -641,6 +641,30 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                             System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
                             connection.commit();
                             reply = "type: bid, ok: true";
+
+                            String notificationMessage = "type: notification_bid, id: " + id + ", user: " + username + ", amount: " + amount;
+
+                            Statement notificationStatement = connection.createStatement();
+                            String notificationQuery = "SELECT c.username FROM bid a, client c WHERE auction_id = " + id + " AND c.client_id = a.client_id";
+                            ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
+
+                            ArrayList<String> envolvedUsers = new ArrayList<String>();
+
+                            while(notificationResultSet.next()) {
+                                if(!username.equals(notificationResultSet.getString("username"))) {
+                                    System.out.println(notificationResultSet.getString("username"));
+                                    envolvedUsers.add(notificationResultSet.getString("username"));
+                                }
+                            }
+
+                            if(!(envolvedUsers.size() == 0)) {
+                                for(int i = 0; i < serverList.size(); i++) {
+                                    serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                                }
+                            }
+
+                            notificationStatement.close();
+
                         } else {
                             System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                         }
@@ -670,6 +694,30 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
                         connection.commit();
                         reply = "type: bid, ok: true";
+
+                        String notificationMessage = "type: notification_bid, id: " + id + ", user: " + username + ", amount: " + amount;
+
+                        Statement notificationStatement = connection.createStatement();
+                        String notificationQuery = "SELECT c.username FROM bid a, client c WHERE auction_id = " + id + " AND c.client_id = a.client_id";
+                        ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
+
+                        ArrayList<String> envolvedUsers = new ArrayList<String>();
+
+                        while(notificationResultSet.next()) {
+                            if(!username.equals(notificationResultSet.getString("username"))) {
+                                System.out.println(notificationResultSet.getString("username"));
+                                envolvedUsers.add(notificationResultSet.getString("username"));
+                            }
+                        }
+
+                        if(!(envolvedUsers.size() == 0)) {
+                            for(int i = 0; i < serverList.size(); i++) {
+                                serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                            }
+                        }
+
+                        notificationStatement.close();
+
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
@@ -853,6 +901,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                                 serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
                             }
                         }
+
+                        notificationStatement.close();
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
@@ -886,6 +936,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                                 serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
                             }
                         }
+
+                        notificationStatement.close();
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }

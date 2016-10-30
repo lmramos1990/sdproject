@@ -165,7 +165,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
                         toTheClient = new PrintWriter(Server.listOfClients.get(j).getClientSocket().getOutputStream(), true);
                         toTheClient.println(notification);
                     } catch(Exception e) {e.printStackTrace();}
-
                 }
             }
         }
