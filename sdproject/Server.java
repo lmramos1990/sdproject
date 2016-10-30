@@ -226,7 +226,10 @@ class TCPConnection extends Thread {
             Server.numberOfClients--;
 
             if(!username.equals("")) {
-                Server.listOfClients.remove(Server.listOfClients.indexOf(client));
+
+                synchronized (this) {
+                    Server.listOfClients.remove(Server.listOfClients.indexOf(client));
+                }
 
                 logOutUser(username);
 
