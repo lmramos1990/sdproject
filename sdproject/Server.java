@@ -155,10 +155,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     }
 
     public void receiveNotification(String notification, ArrayList<String> envolvedUsers) {
-
         PrintWriter toTheClient = null;
-
-        System.out.println("OLA");
 
         for(int i = 0; i < envolvedUsers.size(); i++) {
             for(int j = 0; j < Server.listOfClients.size(); j++) {

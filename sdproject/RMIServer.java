@@ -16,6 +16,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
     private static Properties properties = new Properties();
     private static String rmiRegistryIP = new String();
+    private static ArrayList<NotificationCenter> serverList = new ArrayList<NotificationCenter>();
 
     private static String user = "bd";
     private static String pass = "oracle";
@@ -81,6 +82,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public void subscribe(NotificationCenter nc) throws RemoteException {
         notificationCenter = nc;
+        serverList.add(nc);
     }
 
     public static void main(String[] args) {
@@ -846,11 +848,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                             envolvedUsers.add(notificationResultSet.getString("username"));
                         }
 
-                        if(!envolvedUsers.size() == 0) {
-                            RMIServer.notificationCenter.receiveNotification(notificationMessage, envolvedUsers);
+                        if(!(envolvedUsers.size() == 0)) {
+                            for(int i = 0; i < serverList.size(); i++) {
+                                serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                            }
                         }
-
-                        RMIServer.notificationCenter.receiveNotification(notificationMessage, envolvedUsers);
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
@@ -876,12 +878,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         ArrayList<String> envolvedUsers = new ArrayList<String>();
 
                         while(notificationResultSet.next()) {
-                            System.out.println(notificationResultSet.getString("username"));
                             envolvedUsers.add(notificationResultSet.getString("username"));
                         }
 
-                        if(!envolvedUsers.size() == 0) {
-                            RMIServer.notificationCenter.receiveNotification(notificationMessage, envolvedUsers);
+                        if(!(envolvedUsers.size() == 0)) {
+                            for(int i = 0; i < serverList.size(); i++) {
+                                serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                            }
                         }
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
