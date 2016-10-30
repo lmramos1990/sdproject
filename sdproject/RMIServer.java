@@ -16,7 +16,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
     private static Properties properties = new Properties();
     private static String rmiRegistryIP = new String();
-    private static ArrayList<NotificationCenter> serverList = new ArrayList<NotificationCenter>();
+    private ArrayList<NotificationCenter> serverList = new ArrayList<NotificationCenter>();
 
     private static String user = "bd";
     private static String pass = "oracle";
@@ -82,7 +82,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public void subscribe(NotificationCenter nc) throws RemoteException {
         notificationCenter = nc;
-        serverList.add(nc);
+        if(serverList.indexOf(nc) == -1) serverList.add(nc);
     }
 
     public static void main(String[] args) {
@@ -912,8 +912,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         notificationResultSet1.close();
 
                         if(!(envolvedUsers.size() == 0)) {
-                            for(int i = 0; i < serverList.size(); i++) {
-                                serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                            for(int j = 0; j < serverList.size(); j++) {
+                                serverList.get(j).receiveNotification(notificationMessage, envolvedUsers);
+                            }
+                            for(int i = 0; i < usersStatus.size(); i++) {
                                 if(usersStatus.get(i) == 0) {
                                     Statement getLastNotification = connection.createStatement();
                                     String getLastNotificationQuery = "SELECT max(notification_id) FROM notification";
@@ -998,8 +1000,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         notificationResultSet1.close();
 
                         if(!(envolvedUsers.size() == 0)) {
-                            for(int i = 0; i < serverList.size(); i++) {
-                                serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                            for(int j = 0; j < serverList.size(); j++) {
+                                serverList.get(j).receiveNotification(notificationMessage, envolvedUsers);
+                            }
+                            for(int i = 0; i < usersStatus.size(); i++) {
                                 if(usersStatus.get(i) == 0) {
                                     Statement getLastNotification = connection.createStatement();
                                     String getLastNotificationQuery = "SELECT max(notification_id) FROM notification";
@@ -1036,6 +1040,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                                     getLastNotificationResultSet.close();
                                 }
                             }
+
                         }
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
