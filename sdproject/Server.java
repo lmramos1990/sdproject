@@ -23,6 +23,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     public static AuctionInterface iBei;
     public static int rmiregistryport = -1;
     public static String rmiRegistryIP = new String();
+    public static Server server;
 
     Server() throws RemoteException {
         super();
@@ -42,7 +43,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         readProperties();
 
         System.out.println("[SERVER] TRYING TO ESTABLISH A CONNECTION TO THE RMI SERVER");
-        Server server = null;
 
         try {
             server = new Server();
@@ -375,6 +375,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -407,6 +408,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -435,6 +437,7 @@ class TCPConnection extends Thread {
             try {
                 retries++;
                 reply = Server.iBei.createAuction(username, code, title, description, deadline, amount, uuid);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try{
@@ -471,6 +474,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -503,6 +507,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -535,6 +540,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -567,6 +573,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -599,6 +606,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -631,6 +639,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -663,6 +672,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -693,6 +703,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
@@ -787,6 +798,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try{
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                    Server.iBei.subscribe(Server.server);
                 } catch(Exception e2) {
                     reconnected = false;
                 }
