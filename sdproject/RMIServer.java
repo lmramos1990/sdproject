@@ -1398,7 +1398,9 @@ class DateChecker extends Thread {
                     if(date.compareTo(parsedDeadline) >= 0) {
                         Statement updateDateStatement = RMIServer.connection.createStatement();
                         String updateDateQuery = "UPDATE auction SET closed = 1 WHERE auction_id = " + currentAuctionId;
-                        ResultSet updateDateResultSet = updateDateStatement.executeQuery(updateDateQuery);
+                        synchronized (this) {
+                            ResultSet updateDateResultSet = updateDateStatement.executeQuery(updateDateQuery);
+                        }
 
                         if(updateDateResultSet.next()) {
                             System.out.println("[RMISERVER] AN AUCTION HAS JUST ENDED");
@@ -1409,7 +1411,7 @@ class DateChecker extends Thread {
 
                 getDateResultSet.close();
 
-                Thread.sleep(30000);
+                Thread.sleep(5000);
             } catch (Exception e) {
                 e.printStackTrace();
             }
