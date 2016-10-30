@@ -652,7 +652,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                             while(notificationResultSet.next()) {
                                 if(!username.equals(notificationResultSet.getString("username"))) {
-                                    System.out.println(notificationResultSet.getString("username"));
                                     envolvedUsers.add(notificationResultSet.getString("username"));
                                 }
                             }
@@ -705,7 +704,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                         while(notificationResultSet.next()) {
                             if(!username.equals(notificationResultSet.getString("username"))) {
-                                System.out.println(notificationResultSet.getString("username"));
                                 envolvedUsers.add(notificationResultSet.getString("username"));
                             }
                         }
@@ -861,7 +859,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             String verifyUserQuery = "SELECT client_id FROM client WHERE to_char(username) = '" + username + "'";
             ResultSet verifyUserResultSet = verifyUserStatement.executeQuery(verifyUserQuery);
 
-            verifyUserResultSet.next();
+            if(verifyUserResultSet.next()) {}
 
             Statement verifyAuctionIdStatement = connection.createStatement();
             String verifyAuctionIdQuery = "SELECT auction_id FROM auction WHERE auction_id = " + id;
@@ -886,56 +884,73 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         String notificationMessage = "type: notification_message, id: " + id + ", user: " + username + ", text: " + text;
 
                         Statement notificationStatement = connection.createStatement();
-                        String notificationQuery = "SELECT c.username, c.client_id, c.status FROM auction a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
+                        String notificationQuery = "SELECT c.username, c.status, c.client_id FROM auction a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
                         ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
 
                         ArrayList<String> envolvedUsers = new ArrayList<String>();
+                        ArrayList<Integer> usersStatus = new ArrayList<Integer>();
+                        ArrayList<Integer> usersIds = new ArrayList<Integer>();
 
                         while(notificationResultSet.next()) {
-                            Statement getLastNotification = connection.createStatement();
-                            String getLastNotificationQuery = "SELECT max(notification_id) FROM notification";
-                            ResultSet getLastNotificationResultSet = getLastNotification.executeQuery(getLastNotificationQuery);
-
-                            if(!getLastNotificationResultSet.next()) {
-                                Statement pushNotification = connection.createStatement();
-                                String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + notificationResultSet.getInt("client_id") + ", 1, '" + notificationMessage + "')";
-                                ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
-
-                                if(pnResultSet.next()) {
-                                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                                    connection.commit();
-                                } else {
-                                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                                }
-                                pnResultSet.close();
-                            } else {
-                                int lastNotificationId = getLastNotificationResultSet.getInt("max(notification_id)");
-                                lastNotificationId += 1;
-
-                                Statement pushNotification = connection.createStatement();
-                                String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + notificationResultSet.getInt("client_id") + ", " + lastNotificationId + ", '" + notificationMessage + "')";
-                                ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
-
-                                if(pnResultSet.next()) {
-                                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                                    connection.commit();
-                                } else {
-                                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                                }
-                                pnResultSet.close();
-                            }
-
                             envolvedUsers.add(notificationResultSet.getString("username"));
-                            getLastNotificationResultSet.close();
+                            usersStatus.add(notificationResultSet.getInt("status"));
+                            usersIds.add(notificationResultSet.getInt("client_id"));
                         }
+
+                        Statement notificationStatement1 = connection.createStatement();
+                        String notificationQuery1 = "SELECT c.username, c.status FROM message a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
+                        ResultSet notificationResultSet1 = notificationStatement.executeQuery(notificationQuery);
+
+                        while(notificationResultSet1.next()) {
+                            if(envolvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
+                                envolvedUsers.add(notificationResultSet1.getString("username"));
+                                usersStatus.add(notificationResultSet1.getInt("status"));
+                                usersIds.add(notificationResultSet1.getInt("client_id"));
+                            }
+                        }
+                        notificationResultSet.close();
+                        notificationResultSet1.close();
 
                         if(!(envolvedUsers.size() == 0)) {
                             for(int i = 0; i < serverList.size(); i++) {
                                 serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                                if(usersStatus.get(i) == 0) {
+                                    Statement getLastNotification = connection.createStatement();
+                                    String getLastNotificationQuery = "SELECT max(notification_id) FROM notification";
+                                    ResultSet getLastNotificationResultSet = getLastNotification.executeQuery(getLastNotificationQuery);
+
+                                    if(!getLastNotificationResultSet.next()) {
+                                        Statement pushNotification = connection.createStatement();
+                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + usersIds.get(i) + ", 1, '" + notificationMessage + "')";
+                                        ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
+
+                                        if(pnResultSet.next()) {
+                                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                                            connection.commit();
+                                        } else {
+                                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                                        }
+                                        pnResultSet.close();
+                                    } else {
+                                        int lastNotificationId = getLastNotificationResultSet.getInt("max(notification_id)");
+                                        lastNotificationId += 1;
+
+                                        Statement pushNotification = connection.createStatement();
+                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + usersIds.get(i) + ", " + lastNotificationId + ", '" + notificationMessage + "')";
+                                        ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
+
+                                        if(pnResultSet.next()) {
+                                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                                            connection.commit();
+                                        } else {
+                                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                                        }
+                                        pnResultSet.close();
+                                    }
+                                    getLastNotificationResultSet.close();
+                                }
                             }
                         }
-
-                        notificationResultSet.close();
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
@@ -955,55 +970,73 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         String notificationMessage = "type: notification_message, id: " + id + ", user: " + username + ", text: " + text;
 
                         Statement notificationStatement = connection.createStatement();
-                        String notificationQuery = "SELECT c.username, c.client_id, c.status FROM auction a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
+                        String notificationQuery = "SELECT c.username, c.status, c.client_id FROM auction a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
                         ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
 
                         ArrayList<String> envolvedUsers = new ArrayList<String>();
+                        ArrayList<Integer> usersStatus = new ArrayList<Integer>();
+                        ArrayList<Integer> usersIds = new ArrayList<Integer>();
 
                         while(notificationResultSet.next()) {
-                            Statement getLastNotification = connection.createStatement();
-                            String getLastNotificationQuery = "SELECT max(notification_id) FROM notification";
-                            ResultSet getLastNotificationResultSet = getLastNotification.executeQuery(getLastNotificationQuery);
-
-                            if(!getLastNotificationResultSet.next()) {
-                                Statement pushNotification = connection.createStatement();
-                                String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + notificationResultSet.getInt("client_id") + ", 1, '" + notificationMessage + "')";
-                                ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
-
-                                if(pnResultSet.next()) {
-                                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                                    connection.commit();
-                                } else {
-                                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                                }
-                                pnResultSet.close();
-                            } else {
-                                int lastNotificationId = getLastNotificationResultSet.getInt("max(notification_id)");
-                                lastNotificationId += 1;
-
-                                Statement pushNotification = connection.createStatement();
-                                String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + notificationResultSet.getInt("client_id") + ", " + lastNotificationId + ", '" + notificationMessage + "')";
-                                ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
-
-                                if(pnResultSet.next()) {
-                                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                                    connection.commit();
-                                } else {
-                                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                                }
-                                pnResultSet.close();
-                            }
                             envolvedUsers.add(notificationResultSet.getString("username"));
-                            getLastNotificationResultSet.close();
+                            usersStatus.add(notificationResultSet.getInt("status"));
+                            usersIds.add(notificationResultSet.getInt("client_id"));
                         }
+
+                        Statement notificationStatement1 = connection.createStatement();
+                        String notificationQuery1 = "SELECT c.username, c.status FROM message a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
+                        ResultSet notificationResultSet1 = notificationStatement.executeQuery(notificationQuery);
+
+                        while(notificationResultSet1.next()) {
+                            if(envolvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
+                                envolvedUsers.add(notificationResultSet1.getString("username"));
+                                usersStatus.add(notificationResultSet1.getInt("status"));
+                                usersIds.add(notificationResultSet1.getInt("client_id"));
+                            }
+                        }
+                        notificationResultSet.close();
+                        notificationResultSet1.close();
 
                         if(!(envolvedUsers.size() == 0)) {
                             for(int i = 0; i < serverList.size(); i++) {
                                 serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                                if(usersStatus.get(i) == 0) {
+                                    Statement getLastNotification = connection.createStatement();
+                                    String getLastNotificationQuery = "SELECT max(notification_id) FROM notification";
+                                    ResultSet getLastNotificationResultSet = getLastNotification.executeQuery(getLastNotificationQuery);
+
+                                    if(!getLastNotificationResultSet.next()) {
+                                        Statement pushNotification = connection.createStatement();
+                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + usersIds.get(i) + ", 1, '" + notificationMessage + "')";
+                                        ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
+
+                                        if(pnResultSet.next()) {
+                                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                                            connection.commit();
+                                        } else {
+                                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                                        }
+                                        pnResultSet.close();
+                                    } else {
+                                        int lastNotificationId = getLastNotificationResultSet.getInt("max(notification_id)");
+                                        lastNotificationId += 1;
+
+                                        Statement pushNotification = connection.createStatement();
+                                        String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + usersIds.get(i) + ", " + lastNotificationId + ", '" + notificationMessage + "')";
+                                        ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
+
+                                        if(pnResultSet.next()) {
+                                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                                            connection.commit();
+                                        } else {
+                                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                                        }
+                                        pnResultSet.close();
+                                    }
+                                    getLastNotificationResultSet.close();
+                                }
                             }
                         }
-
-                        notificationResultSet.close();
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
