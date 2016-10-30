@@ -877,7 +877,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 if(!getLastMessageIdResultSet.next()) {
                     Statement createMessageStatement = connection.createStatement();
                     String createMessageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES (1, " + verifyUserResultSet.getInt("client_id") + ", " + verifyAuctionIdResultSet.getInt("auction_id") + ", '" + text + "')";
-                    System.out.println("MESSAGE QUERY: " + createMessageQuery);
                     ResultSet createMessageResultSet = createMessageStatement.executeQuery(createMessageQuery);
 
                     if(createMessageResultSet.next()) {
@@ -887,13 +886,47 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         String notificationMessage = "type: notification_message, id: " + id + ", user: " + username + ", text: " + text;
 
                         Statement notificationStatement = connection.createStatement();
-                        String notificationQuery = "SELECT c.username FROM auction a, client c WHERE auction_id = " + id + " AND c.client_id = a.client_id";
+                        String notificationQuery = "SELECT c.username, c.client_id, c.status FROM auction a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
                         ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
 
                         ArrayList<String> envolvedUsers = new ArrayList<String>();
 
                         while(notificationResultSet.next()) {
+                            Statement getLastNotification = connection.createStatement();
+                            String getLastNotificationQuery = "SELECT max(notification_id) FROM notification";
+                            ResultSet getLastNotificationResultSet = getLastNotification.executeQuery(getLastNotificationQuery);
+
+                            if(!getLastNotificationResultSet.next()) {
+                                Statement pushNotification = connection.createStatement();
+                                String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + notificationResultSet.getInt("client_id") + ", 1, '" + notificationMessage + "')";
+                                ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
+
+                                if(pnResultSet.next()) {
+                                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                                    connection.commit();
+                                } else {
+                                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                                }
+                                pnResultSet.close();
+                            } else {
+                                int lastNotificationId = getLastNotificationResultSet.getInt("max(notification_id)");
+                                lastNotificationId += 1;
+
+                                Statement pushNotification = connection.createStatement();
+                                String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + notificationResultSet.getInt("client_id") + ", " + lastNotificationId + ", '" + notificationMessage + "')";
+                                ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
+
+                                if(pnResultSet.next()) {
+                                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                                    connection.commit();
+                                } else {
+                                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                                }
+                                pnResultSet.close();
+                            }
+
                             envolvedUsers.add(notificationResultSet.getString("username"));
+                            getLastNotificationResultSet.close();
                         }
 
                         if(!(envolvedUsers.size() == 0)) {
@@ -902,7 +935,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                             }
                         }
 
-                        notificationStatement.close();
+                        notificationResultSet.close();
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
@@ -922,13 +955,46 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         String notificationMessage = "type: notification_message, id: " + id + ", user: " + username + ", text: " + text;
 
                         Statement notificationStatement = connection.createStatement();
-                        String notificationQuery = "SELECT c.username FROM auction a, client c WHERE auction_id = " + id + " AND c.client_id = a.client_id";
+                        String notificationQuery = "SELECT c.username, c.client_id, c.status FROM auction a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
                         ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
 
                         ArrayList<String> envolvedUsers = new ArrayList<String>();
 
                         while(notificationResultSet.next()) {
+                            Statement getLastNotification = connection.createStatement();
+                            String getLastNotificationQuery = "SELECT max(notification_id) FROM notification";
+                            ResultSet getLastNotificationResultSet = getLastNotification.executeQuery(getLastNotificationQuery);
+
+                            if(!getLastNotificationResultSet.next()) {
+                                Statement pushNotification = connection.createStatement();
+                                String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + notificationResultSet.getInt("client_id") + ", 1, '" + notificationMessage + "')";
+                                ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
+
+                                if(pnResultSet.next()) {
+                                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                                    connection.commit();
+                                } else {
+                                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                                }
+                                pnResultSet.close();
+                            } else {
+                                int lastNotificationId = getLastNotificationResultSet.getInt("max(notification_id)");
+                                lastNotificationId += 1;
+
+                                Statement pushNotification = connection.createStatement();
+                                String pnQuery = "INSERT INTO notification (client_id, notification_id, message) VALUES (" + notificationResultSet.getInt("client_id") + ", " + lastNotificationId + ", '" + notificationMessage + "')";
+                                ResultSet pnResultSet = pushNotification.executeQuery(pnQuery);
+
+                                if(pnResultSet.next()) {
+                                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
+                                    connection.commit();
+                                } else {
+                                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                                }
+                                pnResultSet.close();
+                            }
                             envolvedUsers.add(notificationResultSet.getString("username"));
+                            getLastNotificationResultSet.close();
                         }
 
                         if(!(envolvedUsers.size() == 0)) {
@@ -937,7 +1003,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                             }
                         }
 
-                        notificationStatement.close();
+                        notificationResultSet.close();
                     } else {
                         System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
                     }
