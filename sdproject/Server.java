@@ -225,20 +225,24 @@ class TCPConnection extends Thread {
             System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
             Server.numberOfClients--;
 
-            if(!username.equals("")) {
+            System.out.println("THIS IS THE USER: " + username);
+            synchronized (this) {
+                if(!username.equals("")) {
+                    for(int i = 0; i < Server.listOfClients.size(); i++) {
+                        System.out.println(Server.listOfClients.get(i).getUsername());
+                    }
 
-                synchronized (this) {
+                    System.out.println("GOING TO REMOVE SOME USER: " + client.getUsername() + " IN THE LIST IT HAS THE INDEX OF: " + Server.listOfClients.indexOf(client));
                     Server.listOfClients.remove(Server.listOfClients.indexOf(client));
-                }
+                    logOutUser(username);
 
-                logOutUser(username);
-
-                try {
-                    clientSocket.close();
-                } catch(IOException ioe) {
-                    System.out.println("ERROR WHEN TRYING TO CLOSE THE CLIENT SOCKET: " + ioe.getMessage());
-                    Thread.currentThread().interrupt();
-                    return;
+                    try {
+                        clientSocket.close();
+                    } catch(IOException ioe) {
+                        System.out.println("ERROR WHEN TRYING TO CLOSE THE CLIENT SOCKET: " + ioe.getMessage());
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
                 }
             }
 
@@ -272,6 +276,12 @@ class TCPConnection extends Thread {
                     client = new ClientObject(clientSocket, username);
                     Server.listOfClients.add(client);
                     getNotifications(username);
+                } else {
+                    username = "";
+                }
+
+                for(int i = 0; i < Server.listOfClients.size(); i++) {
+                    System.out.println(Server.listOfClients.get(i).getUsername());
                 }
             }
         } else if(action.equals("register")) {
@@ -285,7 +295,7 @@ class TCPConnection extends Thread {
                 reply = register(registryUsername, password, uuid);
                 cleanUpUUIDs("client");
             }
-        } else if(action.equals("create_auction")) {
+        } else if(!username.equals("") && action.equals("create_auction")) {
             String uuid = UUID.randomUUID().toString();
             if(!parameters.contains("code") || !parameters.contains("title") || !parameters.contains("description") || !parameters.contains("deadline") || !parameters.contains("amount")) {
                 reply = "type: create_auction, ok: false";
@@ -307,23 +317,23 @@ class TCPConnection extends Thread {
                     cleanUpUUIDs("auction");
                 }
             }
-        } else if(action.equals("search_auction")) {
+        } else if(!username.equals("") && action.equals("search_auction")) {
             if(!parameters.contains("code")) {
                 reply = "type: search_auction, items_count: 0";
             } else {
                 String code = parse("code", parameters);
                 reply = searchAuction(code);
             }
-        } else if(action.equals("detail_auction")) {
+        } else if(!username.equals("") && action.equals("detail_auction")) {
             if(!parameters.contains("id")) {
                 reply = "type: detail_auction, ok: false";
             } else {
                 String id = parse("id", parameters);
                 reply = detailAuction(username, id);
             }
-        } else if(action.equals("my_auctions")) {
+        } else if(!username.equals("") && action.equals("my_auctions")) {
             reply = myAuctions(username);
-        } else if(action.equals("bid")) {
+        } else if(!username.equals("") && action.equals("bid")) {
             if(!parameters.contains("id") || !parameters.contains("amount")) {
                 reply = "type: bid, ok: false";
             } else {
@@ -332,7 +342,7 @@ class TCPConnection extends Thread {
                 String amount = parse("amount", splitedString[1]);
                 reply = bid(username, id, amount);
             }
-        } else if(action.equals("edit_auction")) {
+        } else if(!username.equals("") && action.equals("edit_auction")) {
             String id = parse("id", parameters);
             String title = parse("title", parameters);
             String description = parse("description", parameters);
@@ -348,7 +358,7 @@ class TCPConnection extends Thread {
 
             reply = editAuction(username, id, title, description, deadline, code, amount);
 
-        } else if(action.equals("message")) {
+        } else if(!username.equals("") && action.equals("message")) {
             if(!parameters.contains("id") || !parameters.contains("text")) {
                 reply = "type: message, ok: false";
             } else {
@@ -356,8 +366,10 @@ class TCPConnection extends Thread {
                 String text = parse("text", parameters);
                 reply = message(username, id, text);
             }
-        } else if(action.equals("online_users")) {
+        } else if(!username.equals("") && action.equals("online_users")) {
             reply = onlineUsers(username);
+        } else if(username.equals("")) {
+            reply = "[SERVER] PLEASE LOG IN BEFORE MAKING REQUESTS";
         } else {
             reply = "[SERVER] THIS IS NOT A VALID REQUEST";
         }

@@ -536,23 +536,21 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             String getClientIdQuery = "SELECT client_id FROM client WHERE to_char(username) = '" + username + "'";
             ResultSet getClientIdResultSet = getClientIdStatement.executeQuery(getClientIdQuery);
 
-            getClientIdResultSet.next();
+            int clientId = 0;
 
-            // Statement getUserMessagesStatement = connection.createStatement();
-            // String getUserMessagesQuery = "SELECT auction_id FROM message WHERE client_id = " + getClientIdResultSet.getInt("client_id");
-            // ResultSet getUserMessagesResultSet = getUserMessagesStatement.executeQuery(getUserMessagesQuery);
+            if(getClientIdResultSet.next()) {
+                clientId = getClientIdResultSet.getInt("client_id");
+                getClientIdResultSet.close();
+            } else {
+                reply = "type: my_auctions, ok: false";
+                getClientIdResultSet.close();
+                return reply;
+            }
 
             ArrayList<Integer> myAuctions = new ArrayList<Integer>();
-            // while(getUserMessagesResultSet.next()) {
-            //     if(myAuctions.indexOf(getUserMessagesResultSet.getInt("auction_id")) == -1) {
-            //         myAuctions.add(getUserMessagesResultSet.getInt("auction_id"));
-            //     }
-            // }
-            //
-            // getUserMessagesResultSet.close();
 
             Statement getUserBidsStatement = connection.createStatement();
-            String getUserBidsQuery = "SELECT auction_id FROM bid WHERE client_id = " + getClientIdResultSet.getInt("client_id");
+            String getUserBidsQuery = "SELECT auction_id FROM bid WHERE client_id = " + clientId;
             ResultSet getUserBidsResultSet = getUserBidsStatement.executeQuery(getUserBidsQuery);
 
             while(getUserBidsResultSet.next()) {
@@ -564,7 +562,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             getUserBidsResultSet.close();
 
             Statement getUserAuctionsStatement = connection.createStatement();
-            String getUserAuctionsQuery = "SELECT auction_id FROM auction WHERE client_id = " + getClientIdResultSet.getInt("client_id");
+            String getUserAuctionsQuery = "SELECT auction_id FROM auction WHERE client_id = " + clientId;
             ResultSet getUserAuctionsResultSet = getUserAuctionsStatement.executeQuery(getUserAuctionsQuery);
 
             while(getUserAuctionsResultSet.next()) {
@@ -584,19 +582,20 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                 for(int i = 0; i < myAuctions.size(); i++) {
                     Statement createStringStatement = connection.createStatement();
-                    String createStringQuery = "SELECT a.title, b.articlecode FROM auction a, article b WHERE a.auction_id = " + myAuctions.get(i);
+                    String createStringQuery = "SELECT a.title, b.articlecode FROM auction a, article b WHERE a.auction_id = " + myAuctions.get(i) + " AND a.article_id = b.article_id";
                     ResultSet createStringResultSet = createStringStatement.executeQuery(createStringQuery);
-                    createStringResultSet.next();
 
+                    if(createStringResultSet.next()) {
+                        String item = ", items_" + i + "_id: " + myAuctions.get(i) + ", items_" + i + "_code: " + createStringResultSet.getString("articlecode") + ", items_" + i + "_title: " + createStringResultSet.getString("title");
+                        sb.append(item);
+                    }
 
-                    String item = ", items_" + i + "_id: " + myAuctions.get(i) + ", items_" + i + "_code: " + createStringResultSet.getString("articlecode") + ", items_" + i + "_title: " + createStringResultSet.getString("title");
-                    sb.append(item);
                     createStringResultSet.close();
                 }
 
                 reply = sb.toString();
             }
-            getClientIdResultSet.close();
+
 
         } catch(Exception e) {
             e.printStackTrace();
