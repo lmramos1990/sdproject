@@ -606,6 +606,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized String bid(String username, String id, String amount) throws RemoteException {
         System.out.println("[RMISERVER] BID REQUEST");
+
         String reply = new String();
 
         try {
@@ -623,7 +624,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             if(!verifyAuctionIdResultSet.next()) {
                 reply = "type: bid, ok: false";
             } else {
-                if(verifyAuctionIdResultSet.getInt("closed") == 1 || verifyAuctionIdResultSet.getFloat("maximum_value") < Float.parseFloat(amount)) {
+                if(verifyAuctionIdResultSet.getInt("closed") == 1 || verifyAuctionIdResultSet.getFloat("maximum_value") <= Float.parseFloat(amount)) {
                     reply = "type: bid, ok: false";
                 } else {
                     // VERIFICAR O ULTIMO BID ID
@@ -657,6 +658,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                             if(!(envolvedUsers.size() == 0)) {
                                 for(int i = 0; i < serverList.size(); i++) {
+                                    System.out.println(serverList.get(i));
                                     serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
                                 }
                             }
@@ -891,20 +893,26 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         ArrayList<Integer> usersIds = new ArrayList<Integer>();
 
                         while(notificationResultSet.next()) {
-                            envolvedUsers.add(notificationResultSet.getString("username"));
-                            usersStatus.add(notificationResultSet.getInt("status"));
-                            usersIds.add(notificationResultSet.getInt("client_id"));
+                            if(!notificationResultSet.getString("username").equals(username)) {
+                                if(envolvedUsers.indexOf(notificationResultSet.getString("username")) == -1) {
+                                    envolvedUsers.add(notificationResultSet.getString("username"));
+                                    usersStatus.add(notificationResultSet.getInt("status"));
+                                    usersIds.add(notificationResultSet.getInt("client_id"));
+                                }
+                            }
                         }
 
                         Statement notificationStatement1 = connection.createStatement();
-                        String notificationQuery1 = "SELECT c.username, c.status FROM message a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
-                        ResultSet notificationResultSet1 = notificationStatement.executeQuery(notificationQuery);
+                        String notificationQuery1 = "SELECT c.username, c.status, c.client_id FROM message a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
+                        ResultSet notificationResultSet1 = notificationStatement1.executeQuery(notificationQuery1);
 
                         while(notificationResultSet1.next()) {
-                            if(envolvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
-                                envolvedUsers.add(notificationResultSet1.getString("username"));
-                                usersStatus.add(notificationResultSet1.getInt("status"));
-                                usersIds.add(notificationResultSet1.getInt("client_id"));
+                            if(!notificationResultSet1.getString("username").equals(username)) {
+                                if(envolvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
+                                    envolvedUsers.add(notificationResultSet1.getString("username"));
+                                    usersStatus.add(notificationResultSet1.getInt("status"));
+                                    usersIds.add(notificationResultSet1.getInt("client_id"));
+                                }
                             }
                         }
                         notificationResultSet.close();
@@ -979,20 +987,26 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         ArrayList<Integer> usersIds = new ArrayList<Integer>();
 
                         while(notificationResultSet.next()) {
-                            envolvedUsers.add(notificationResultSet.getString("username"));
-                            usersStatus.add(notificationResultSet.getInt("status"));
-                            usersIds.add(notificationResultSet.getInt("client_id"));
+                            if(!notificationResultSet.getString("username").equals(username)) {
+                                if(envolvedUsers.indexOf(notificationResultSet.getString("username")) == -1) {
+                                    envolvedUsers.add(notificationResultSet.getString("username"));
+                                    usersStatus.add(notificationResultSet.getInt("status"));
+                                    usersIds.add(notificationResultSet.getInt("client_id"));
+                                }
+                            }
                         }
 
                         Statement notificationStatement1 = connection.createStatement();
-                        String notificationQuery1 = "SELECT c.username, c.status FROM message a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
-                        ResultSet notificationResultSet1 = notificationStatement.executeQuery(notificationQuery);
+                        String notificationQuery1 = "SELECT c.username, c.status, c.client_id FROM message a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
+                        ResultSet notificationResultSet1 = notificationStatement1.executeQuery(notificationQuery1);
 
                         while(notificationResultSet1.next()) {
-                            if(envolvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
-                                envolvedUsers.add(notificationResultSet1.getString("username"));
-                                usersStatus.add(notificationResultSet1.getInt("status"));
-                                usersIds.add(notificationResultSet1.getInt("client_id"));
+                            if(!notificationResultSet1.getString("username").equals(username)) {
+                                if(envolvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
+                                    envolvedUsers.add(notificationResultSet1.getString("username"));
+                                    usersStatus.add(notificationResultSet1.getInt("status"));
+                                    usersIds.add(notificationResultSet1.getInt("client_id"));
+                                }
                             }
                         }
                         notificationResultSet.close();

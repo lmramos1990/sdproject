@@ -61,7 +61,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
 
             if(connecting == 6) {
                 System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
-                return;
+                System.exit(0);
             }
 
             if(!connected) {
@@ -154,17 +154,30 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         return true;
     }
 
-    public void receiveNotification(String notification, ArrayList<String> envolvedUsers) {
+    public void receiveNotification(String notification, ArrayList<String> involvedUsers) {
+        System.out.println("THESE ARE THE USERS SUPPOSED TO RECEIVE THIS NOTIFICATION");
+        System.out.println(involvedUsers);
+
+        System.out.println("THESE ARE THE FUCKERS IN THIS SERVER");
+        for(int i = 0; i < Server.listOfClients.size(); i++) {
+            System.out.print(listOfClients.get(i).getUsername() + " ");
+        }
+        System.out.print("\n");
+
+        for(int i = 0; i < involvedUsers.size(); i++) {
+            sendNotification(notification, involvedUsers.get(i));
+        }
+    }
+
+    private void sendNotification(String notification, String user) {
         PrintWriter toTheClient = null;
 
-        for(int i = 0; i < envolvedUsers.size(); i++) {
-            for(int j = 0; j < Server.listOfClients.size(); j++) {
-                if(envolvedUsers.get(i).equals(Server.listOfClients.get(j).getUsername())) {
-                    try {
-                        toTheClient = new PrintWriter(Server.listOfClients.get(j).getClientSocket().getOutputStream(), true);
-                        toTheClient.println(notification);
-                    } catch(Exception e) {e.printStackTrace();}
-                }
+        for(int i = 0; i < Server.listOfClients.size(); i++) {
+            if(user.equals(Server.listOfClients.get(i).getUsername())) {
+                try {
+                    toTheClient = new PrintWriter(Server.listOfClients.get(i).getClientSocket().getOutputStream(), true);
+                    toTheClient.println(notification);
+                } catch(Exception e) {e.printStackTrace();}
             }
         }
     }
@@ -206,7 +219,6 @@ class TCPConnection extends Thread {
 
                 if(!data.isEmpty()) {
                     data = parseString(data);
-                    parseFile(requests, data);
 
                     String action = parse("type", data);
                     action = cleanUpStrings(action);
@@ -251,15 +263,6 @@ class TCPConnection extends Thread {
         }
     }
 
-    private void parseFile(ArrayList<String> requests, String file) {
-
-        String [] lines = file.split("\\r?\\n");
-
-        for(int i = 0; i < lines.length; i++) {
-            requests.add(lines[i]);
-        }
-    }
-
     private String courseOfAction(String action, String parameters) {
         String reply = new String();
 
@@ -278,10 +281,6 @@ class TCPConnection extends Thread {
                     getNotifications(username);
                 } else {
                     username = "";
-                }
-
-                for(int i = 0; i < Server.listOfClients.size(); i++) {
-                    System.out.println(Server.listOfClients.get(i).getUsername());
                 }
             }
         } else if(action.equals("register")) {
@@ -350,6 +349,7 @@ class TCPConnection extends Thread {
             String code = parse("code", parameters);
             String amount = parse("amount", parameters);
 
+            if(!parameters.contains("id")) return "type: edit_auction, ok: false";
             if(!parameters.contains("title")) title = "";
             if(!parameters.contains("description")) description = "";
             if(!parameters.contains("deadline")) deadline = "";
