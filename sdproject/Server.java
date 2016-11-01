@@ -234,8 +234,7 @@ class TCPConnection extends Thread {
                     for(int i = 0; i < Server.listOfClients.size(); i++) {
                         System.out.println(Server.listOfClients.get(i).getUsername());
                     }
-
-                    System.out.println("GOING TO REMOVE SOME USER: " + client.getUsername() + " IN THE LIST IT HAS THE INDEX OF: " + Server.listOfClients.indexOf(client));
+                    
                     Server.listOfClients.remove(Server.listOfClients.indexOf(client));
                     logOutUser(username);
 
@@ -360,7 +359,7 @@ class TCPConnection extends Thread {
         } else if(!username.equals("") && action.equals("online_users")) {
             reply = onlineUsers(username);
         } else if(username.equals("")) {
-            reply = "[SERVER] PLEASE LOG IN BEFORE MAKING REQUESTS";
+            reply = "type: " + action + ", ok: false";
         } else {
             reply = "[SERVER] THIS IS NOT A VALID REQUEST";
         }
