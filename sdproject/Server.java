@@ -155,15 +155,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     }
 
     public void receiveNotification(String notification, ArrayList<String> involvedUsers) {
-        System.out.println("THESE ARE THE USERS SUPPOSED TO RECEIVE THIS NOTIFICATION");
-        System.out.println(involvedUsers);
-
-        System.out.println("THESE ARE THE FUCKERS IN THIS SERVER");
-        for(int i = 0; i < Server.listOfClients.size(); i++) {
-            System.out.print(listOfClients.get(i).getUsername() + " ");
-        }
-        System.out.print("\n");
-
         for(int i = 0; i < involvedUsers.size(); i++) {
             sendNotification(notification, involvedUsers.get(i));
         }
