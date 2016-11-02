@@ -26,8 +26,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public static String rmiServerIP = new String();
     public static int rmiregistryport = 0;
 
-    public static NotificationCenter notificationCenter;
-
     protected RMIServer() throws RemoteException {
         super();
     }
@@ -81,7 +79,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     }
 
     public void subscribe(NotificationCenter nc) throws RemoteException {
-        notificationCenter = nc;
         if(serverList.indexOf(nc) == -1) serverList.add(nc);
     }
 
