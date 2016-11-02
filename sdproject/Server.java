@@ -50,7 +50,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
             re.printStackTrace();
         }
 
-
         while(!connected) {
             try {
                 connecting++;
