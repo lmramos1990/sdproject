@@ -252,7 +252,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         int articleId = 0;
         int lastAuctionId = 0;
 
-        // type: create_auction, code: 12345, title: teste, description: decricao de teste, deadline: 2017-01-01 23-23, amount: 105.4
+        // CREATE AUCTION
+        // BID
+        // NOTIFICACAO IMEDIATA
+        // ONLINE USERS ficarem no servidor e nao na base de dados!
 
         try {
 
