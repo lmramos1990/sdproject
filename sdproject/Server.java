@@ -228,13 +228,8 @@ class TCPConnection extends Thread {
             System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
             Server.numberOfClients--;
 
-            System.out.println("THIS IS THE USER: " + username);
             synchronized (this) {
                 if(!username.equals("")) {
-                    for(int i = 0; i < Server.listOfClients.size(); i++) {
-                        System.out.println(Server.listOfClients.get(i).getUsername());
-                    }
-                    
                     Server.listOfClients.remove(Server.listOfClients.indexOf(client));
                     logOutUser(username);
 
