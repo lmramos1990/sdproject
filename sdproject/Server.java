@@ -11,15 +11,6 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
-// ENCRIPTION LIBRARIES
-import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
-
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-
 class Server extends UnicastRemoteObject implements NotificationCenter {
     public static ServerSocket serverSocket;
     private static int port = 7000;
@@ -289,16 +280,14 @@ class TCPConnection extends Thread {
                 }
             }
         } else if(username.equals("") && action.equals("register")) {
-            String uuid = UUID.randomUUID().toString();
+            // String uuid = UUID.randomUUID().toString();
             if(!parameters.contains("username") || !parameters.contains("password")) {
                 reply = "type: register, ok: false";
             } else {
                 String registryUsername = parse("username", parameters);
                 String password = parse("password", parameters);
 
-                reply = register(registryUsername, password, uuid);
-
-                cleanUpUUIDs("client");
+                reply = register(registryUsername, password);
             }
         } else if(!username.equals("") && action.equals("create_auction")) {
             String uuid = UUID.randomUUID().toString();
@@ -416,7 +405,7 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String register(String username, String password, String uuid) {
+    private String register(String username, String password) {
         String reply = new String();
 
         int retries = 0;
@@ -424,7 +413,7 @@ class TCPConnection extends Thread {
         while(!reconnected) {
             try {
                 retries++;
-                reply = Server.iBei.register(username, password, uuid);
+                reply = Server.iBei.register(username, password);
                 reconnected = true;
             } catch(Exception e) {
                 try{

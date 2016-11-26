@@ -12,6 +12,14 @@ import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
+import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
     private static Properties properties = new Properties();
@@ -159,45 +167,54 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             if(!loginResultSet.next()) {
                 loginResultSet.close();
+                System.out.println("[RMISERVER] USER DOES NOT EXIST IN THE DATABASE");
                 return "type: login, ok: false";
             } else {
                 System.out.println("[RMISERVER] CHECKING CREDENTIALS");
 
                 String encryptedPassword = loginResultSet.getString("pass");
+                loginResultSet.close();
 
                 try {
-
+                    if(validatePassword(password, encryptedPassword)) {
+                        System.out.println("[RMISERVER] CREDENTIALS CHECK OUT");
+                        return "type: login, ok: true";
+                    } else {
+                        System.out.println("[RMISERVER] CREDENTIALS DO NOT CHECK OUT");
+                        return "type: login, ok: false";
+                    }
                 } catch(Exception e) {
-                    
+                    System.out.println("[RMISERVER] SOME ERROR OCURRED WHEN CHECKING CREDENTIALS");
                 }
-
-                loginResultSet.close();
-                System.out.println("[RMISERVER] CREDENTIALS CHECK OUT");
-                return "type: login, ok: true";
             }
         } catch(Exception e) {
             e.printStackTrace();
+            System.out.println("[DATABASE] SOME KIND OF ERROR HAS OCURRED");
         }
 
-        return "[DATABASE] SOME KIND OF ERROR HAS OCURRED";
+        return "type: login, ok: false";
     }
 
-    public synchronized String register(String username, String password, String uuid) throws RemoteException {
+    public synchronized String register(String username, String password) throws RemoteException {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
         String reply = new String();
 
+        String encryptedPassword = new String();
+
+        try {
+            encryptedPassword = generateStrongPasswordHash(password);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
         try {
             Statement verifyUserStatement = connection.createStatement();
-            String verifyQuery = "SELECT username, pass, uuid FROM client WHERE to_char(username) = " + "'" + username + "' AND to_char(pass) = " + "'" + password + "'";
+            String verifyQuery = "SELECT username FROM client WHERE to_char(username) = " + "'" + username + "'";
             ResultSet verifyResultSet = verifyUserStatement.executeQuery(verifyQuery);
 
             if(verifyResultSet.next()) {
-                if(!verifyResultSet.getString("uuid").equals("check")) {
-                    reply = "type: register, ok: true";
-                } else {
-                    reply = "type: register, ok: false";
-                }
+                reply = "type: register, ok: false";
             } else {
                 Statement getLastId = connection.createStatement();
                 String lastIdQuery = "SELECT MAX(client_id) FROM client";
@@ -206,7 +223,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                 if(!lastIdResultSet.next()) {
                     Statement insertStatement = connection.createStatement();
-                    String insertQuery = "INSERT INTO client (client_id, username, pass, status, uuid) VALUES (1, '" + username + "', '" + password + "', 0, '" + uuid + "')";
+                    String insertQuery = "INSERT INTO client (client_id, username, pass) VALUES (1, '" + username + "', '" + encryptedPassword + "')";
 
                     ResultSet insertResultSet = insertStatement.executeQuery(insertQuery);
 
@@ -225,7 +242,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     lastId += 1;
 
                     Statement insertStatement = connection.createStatement();
-                    String insertQuery = "INSERT INTO client (client_id, username, pass, status, uuid) VALUES (" + lastId + ", '" + username + "', '" + password + "', 0, '" + uuid + "')";
+                    String insertQuery = "INSERT INTO client (client_id, username, pass) VALUES (" + lastId + ", '" + username + "', '" + encryptedPassword + "')";
                     ResultSet insertResultSet = insertStatement.executeQuery(insertQuery);
 
                     if(insertResultSet.next()) {
@@ -1125,18 +1142,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return reply;
     }
 
-    public synchronized void cleanUpUUIDs(String table) throws RemoteException {
-        try {
-            Statement thing = connection.createStatement();
-            String thingQuery = "UPDATE " + table + " SET uuid = 'check'";
-            ResultSet thingrs = thing.executeQuery(thingQuery);
-
-            thingrs.close();
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     public synchronized void getNotifications(String username) throws RemoteException {
         try {
             Statement getNotifications = connection.createStatement();
@@ -1166,7 +1171,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    // MARK - ENCRIPTION
     private boolean validatePassword(String originalPassword, String storedPassword) throws NoSuchAlgorithmException, InvalidKeySpecException {
         String[] parts = storedPassword.split(":");
         int iterations = Integer.parseInt(parts[0]);
@@ -1188,7 +1192,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return diff == 0;
     }
 
-    private String generateStorngPasswordHash(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private String generateStrongPasswordHash(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
         int iterations = 1000;
         char[] chars = password.toCharArray();
         byte[] salt = getSalt().getBytes();
