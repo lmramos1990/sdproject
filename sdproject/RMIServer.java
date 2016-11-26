@@ -137,41 +137,49 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized String login(String username, String password) throws RemoteException {
         System.out.println("[RMISERVER] LOGIN REQUEST");
-
         String reply = new String();
 
+        System.out.println("[RMISERVER] CHECKING IF USER IS ONLINE");
         try {
-            Statement statement = connection.createStatement();
-            String query = "SELECT client_id, username, pass, status FROM client WHERE to_char(username) = " + "'" + username + "' AND to_char(pass) = " + "'" + password + "' AND status = 0";
-            ResultSet resultSet = statement.executeQuery(query);
+            for(int i = 0; i < serverList.size(); i++) {
+                if(serverList.get(i).checkUsersOnline(username)) {
+                    System.out.println("[RMISERVER] SENDING REPLY");
+                    return "type: login, ok: false";
+                }
+            }
+        } catch(RemoteException re) {
+            re.printStackTrace();
+        }
 
-            if(!resultSet.next()) {
-                reply = "type: login, ok: false";
+        try {
+            String loginQuery = "SELECT username, pass FROM client WHERE to_char(username) = ?";
+            PreparedStatement loginStatement = connection.prepareStatement(loginQuery);
+            loginStatement.setString(1, username);
+            ResultSet loginResultSet = loginStatement.executeQuery();
+
+            if(!loginResultSet.next()) {
+                loginResultSet.close();
+                return "type: login, ok: false";
             } else {
-                int id = resultSet.getInt("client_id");
+                System.out.println("[RMISERVER] CHECKING CREDENTIALS");
 
-                String updateQuery = "UPDATE client SET status = 1 WHERE client_id = " + id;
-                Statement updateStatement = connection.createStatement();
+                String encryptedPassword = loginResultSet.getString("pass");
 
-                ResultSet updateResultSet = updateStatement.executeQuery(updateQuery);
+                try {
 
-                if(updateResultSet.next()) {
-                    System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                    connection.commit();
-                } else {
-                    System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
+                } catch(Exception e) {
+                    
                 }
 
-                updateResultSet.close();
-
-                reply = "type: login, ok: true";
+                loginResultSet.close();
+                System.out.println("[RMISERVER] CREDENTIALS CHECK OUT");
+                return "type: login, ok: true";
             }
-            resultSet.close();
         } catch(Exception e) {
             e.printStackTrace();
         }
 
-        return reply;
+        return "[DATABASE] SOME KIND OF ERROR HAS OCURRED";
     }
 
     public synchronized String register(String username, String password, String uuid) throws RemoteException {
@@ -648,18 +656,18 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                             String notificationQuery = "SELECT c.username FROM bid a, client c WHERE auction_id = " + id + " AND c.client_id = a.client_id";
                             ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
 
-                            ArrayList<String> envolvedUsers = new ArrayList<String>();
+                            ArrayList<String> involvedUsers = new ArrayList<String>();
 
                             while(notificationResultSet.next()) {
                                 if(!username.equals(notificationResultSet.getString("username"))) {
-                                    envolvedUsers.add(notificationResultSet.getString("username"));
+                                    involvedUsers.add(notificationResultSet.getString("username"));
                                 }
                             }
 
-                            if(!(envolvedUsers.size() == 0)) {
+                            if(!(involvedUsers.size() == 0)) {
                                 for(int i = 0; i < serverList.size(); i++) {
                                     System.out.println(serverList.get(i));
-                                    serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                                    serverList.get(i).receiveNotification(notificationMessage, involvedUsers);
                                 }
                             }
 
@@ -701,17 +709,17 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         String notificationQuery = "SELECT c.username FROM bid a, client c WHERE auction_id = " + id + " AND c.client_id = a.client_id";
                         ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
 
-                        ArrayList<String> envolvedUsers = new ArrayList<String>();
+                        ArrayList<String> involvedUsers = new ArrayList<String>();
 
                         while(notificationResultSet.next()) {
                             if(!username.equals(notificationResultSet.getString("username"))) {
-                                envolvedUsers.add(notificationResultSet.getString("username"));
+                                involvedUsers.add(notificationResultSet.getString("username"));
                             }
                         }
 
-                        if(!(envolvedUsers.size() == 0)) {
+                        if(!(involvedUsers.size() == 0)) {
                             for(int i = 0; i < serverList.size(); i++) {
-                                serverList.get(i).receiveNotification(notificationMessage, envolvedUsers);
+                                serverList.get(i).receiveNotification(notificationMessage, involvedUsers);
                             }
                         }
 
@@ -888,14 +896,14 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         String notificationQuery = "SELECT c.username, c.status, c.client_id FROM auction a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
                         ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
 
-                        ArrayList<String> envolvedUsers = new ArrayList<String>();
+                        ArrayList<String> involvedUsers = new ArrayList<String>();
                         ArrayList<Integer> usersStatus = new ArrayList<Integer>();
                         ArrayList<Integer> usersIds = new ArrayList<Integer>();
 
                         while(notificationResultSet.next()) {
                             if(!notificationResultSet.getString("username").equals(username)) {
-                                if(envolvedUsers.indexOf(notificationResultSet.getString("username")) == -1) {
-                                    envolvedUsers.add(notificationResultSet.getString("username"));
+                                if(involvedUsers.indexOf(notificationResultSet.getString("username")) == -1) {
+                                    involvedUsers.add(notificationResultSet.getString("username"));
                                     usersStatus.add(notificationResultSet.getInt("status"));
                                     usersIds.add(notificationResultSet.getInt("client_id"));
                                 }
@@ -908,8 +916,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                         while(notificationResultSet1.next()) {
                             if(!notificationResultSet1.getString("username").equals(username)) {
-                                if(envolvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
-                                    envolvedUsers.add(notificationResultSet1.getString("username"));
+                                if(involvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
+                                    involvedUsers.add(notificationResultSet1.getString("username"));
                                     usersStatus.add(notificationResultSet1.getInt("status"));
                                     usersIds.add(notificationResultSet1.getInt("client_id"));
                                 }
@@ -918,9 +926,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         notificationResultSet.close();
                         notificationResultSet1.close();
 
-                        if(!(envolvedUsers.size() == 0)) {
+                        if(!(involvedUsers.size() == 0)) {
                             for(int j = 0; j < serverList.size(); j++) {
-                                serverList.get(j).receiveNotification(notificationMessage, envolvedUsers);
+                                serverList.get(j).receiveNotification(notificationMessage, involvedUsers);
                             }
                             for(int i = 0; i < usersStatus.size(); i++) {
                                 if(usersStatus.get(i) == 0) {
@@ -982,14 +990,14 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         String notificationQuery = "SELECT c.username, c.status, c.client_id FROM auction a, client c WHERE a.auction_id = " + id + " AND c.client_id = a.client_id";
                         ResultSet notificationResultSet = notificationStatement.executeQuery(notificationQuery);
 
-                        ArrayList<String> envolvedUsers = new ArrayList<String>();
+                        ArrayList<String> involvedUsers = new ArrayList<String>();
                         ArrayList<Integer> usersStatus = new ArrayList<Integer>();
                         ArrayList<Integer> usersIds = new ArrayList<Integer>();
 
                         while(notificationResultSet.next()) {
                             if(!notificationResultSet.getString("username").equals(username)) {
-                                if(envolvedUsers.indexOf(notificationResultSet.getString("username")) == -1) {
-                                    envolvedUsers.add(notificationResultSet.getString("username"));
+                                if(involvedUsers.indexOf(notificationResultSet.getString("username")) == -1) {
+                                    involvedUsers.add(notificationResultSet.getString("username"));
                                     usersStatus.add(notificationResultSet.getInt("status"));
                                     usersIds.add(notificationResultSet.getInt("client_id"));
                                 }
@@ -1002,8 +1010,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                         while(notificationResultSet1.next()) {
                             if(!notificationResultSet1.getString("username").equals(username)) {
-                                if(envolvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
-                                    envolvedUsers.add(notificationResultSet1.getString("username"));
+                                if(involvedUsers.indexOf(notificationResultSet1.getString("username")) == -1) {
+                                    involvedUsers.add(notificationResultSet1.getString("username"));
                                     usersStatus.add(notificationResultSet1.getInt("status"));
                                     usersIds.add(notificationResultSet1.getInt("client_id"));
                                 }
@@ -1012,9 +1020,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                         notificationResultSet.close();
                         notificationResultSet1.close();
 
-                        if(!(envolvedUsers.size() == 0)) {
+                        if(!(involvedUsers.size() == 0)) {
                             for(int j = 0; j < serverList.size(); j++) {
-                                serverList.get(j).receiveNotification(notificationMessage, envolvedUsers);
+                                serverList.get(j).receiveNotification(notificationMessage, involvedUsers);
                             }
                             for(int i = 0; i < usersStatus.size(); i++) {
                                 if(usersStatus.get(i) == 0) {
@@ -1117,25 +1125,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return reply;
     }
 
-    public synchronized void logOutUser(String username) throws RemoteException {
-
-        try {
-            String updateQuery = "UPDATE client SET status = 0 WHERE to_char(username) = '" + username + "'";
-            Statement updateStatement = connection.createStatement();
-            ResultSet updateResultSet = updateStatement.executeQuery(updateQuery);
-
-            if(updateResultSet.next()) {
-                connection.commit();
-            }
-
-            updateResultSet.close();
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-
-        return;
-    }
-
     public synchronized void cleanUpUUIDs(String table) throws RemoteException {
         try {
             Statement thing = connection.createStatement();
@@ -1175,6 +1164,66 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    // MARK - ENCRIPTION
+    private boolean validatePassword(String originalPassword, String storedPassword) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        String[] parts = storedPassword.split(":");
+        int iterations = Integer.parseInt(parts[0]);
+        byte[] salt = fromHex(parts[1]);
+        byte[] hash = fromHex(parts[2]);
+
+        PBEKeySpec spec = new PBEKeySpec(originalPassword.toCharArray(), salt, iterations, hash.length * 8);
+
+        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+
+        byte[] testHash = skf.generateSecret(spec).getEncoded();
+
+        int diff = hash.length ^ testHash.length;
+
+        for(int i = 0; i < hash.length && i < testHash.length; i++) {
+            diff |= hash[i] ^ testHash[i];
+        }
+
+        return diff == 0;
+    }
+
+    private String generateStorngPasswordHash(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        int iterations = 1000;
+        char[] chars = password.toCharArray();
+        byte[] salt = getSalt().getBytes();
+
+        PBEKeySpec spec = new PBEKeySpec(chars, salt, iterations, 64 * 8);
+        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+        byte[] hash = skf.generateSecret(spec).getEncoded();
+        return iterations + ":" + toHex(salt) + ":" + toHex(hash);
+
+    }
+
+    private String getSalt() throws NoSuchAlgorithmException {
+        SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+        byte[] salt = new byte[16];
+        sr.nextBytes(salt);
+        return salt.toString();
+    }
+
+    private String toHex(byte[] array) throws NoSuchAlgorithmException {
+        BigInteger bi = new BigInteger(1, array);
+        String hex = bi.toString(16);
+        int paddingLength = (array.length * 2) - hex.length();
+        if(paddingLength > 0) {
+            return String.format("%0"  +paddingLength + "d", 0) + hex;
+        } else {
+            return hex;
+        }
+    }
+
+    private byte[] fromHex(String hex) throws NoSuchAlgorithmException {
+        byte[] bytes = new byte[hex.length() / 2];
+        for(int i = 0; i<bytes.length ;i++) {
+            bytes[i] = (byte)Integer.parseInt(hex.substring(2 * i, 2 * i + 2), 16);
+        }
+        return bytes;
     }
 }
 

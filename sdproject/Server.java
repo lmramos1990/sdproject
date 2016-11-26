@@ -11,11 +11,19 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
+// ENCRIPTION LIBRARIES
+import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+
 class Server extends UnicastRemoteObject implements NotificationCenter {
     public static ServerSocket serverSocket;
     private static int port = 7000;
     private static String rmiServerIP = new String();
-    private static String databaseIP = new String();
 
     public static int numberOfClients = 0;
     public static ArrayList <Socket> clientSockets = new ArrayList<Socket>();
@@ -122,7 +130,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
 
             rmiRegistryIP = prop.getProperty("rmiRegistryIP");
             rmiServerIP = prop.getProperty("rmiServerIP");
-            databaseIP = prop.getProperty("databaseIP");
             rmiregistryport = Integer.parseInt(prop.getProperty("rmiregistryport"));
 
         } catch(Exception e) {
@@ -154,9 +161,25 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     }
 
     public void receiveNotification(String notification, ArrayList<String> involvedUsers) {
+        System.out.println("THIS IS THE LIST OF THE INVOLVED USERS INVOLVED IN THE TRANSACTION");
         for(int i = 0; i < involvedUsers.size(); i++) {
-            sendNotification(notification, involvedUsers.get(i));
+            System.out.println(involvedUsers.get(i));
         }
+
+        // for(int i = 0; i < involvedUsers.size(); i++) {
+        //     System.out.println("THIS USER NEEDS TO RECEIVE A NOTIFICATION: " + involvedUsers.get(i));
+        //     sendNotification(notification, involvedUsers.get(i));
+        // }
+    }
+
+    public boolean checkUsersOnline(String username) {
+        for(int i = 0; i < Server.listOfClients.size(); i++) {
+            if(username.equals(Server.listOfClients.get(i).getUsername())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void sendNotification(String notification, String user) {
@@ -171,7 +194,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
             }
         }
     }
-
 }
 
 class TCPConnection extends Thread {
@@ -180,7 +202,7 @@ class TCPConnection extends Thread {
     Socket clientSocket;
     ClientObject client;
 
-    private String username;
+    private String username = "";
     private int connecting = 0;
 
     public TCPConnection(Socket pclientSocket) {
@@ -230,7 +252,6 @@ class TCPConnection extends Thread {
             synchronized (this) {
                 if(!username.equals("")) {
                     Server.listOfClients.remove(Server.listOfClients.indexOf(client));
-                    logOutUser(username);
 
                     try {
                         clientSocket.close();
@@ -250,7 +271,7 @@ class TCPConnection extends Thread {
     private String courseOfAction(String action, String parameters) {
         String reply = new String();
 
-        if(action.equals("login")) {
+        if(username.equals("") && action.equals("login")) {
             if(!parameters.contains("username") || !parameters.contains("password")) {
                 reply = "type: login, ok: false";
             } else {
@@ -267,7 +288,7 @@ class TCPConnection extends Thread {
                     username = "";
                 }
             }
-        } else if(action.equals("register")) {
+        } else if(username.equals("") && action.equals("register")) {
             String uuid = UUID.randomUUID().toString();
             if(!parameters.contains("username") || !parameters.contains("password")) {
                 reply = "type: register, ok: false";
@@ -276,6 +297,7 @@ class TCPConnection extends Thread {
                 String password = parse("password", parameters);
 
                 reply = register(registryUsername, password, uuid);
+
                 cleanUpUUIDs("client");
             }
         } else if(!username.equals("") && action.equals("create_auction")) {
@@ -689,33 +711,6 @@ class TCPConnection extends Thread {
         }
 
         return reply;
-    }
-
-    private void logOutUser(String username) {
-        boolean reconnected = false;
-        while(!reconnected) {
-            try {
-                Server.iBei.logOutUser(username);
-                reconnected = true;
-            } catch(Exception e) {
-                try{
-                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
-            }
-
-            if(!reconnected) {
-                try {
-                    Thread.sleep(10000);
-                } catch(Exception sleep) {
-                    return;
-                }
-            }
-        }
-
-        return;
     }
 
     private void getNotifications(String username) {
