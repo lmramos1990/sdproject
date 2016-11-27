@@ -290,7 +290,7 @@ class TCPConnection extends Thread {
                 reply = register(registryUsername, password);
             }
         } else if(!username.equals("") && action.equals("create_auction")) {
-            String uuid = UUID.randomUUID().toString();
+            // String uuid = UUID.randomUUID().toString();
             if(!parameters.contains("code") || !parameters.contains("title") || !parameters.contains("description") || !parameters.contains("deadline") || !parameters.contains("amount")) {
                 reply = "type: create_auction, ok: false";
             } else {
@@ -307,7 +307,7 @@ class TCPConnection extends Thread {
                 if(date.compareTo(deadline) >= 0) {
                     reply = "type: create_auction, ok: false";
                 } else {
-                    reply = createAuction(username, code, title, description, deadline, amount, uuid);
+                    reply = createAuction(username, code, title, description, deadline, amount);
                 }
             }
         } else if(!username.equals("") && action.equals("search_auction")) {
@@ -322,7 +322,7 @@ class TCPConnection extends Thread {
                 reply = "type: detail_auction, ok: false";
             } else {
                 String id = parse("id", parameters);
-                reply = detailAuction(username, id);
+                reply = detailAuction(id);
             }
         } else if(!username.equals("") && action.equals("my_auctions")) {
             reply = myAuctions(username);
@@ -333,6 +333,9 @@ class TCPConnection extends Thread {
                 String [] splitedString = parameters.split("bid");
                 String id = parse("id", splitedString[1]);
                 String amount = parse("amount", splitedString[1]);
+
+                if(Float.parseFloat(amount) <= 0) return "type: bid, ok: false";
+
                 reply = bid(username, id, amount);
             }
         } else if(!username.equals("") && action.equals("edit_auction")) {
@@ -437,7 +440,7 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String createAuction(String username, String code, String title, String description, String deadline, String amount, String uuid) {
+    private String createAuction(String username, String code, String title, String description, String deadline, String amount) {
         String reply = new String();
 
         int retries = 0;
@@ -445,7 +448,7 @@ class TCPConnection extends Thread {
         while(!reconnected) {
             try {
                 retries++;
-                reply = Server.iBei.createAuction(username, code, title, description, deadline, amount, uuid);
+                reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
                 Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
@@ -503,7 +506,7 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String detailAuction(String username, String id) {
+    private String detailAuction(String id) {
         String reply = new String();
 
         int retries = 0;
@@ -511,7 +514,7 @@ class TCPConnection extends Thread {
         while(!reconnected) {
             try {
                 retries++;
-                reply = Server.iBei.detailAuction(username, id);
+                reply = Server.iBei.detailAuction(id);
                 reconnected = true;
             } catch(Exception e) {
                 try{
