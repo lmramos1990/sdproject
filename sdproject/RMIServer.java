@@ -189,7 +189,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             }
         } catch(Exception e) {
             e.printStackTrace();
-            System.out.println("[DATABASE] SOME KIND OF ERROR HAS OCURRED");
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+            return "type: login, ok: false";
         }
 
         return "type: login, ok: false";
@@ -200,72 +201,60 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         String reply = new String();
 
+        try {
+            String existingUserQuery = "SELECT username FROM client WHERE to_char(username) = ?";
+            PreparedStatement existingUserStatement = connection.prepareStatement(existingUserQuery);
+            existingUserStatement.setString(1, username);
+            ResultSet existingUserResultSet = existingUserStatement.executeQuery();
+
+            if(existingUserResultSet.next()) {
+                existingUserResultSet.close();
+                System.out.println("[RMISERVER] USER ALREADY EXISTS");
+                return "type: register, ok: false";
+            }
+            existingUserResultSet.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+            return "type: register, ok: false";
+        }
+
+
+        System.out.println("REGISTER THE USER");
+
         String encryptedPassword = new String();
 
         try {
             encryptedPassword = generateStrongPasswordHash(password);
         } catch(Exception e) {
+            System.out.println("[RMISERVER] SOME ERROR OCURRED WHEN ENCRYPTING THE PASSWORD");
             e.printStackTrace();
+            return "type: register, ok: false";
         }
 
         try {
-            Statement verifyUserStatement = connection.createStatement();
-            String verifyQuery = "SELECT username FROM client WHERE to_char(username) = " + "'" + username + "'";
-            ResultSet verifyResultSet = verifyUserStatement.executeQuery(verifyQuery);
+            String registerQuery = "INSERT INTO client (client_id, username, pass) VALUES(clients_seq.nextVal, ?, ?)";
+            PreparedStatement registerStatement = connection.prepareStatement(registerQuery);
+            registerStatement.setString(1, username);
+            registerStatement.setString(2, encryptedPassword);
+            ResultSet registerResultSet = registerStatement.executeQuery();
 
-            if(verifyResultSet.next()) {
-                reply = "type: register, ok: false";
+            if(registerResultSet.next()) {
+                System.out.println("[RMISERVER] USER REGISTERED IN THE DATABASE WITH SUCCESS");
+                connection.commit();
+                registerResultSet.close();
+                return "type: register, ok: true";
             } else {
-                Statement getLastId = connection.createStatement();
-                String lastIdQuery = "SELECT MAX(client_id) FROM client";
-
-                ResultSet lastIdResultSet = getLastId.executeQuery(lastIdQuery);
-
-                if(!lastIdResultSet.next()) {
-                    Statement insertStatement = connection.createStatement();
-                    String insertQuery = "INSERT INTO client (client_id, username, pass) VALUES (1, '" + username + "', '" + encryptedPassword + "')";
-
-                    ResultSet insertResultSet = insertStatement.executeQuery(insertQuery);
-
-                    if(insertResultSet.next()) {
-                        System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                        connection.commit();
-                    } else {
-                        System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                    }
-
-                    reply = "type: register, ok: true";
-
-                    insertResultSet.close();
-                } else {
-                    int lastId = lastIdResultSet.getInt("max(client_id)");
-                    lastId += 1;
-
-                    Statement insertStatement = connection.createStatement();
-                    String insertQuery = "INSERT INTO client (client_id, username, pass) VALUES (" + lastId + ", '" + username + "', '" + encryptedPassword + "')";
-                    ResultSet insertResultSet = insertStatement.executeQuery(insertQuery);
-
-                    if(insertResultSet.next()) {
-                        System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                        connection.commit();
-                    } else {
-                        System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                    }
-
-                    reply = "type: register, ok: true";
-
-                    insertResultSet.close();
-                }
-
-                lastIdResultSet.close();
+                System.out.println("[RMISERVER] USER WAS NOT REGISTERED WITH SUCCESS");
+                registerResultSet.close();
+                return "type: register, ok: false";
             }
 
-            verifyResultSet.close();
         } catch(Exception e) {
             e.printStackTrace();
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+            return "type: register, ok: false";
         }
-
-        return reply;
     }
 
     public synchronized String createAuction(String username, String code, String title, String description, String deadline, String amount, String uuid) throws RemoteException {

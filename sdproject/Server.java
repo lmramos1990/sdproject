@@ -308,7 +308,6 @@ class TCPConnection extends Thread {
                     reply = "type: create_auction, ok: false";
                 } else {
                     reply = createAuction(username, code, title, description, deadline, amount, uuid);
-                    cleanUpUUIDs("auction");
                 }
             }
         } else if(!username.equals("") && action.equals("search_auction")) {
@@ -793,35 +792,6 @@ class TCPConnection extends Thread {
         }
 
         return sb.toString();
-    }
-
-    private void cleanUpUUIDs(String table) {
-        String reply = new String();
-
-        boolean reconnected = false;
-        while(!reconnected) {
-            try {
-                Server.iBei.cleanUpUUIDs(table);
-                reconnected = true;
-            } catch(Exception e) {
-                try{
-                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
-            }
-
-            if(!reconnected) {
-                try {
-                    Thread.sleep(10000);
-                } catch(Exception sleep) {
-                    return;
-                }
-            }
-        }
-
-        return;
     }
 }
 
