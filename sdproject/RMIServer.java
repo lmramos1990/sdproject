@@ -239,17 +239,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String createAuction(String username, String code, String title, String description, String deadline, String amount) throws RemoteException {
+    public synchronized String createAuction(String username, String code, String title, String description, String deadline, float amount) throws RemoteException {
         System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
-
-        float fAmount;
-
-        try {
-            fAmount = Float.parseFloat(amount);
-        } catch(Exception e) {
-            System.out.println("[RMISERVER] THE AMOUNT DOES NOT HAVE A VALID VALUE");
-            return "type: create_auction, ok: false";
-        }
 
         int clientId = getClientId(username);
         if(clientId == -1) return "type: create_auction, ok: false";
@@ -268,7 +259,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         if(timestamp.before(currentTime)) return "type: create_auction, ok: false";
 
         try {
-            String createAuctionQuery = "INSERT INTO auction (auction_id, client_id, article_id, title, description, initial_value, deadline) VALUES(auction_seq.nextVal, " + clientId + ", " + articleId + ", ?, ?, " + fAmount + ", ?)";
+            String createAuctionQuery = "INSERT INTO auction (auction_id, client_id, article_id, title, description, initial_value, deadline) VALUES(auction_seq.nextVal, " + clientId + ", " + articleId + ", ?, ?, " + amount + ", ?)";
             PreparedStatement createAuctionStatement = connection.prepareStatement(createAuctionQuery);
             createAuctionStatement.setString(1, title);
             createAuctionStatement.setString(2, description);
@@ -345,7 +336,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String detailAuction(String id) throws RemoteException {
+    public synchronized String detailAuction(int id) throws RemoteException {
         System.out.println("[RMISERVER] DETAIL AUCTION REQUEST");
 
         int auctionId = getAuctionId(id);
@@ -515,17 +506,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String bid(String username, String id, String amount) throws RemoteException {
+    public synchronized String bid(String username, int id, float amount) throws RemoteException {
         System.out.println("[RMISERVER] BID REQUEST");
-
-        float fAmount;
-
-        try {
-            fAmount = Float.parseFloat(amount);
-        } catch(Exception e) {
-            System.out.println("[RMISERVER] THE AMOUNT DOES NOT HAVE A VALID VALUE");
-            return "type: bid, ok: false";
-        }
 
         int clientId = getClientId(username);
         if(clientId == -1) return "type: bid, ok: false";
@@ -533,11 +515,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         int auctionId = getAuctionId(id);
         if(auctionId == -1) return "type: bid, ok: false";
 
-        if(assessValidBid(clientId, auctionId, fAmount) == -1) return "type: bid, ok: false";
+        if(assessValidBid(clientId, auctionId, amount) == -1) return "type: bid, ok: false";
 
         try {
             Statement createBidStatement = connection.createStatement();
-            String createBidQuery = "INSERT INTO bid (bid_id, client_id, auction_id, value) VALUES (bid_seq.nextVal, " + clientId + ", " + auctionId + ", " + fAmount + ")";
+            String createBidQuery = "INSERT INTO bid (bid_id, client_id, auction_id, value) VALUES (bid_seq.nextVal, " + clientId + ", " + auctionId + ", " + amount + ")";
             ResultSet createBidSet = createBidStatement.executeQuery(createBidQuery);
 
             if(createBidSet.next()) {
@@ -546,7 +528,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 System.out.println("[RMISERVER] BID REGISTERED IN THE DATABASE WITH SUCCESS");
 
                 Statement updateStatement = connection.createStatement();
-                String updateQuery = "UPDATE auction SET current_value = " + fAmount + " WHERE auction_id = " + auctionId;
+                String updateQuery = "UPDATE auction SET current_value = " + amount + " WHERE auction_id = " + auctionId;
                 ResultSet updateSet = updateStatement.executeQuery(updateQuery);
 
                 if(updateSet.next()) {
@@ -573,7 +555,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String editAuction(String username, String id, String title, String description, String deadline, String code, String amount) throws RemoteException {
+    public synchronized String editAuction(String username, int id, String title, String description, String deadline, String code, float amount) throws RemoteException {
         System.out.println("[RMISERVER] EDIT AUCTION REQUEST");
 
         int atitle = -1;
@@ -582,19 +564,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         int aarticle = -1;
         int aamount = -1;
 
-        float fAmount = -1;
         int articleId = -1;
         Timestamp timestamp = null;
 
-        if(!(amount.equals(""))) {
-            try {
-                fAmount = Float.parseFloat(amount);
-                aamount = 1;
-            } catch(Exception e) {
-                System.out.println("[RMISERVER] THE AMOUNT DOES NOT HAVE A VALID VALUE");
-                return "type: edit_auction, ok: false";
-            }
-        } else aamount = 0;
+        if(amount == -1.0f) aamount = 0;
+        else aamount = 1;
 
         int clientId = getClientId(username);
         if(clientId == -1) return "type: edit_auction, ok: false";
@@ -680,31 +654,34 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         iqueryBuilder.append(")");
         lqueryBuilder.append(")");
 
-        System.out.println(iqueryBuilder.toString() + lqueryBuilder.toString());
-        System.out.println(uiqueryBuilder.toString() + ulqueryBuilder.toString());
-
         String historyQuery = iqueryBuilder.toString() + lqueryBuilder.toString();
         String updateQuery = uiqueryBuilder.toString() + ulqueryBuilder.toString();
 
         try {
             PreparedStatement historyStatement = connection.prepareStatement(historyQuery);
+            PreparedStatement editAuctionStatement = connection.prepareStatement(updateQuery);
             int counter = 0;
             for(int i = 0; i < myArray.length(); i++) {
                 if(i == 0 && (myArray.charAt(i) == '1')) {
                     counter++;
                     historyStatement.setString(counter, title);
+                    editAuctionStatement.setString(counter, title);
                 } else if(i == 1 && myArray.charAt(i) == '1') {
                     counter++;
                     historyStatement.setString(counter, description);
+                    editAuctionStatement.setString(counter, description);
                 } else if(i == 2 && myArray.charAt(i) == '1') {
                     counter++;
-                    historyStatement.setFloat(counter, fAmount);
+                    historyStatement.setFloat(counter, amount);
+                    editAuctionStatement.setFloat(counter, amount);
                 } else if(i == 3 && myArray.charAt(i) == '1') {
                     counter++;
                     historyStatement.setInt(counter, articleId);
+                    editAuctionStatement.setInt(counter, articleId);
                 } else if(i == 4 && myArray.charAt(i) == '1') {
                     counter++;
                     historyStatement.setTimestamp(counter, timestamp);
+                    editAuctionStatement.setTimestamp(counter, timestamp);
                 }
             }
 
@@ -722,7 +699,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 System.out.println("[RMISERVER] REGISTER AUCTION INTO HISTORY");
             }
 
-            PreparedStatement editAuctionStatement = connection.prepareStatement(updateQuery);
             ResultSet editAuctionSet = editAuctionStatement.executeQuery();
 
             if(!editAuctionSet.next()) {
@@ -742,7 +718,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String message(String username, String id, String text) throws RemoteException {
+    public synchronized String message(String username, int id, String text) throws RemoteException {
         System.out.println("[RMISERVER] MESSAGE REQUEST");
 
         int clientId = getClientId(username);
@@ -964,11 +940,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    private int getAuctionId(String id) {
+    private int getAuctionId(int id) {
         try {
             String getAuctionQuery = "SELECT auction_id FROM auction WHERE auction_id = ?";
             PreparedStatement getAuctionStatement = connection.prepareStatement(getAuctionQuery);
-            getAuctionStatement.setInt(1, Integer.parseInt(id));
+            getAuctionStatement.setInt(1, id);
             ResultSet getAuctionSet = getAuctionStatement.executeQuery();
 
             if(!getAuctionSet.next()) {
@@ -976,7 +952,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return -1;
             } else {
                 getAuctionSet.close();
-                return Integer.parseInt(id);
+                return id;
             }
         } catch(Exception e) {
             e.printStackTrace();

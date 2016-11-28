@@ -15,13 +15,13 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     public static ServerSocket serverSocket;
     private static int port = 7000;
     private static String rmiServerIP = new String();
+    public static String rmiRegistryIP = new String();
 
     public static int numberOfClients = 0;
     public static ArrayList <Socket> clientSockets = new ArrayList<Socket>();
     public static ArrayList<ClientObject> listOfClients = new ArrayList<ClientObject>();
     public static AuctionInterface iBei;
     public static int rmiregistryport = -1;
-    public static String rmiRegistryIP = new String();
     public static Server server;
 
     Server() throws RemoteException {
@@ -302,10 +302,19 @@ class TCPConnection extends Thread {
                 java.util.Date dateobj = new java.util.Date();
                 String date = df.format(dateobj);
 
+                float fAmount;
+
+                try {
+                    fAmount = Float.parseFloat(amount);
+                } catch(Exception e) {
+                    System.out.println("[RMISERVER] THE AMOUNT DOES NOT HAVE A VALID VALUE");
+                    return "type: create_auction, ok: false";
+                }
+
                 if(date.compareTo(deadline) >= 0) {
                     reply = "type: create_auction, ok: false";
                 } else {
-                    reply = createAuction(username, code, title, description, deadline, amount);
+                    reply = createAuction(username, code, title, description, deadline, fAmount);
                 }
             }
         } else if(!username.equals("") && action.equals("search_auction")) {
@@ -320,7 +329,16 @@ class TCPConnection extends Thread {
                 reply = "type: detail_auction, ok: false";
             } else {
                 String id = parse("id", parameters);
-                reply = detailAuction(id);
+                int iid;
+
+                try {
+                    iid = Integer.parseInt(id);
+                } catch(Exception e) {
+                    System.out.println("[SERVER] THE ID IS NOT VALID");
+                    return "type: edit_auction, ok: false";
+                }
+
+                reply = detailAuction(iid);
             }
         } else if(!username.equals("") && action.equals("my_auctions")) {
             reply = myAuctions(username);
@@ -332,9 +350,24 @@ class TCPConnection extends Thread {
                 String id = parse("id", splitedString[1]);
                 String amount = parse("amount", splitedString[1]);
 
-                if(Float.parseFloat(amount) <= 0) return "type: bid, ok: false";
+                float fAmount;
+                int iid;
 
-                reply = bid(username, id, amount);
+                try {
+                    iid = Integer.parseInt(id);
+                } catch(Exception e) {
+                    System.out.println("[SERVER] THE ID IS NOT VALID");
+                    return "type: bid, ok: false";
+                }
+
+                try {
+                    fAmount = Float.parseFloat(amount);
+                } catch(Exception e) {
+                    System.out.println("[RMISERVER] THE AMOUNT IS NOT VALID");
+                    return "type: bid, ok: false";
+                }
+
+                reply = bid(username, iid, fAmount);
             }
         } else if(!username.equals("") && action.equals("edit_auction")) {
             String id = parse("id", parameters);
@@ -345,13 +378,40 @@ class TCPConnection extends Thread {
             String amount = parse("amount", parameters);
 
             if(!parameters.contains("id")) return "type: edit_auction, ok: false";
-            if(!parameters.contains("title")) title = null;
-            if(!parameters.contains("description")) description = null;
-            if(!parameters.contains("deadline")) deadline = null;
-            if(!parameters.contains("code")) code = null;
-            if(!parameters.contains("amount")) amount = null;
+            if(!parameters.contains("title")) title = "";
+            if(!parameters.contains("description")) description = "";
+            if(!parameters.contains("deadline")) deadline = "";
+            if(!parameters.contains("code")) code = "";
+            if(!parameters.contains("amount")) amount = "";
 
-            reply = editAuction(username, id, title, description, deadline, code, amount);
+            int iid;
+            float fAmount = -1.0f;
+            boolean isNumber = false;
+
+            try {
+                iid = Integer.parseInt(id);
+            } catch(Exception e) {
+                System.out.println("[SERVER] THE ID IS NOT VALID");
+                return "type: edit_auction, ok: false";
+            }
+
+            if(amount.equals("")) {
+                fAmount = -1.0f;
+                isNumber = true;
+            } else {
+                try {
+                    fAmount = Float.parseFloat(amount);
+                    isNumber = true;
+                } catch(Exception e) {
+                    isNumber = false;
+                }
+            }
+
+            if(isNumber) reply = editAuction(username, iid, title, description, deadline, code, fAmount);
+            else {
+                System.out.println("[SERVER] THE AMOUNT IS NOT VALID");
+                return "type: edit_auction, ok: false";
+            }
 
         } else if(!username.equals("") && action.equals("message")) {
             if(!parameters.contains("id") || !parameters.contains("text")) {
@@ -359,12 +419,22 @@ class TCPConnection extends Thread {
             } else {
                 String id = parse("id", parameters);
                 String text = parse("text", parameters);
-                reply = message(username, id, text);
+
+                int iid;
+
+                try {
+                    iid = Integer.parseInt(id);
+                } catch(Exception e) {
+                    System.out.println("[SERVER] THE ID IS NOT VALID");
+                    return "type: message, ok: false";
+                }
+
+                reply = message(username, iid, text);
             }
         } else if(!username.equals("") && action.equals("online_users")) {
             reply = onlineUsers(username);
         } else if(username.equals("")) {
-            reply = "type: " + action + ", ok: false";
+            reply = "type: " + action + ", ok: false, message: this is not a valid request";
         } else {
             reply = "[SERVER] THIS IS NOT A VALID REQUEST";
         }
@@ -438,7 +508,7 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String createAuction(String username, String code, String title, String description, String deadline, String amount) {
+    private String createAuction(String username, String code, String title, String description, String deadline, float amount) {
         String reply = new String();
 
         int retries = 0;
@@ -504,7 +574,7 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String detailAuction(String id) {
+    private String detailAuction(int id) {
         String reply = new String();
 
         int retries = 0;
@@ -570,7 +640,7 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String bid(String username, String id, String amount) {
+    private String bid(String username, int id, float amount) {
         String reply = new String();
 
         int retries = 0;
@@ -603,7 +673,7 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String editAuction(String username, String id, String title, String description, String deadline, String code, String amount) {
+    private String editAuction(String username, int id, String title, String description, String deadline, String code, float amount) {
         String reply = new String();
 
         int retries = 0;
@@ -636,7 +706,7 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String message(String username, String id, String text) {
+    private String message(String username, int id, String text) {
         String reply = new String();
 
         int retries = 0;
