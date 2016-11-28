@@ -5,7 +5,7 @@ import java.util.*;
 import java.rmi.RemoteException;
 
 public interface NotificationCenter extends Remote {
-    public boolean checkUsersOnline(String username) throws RemoteException;
+    public boolean isUserOnline(String username) throws RemoteException;
     public ArrayList getOnlineUsers() throws RemoteException;
-    public void receiveNotification(String notification, ArrayList<String> involvedUsers) throws RemoteException;
+    public void sendNotificationToUser(String username, String message) throws RemoteException;
 }

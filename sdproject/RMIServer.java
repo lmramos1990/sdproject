@@ -150,7 +150,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] CHECKING IF USER IS ONLINE");
         try {
             for(int i = 0; i < serverList.size(); i++) {
-                if(serverList.get(i).checkUsersOnline(username)) {
+                if(serverList.get(i).isUserOnline(username)) {
                     System.out.println("[RMISERVER] SENDING REPLY");
                     return "type: login, ok: false";
                 }
@@ -708,7 +708,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 }
             }
 
-            // TODO: ROLLBACKS CARALHO!
+            // TODO: ROLLBACKS PA!
 
             ResultSet historySet = historyStatement.executeQuery();
 
@@ -779,24 +779,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized String onlineUsers(String username) throws RemoteException {
         System.out.println("[RMISERVER] ONLINE USERS REQUEST");
-        String reply = new String();
-        ArrayList<String> onlineUsers = new ArrayList<String>();
-        int numberOfUsers = 0;
 
-        System.out.println("[RMISERVER] CHECKING ONLINE USERS");
-        try {
-            for(int i = 0; i < serverList.size(); i++) {
-                for(int j = 0; j < serverList.get(i).getOnlineUsers().size(); j++) {
-                    if(!serverList.get(i).getOnlineUsers().get(j).equals(username)) {
-                        onlineUsers.add((String) serverList.get(i).getOnlineUsers().get(j));
-                    }
-                }
-            }
-        } catch(RemoteException re) {
-            re.printStackTrace();
-            System.out.println("[RMISERVER] ERROR WHEN CHECKING ONLINE USERS");
-            return "type: online_users, users_count: 0";
-        }
+        ArrayList<String> onlineUsers = getOnlineUsers(username);
 
         StringBuilder sb = new StringBuilder();
         sb.append("type: online_users, users_count: " + onlineUsers.size());
@@ -807,32 +791,50 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return sb.toString();
     }
 
-    public synchronized void getNotifications(String username) throws RemoteException {
+    public synchronized void startUpNotifications(String username) throws RemoteException {
+
+        int clientId = getClientId(username);
+
+        if(clientId == -1) return;
+
         try {
-            Statement getNotifications = connection.createStatement();
-            String getNotificationsQ = "SELECT a.message, c.client_id FROM client c, notification a WHERE to_char(c.username) = '" + username + "' and c.client_id = a.client_id and read = 0";
-            ResultSet getNotificationsRS = getNotifications.executeQuery(getNotificationsQ);
+            Statement getNotificationsStatement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            String getNotificationsQuery = "SELECT message FROM notification WHERE client_id = " + clientId + " AND read = 0";
+            ResultSet getNotificationsSet = getNotificationsStatement.executeQuery(getNotificationsQuery);
 
-            ArrayList<String> involvedUsers = new ArrayList<String>();
+            if(!getNotificationsSet.next()) {
+                getNotificationsSet.close();
+                System.out.println("[RMISERVER] NO NEW NOTIFICATION FOR THE USER");
+                return;
+            } else {
+                getNotificationsSet.beforeFirst();
 
-            involvedUsers.add(username);
-            int clientId = 0;
-
-            while(getNotificationsRS.next()) {
-                clientId = getNotificationsRS.getInt("client_id");
-                for(int j = 0; j < serverList.size(); j++) {
-                    serverList.get(j).receiveNotification(getNotificationsRS.getString("message"), involvedUsers);
+                while(getNotificationsSet.next()) {
+                    for(int i = 0; i < serverList.size(); i++) {
+                        serverList.get(i).sendNotificationToUser(username, getNotificationsSet.getString("message"));
+                    }
                 }
+
+                getNotificationsSet.close();
             }
 
-            Statement update = connection.createStatement();
-            String queryupdate = "UPDATE notification SET read = 1 WHERE client_id = " + clientId;
-            ResultSet resultseth = update.executeQuery(queryupdate);
+            Statement updateStatement = connection.createStatement();
+            String updateQuery = "UPDATE notification SET read = 1 WHERE client_id = " + clientId;
+            ResultSet updateSet = updateStatement.executeQuery(updateQuery);
 
-            resultseth.close();
-            getNotificationsRS.close();
-        } catch (Exception e) {
+            if(!updateSet.next()) {
+                System.out.println("[RMISERVER] START UP NOTIFICATIONS DID NOT UPDATE SUCCESSFULLY");
+                updateSet.close();
+                return;
+            } else {
+                System.out.println("[RMISERVER] START UP NOTIFICATIONS UPDATED SUCCESSFULLY");
+                updateSet.close();
+                return;
+            }
+        } catch(Exception e) {
             e.printStackTrace();
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+            return;
         }
     }
 
@@ -1045,6 +1047,27 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
             return -1;
         }
+    }
+
+    private ArrayList<String> getOnlineUsers(String username) {
+        ArrayList<String> onlineUsers = new ArrayList<String>();
+
+        System.out.println("[RMISERVER] CHECKING ONLINE USERS");
+        try {
+            for(int i = 0; i < serverList.size(); i++) {
+                for(int j = 0; j < serverList.get(i).getOnlineUsers().size(); j++) {
+                    if(!serverList.get(i).getOnlineUsers().get(j).equals(username)) {
+                        onlineUsers.add((String) serverList.get(i).getOnlineUsers().get(j));
+                    }
+                }
+            }
+        } catch(RemoteException re) {
+            re.printStackTrace();
+            System.out.println("[RMISERVER] ERROR WHEN CHECKING ONLINE USERS");
+            return null;
+        }
+
+        return onlineUsers;
     }
 }
 

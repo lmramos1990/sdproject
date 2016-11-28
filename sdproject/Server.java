@@ -151,19 +151,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         return true;
     }
 
-    public void receiveNotification(String notification, ArrayList<String> involvedUsers) {
-        System.out.println("THIS IS THE LIST OF THE INVOLVED USERS INVOLVED IN THE TRANSACTION");
-        for(int i = 0; i < involvedUsers.size(); i++) {
-            System.out.println(involvedUsers.get(i));
-        }
-
-        // for(int i = 0; i < involvedUsers.size(); i++) {
-        //     System.out.println("THIS USER NEEDS TO RECEIVE A NOTIFICATION: " + involvedUsers.get(i));
-        //     sendNotification(notification, involvedUsers.get(i));
-        // }
-    }
-
-    public boolean checkUsersOnline(String username) {
+    public boolean isUserOnline(String username) throws RemoteException {
         for(int i = 0; i < Server.listOfClients.size(); i++) {
             if(username.equals(Server.listOfClients.get(i).getUsername())) {
                 return true;
@@ -171,19 +159,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         }
 
         return false;
-    }
-
-    private void sendNotification(String notification, String user) {
-        PrintWriter toTheClient = null;
-
-        for(int i = 0; i < Server.listOfClients.size(); i++) {
-            if(user.equals(Server.listOfClients.get(i).getUsername())) {
-                try {
-                    toTheClient = new PrintWriter(Server.listOfClients.get(i).getClientSocket().getOutputStream(), true);
-                    toTheClient.println(notification);
-                } catch(Exception e) {e.printStackTrace();}
-            }
-        }
     }
 
     public ArrayList getOnlineUsers() throws RemoteException {
@@ -194,6 +169,19 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         }
 
         return onlineUsersList;
+    }
+
+    public void sendNotificationToUser(String username, String message) {
+        PrintWriter toTheClient = null;
+
+        for(int i = 0; i < Server.listOfClients.size(); i++) {
+            if(username.equals(Server.listOfClients.get(i).getUsername())) {
+                try {
+                    toTheClient = new PrintWriter(Server.listOfClients.get(i).getClientSocket().getOutputStream(), true);
+                    toTheClient.println(message);
+                } catch(Exception e) {e.printStackTrace();}
+            }
+        }
     }
 }
 
@@ -718,7 +706,7 @@ class TCPConnection extends Thread {
         boolean reconnected = false;
         while(!reconnected) {
             try {
-                Server.iBei.getNotifications(username);
+                Server.iBei.startUpNotifications(username);
                 reconnected = true;
             } catch(Exception e) {
                 try{

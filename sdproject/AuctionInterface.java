@@ -17,5 +17,5 @@ public interface AuctionInterface extends Remote {
 	public String editAuction(String username, String id, String title, String description, String deadline, String code, String amount) throws RemoteException;
 	public String message(String username, String id, String text) throws RemoteException;
 	public String onlineUsers(String username) throws RemoteException;
-	public void getNotifications(String username) throws RemoteException;
+	public void startUpNotifications(String username) throws RemoteException;
 }
