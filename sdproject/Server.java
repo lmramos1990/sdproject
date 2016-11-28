@@ -185,6 +185,16 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
             }
         }
     }
+
+    public ArrayList getOnlineUsers() throws RemoteException {
+        ArrayList<String> onlineUsersList = new ArrayList<String>();
+
+        for(int i = 0; i < Server.listOfClients.size(); i++) {
+            onlineUsersList.add(Server.listOfClients.get(i).getUsername());
+        }
+
+        return onlineUsersList;
+    }
 }
 
 class TCPConnection extends Thread {
