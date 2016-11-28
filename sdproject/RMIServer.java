@@ -242,9 +242,19 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String createAuction(String username, String code, String title, String description, String deadline, String amount) throws RemoteException {
         System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
 
-        int clientId = getClientId(username);
-        int articleId = getArticleId(code);
+        float fAmount;
 
+        try {
+            fAmount = Float.parseFloat(amount);
+        } catch(Exception e) {
+            System.out.println("[RMISERVER] THE AMOUNT DOES NOT HAVE A VALID VALUE");
+            return "type: create_auction, ok: false";
+        }
+
+        int clientId = getClientId(username);
+        if(clientId == -1) return "type: create_auction, ok: false";
+
+        int articleId = getArticleId(code);
         if(articleId == -1) {
             createArticle(code);
             articleId = getArticleId(code);
@@ -258,14 +268,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         if(timestamp.before(currentTime)) return "type: create_auction, ok: false";
 
         try {
-            String createAuctionQuery = "INSERT INTO auction (auction_id, client_id, article_id, title, description, initial_value, deadline) VALUES(auction_seq.nextVal, ?, ?, ?, ?, ?, ?)";
+            String createAuctionQuery = "INSERT INTO auction (auction_id, client_id, article_id, title, description, initial_value, deadline) VALUES(auction_seq.nextVal, " + clientId + ", " + articleId + ", ?, ?, " + fAmount + ", ?)";
             PreparedStatement createAuctionStatement = connection.prepareStatement(createAuctionQuery);
-            createAuctionStatement.setInt(1, clientId);
-            createAuctionStatement.setInt(2, articleId);
-            createAuctionStatement.setString(3, title);
-            createAuctionStatement.setString(4, description);
-            createAuctionStatement.setFloat(5, Float.parseFloat(amount));
-            createAuctionStatement.setTimestamp(6, timestamp);
+            createAuctionStatement.setString(1, title);
+            createAuctionStatement.setString(2, description);
+            createAuctionStatement.setTimestamp(3, timestamp);
             ResultSet createAuctionSet = createAuctionStatement.executeQuery();
 
             if(createAuctionSet.next()) {
@@ -297,11 +304,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         try {
-
-            String articleInAuctionQuery = "SELECT auction.auction_id, auction.title, article.code FROM auction, article WHERE article.article_id = ?";
-            PreparedStatement articleInAuctionStatement = connection.prepareStatement(articleInAuctionQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            articleInAuctionStatement.setInt(1, articleId);
-            ResultSet articleInAuctionSet = articleInAuctionStatement.executeQuery();
+            Statement articleInAuctionStatement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            String articleInAuctionQuery = "SELECT auction.auction_id, auction.title, article.code FROM auction, article WHERE article.article_id = " + articleId;
+            ResultSet articleInAuctionSet = articleInAuctionStatement.executeQuery(articleInAuctionQuery);
 
             if(!articleInAuctionSet.next()) {
                 articleInAuctionSet.close();
@@ -347,10 +352,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         if(auctionId == -1) return "type: detail_auction, ok: false";
 
         try {
-            String getAuctionQuery = "SELECT title, description, deadline FROM auction WHERE auction_id = ?";
-            PreparedStatement getAuctionStatement = connection.prepareStatement(getAuctionQuery);
-            getAuctionStatement.setInt(1, auctionId);
-            ResultSet getAuctionSet = getAuctionStatement.executeQuery();
+            Statement getAuctionStatement = connection.createStatement();
+            String getAuctionQuery = "SELECT title, description, deadline FROM auction WHERE auction_id = " + auctionId;
+            ResultSet getAuctionSet = getAuctionStatement.executeQuery(getAuctionQuery);
 
             String reply = new String();
 
@@ -372,10 +376,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return "type: detail_auction, ok: false";
             }
 
-            String getMessageQuery = "SELECT client_id, text FROM message WHERE auction_id = ?";
-            PreparedStatement getMessageStatement = connection.prepareStatement(getMessageQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            getMessageStatement.setInt(1, auctionId);
-            ResultSet getMessageSet = getMessageStatement.executeQuery();
+            Statement getMessageStatement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            String getMessageQuery = "SELECT client_id, text FROM message WHERE auction_id = " + auctionId;
+            ResultSet getMessageSet = getMessageStatement.executeQuery(getMessageQuery);
 
             if(!getMessageSet.next()) {
                 getMessageSet.close();
@@ -412,10 +415,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 reply = sb.toString();
             }
 
-            String getBidsQuery = "SELECT client_id, value FROM bid WHERE auction_id = ?";
-            PreparedStatement getBidsStatement = connection.prepareStatement(getBidsQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            getBidsStatement.setInt(1, auctionId);
-            ResultSet getBidsSet = getBidsStatement.executeQuery();
+            Statement getBidsStatement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            String getBidsQuery = "SELECT client_id, value FROM bid WHERE auction_id = " + auctionId;
+            ResultSet getBidsSet = getBidsStatement.executeQuery(getBidsQuery);
 
             if(!getBidsSet.next()) {
                 StringBuilder sb2 = new StringBuilder(reply);
@@ -463,18 +465,14 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] MY AUCTION REQUEST");
 
         int clientId = getClientId(username);
-
         if(clientId == -1) return "type: my_auctions, items_count: 0";
 
         try {
             ArrayList<Integer> myAuctions = new ArrayList<Integer>();
 
-            String getAuctionsQuery = "SELECT DISTINCT auction.auction_id FROM message, auction, bid WHERE message.client_id = ? and auction.client_id = ? and bid.client_id = ?";
-            PreparedStatement getAuctionsStatement = connection.prepareStatement(getAuctionsQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            getAuctionsStatement.setInt(1, clientId);
-            getAuctionsStatement.setInt(2, clientId);
-            getAuctionsStatement.setInt(3, clientId);
-            ResultSet getAuctionsSet = getAuctionsStatement.executeQuery();
+            Statement getAuctionsStatement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            String getAuctionsQuery = "SELECT DISTINCT auction.auction_id FROM message, auction, bid WHERE message.client_id = " + clientId + " and auction.client_id = " + clientId + " and bid.client_id = " + clientId;
+            ResultSet getAuctionsSet = getAuctionsStatement.executeQuery(getAuctionsQuery);
 
             if(!getAuctionsSet.next()) {
                 getAuctionsSet.close();
@@ -520,31 +518,36 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String bid(String username, String id, String amount) throws RemoteException {
         System.out.println("[RMISERVER] BID REQUEST");
 
-        int clientId = getClientId(username);
-        int auctionId = getAuctionId(id);
-        float fAmount = Float.parseFloat(amount);
-
-        if(auctionId == -1) return "type: bid, ok: false";
-        if(assessValidBid(id, fAmount) == -1) return "type: bid, ok: false";
+        float fAmount;
 
         try {
-            String createBidQuery = "INSERT INTO bid (bid_id, client_id, auction_id, value) VALUES (bid_seq.nextVal, ?, ?, ?)";
-            PreparedStatement createBidStatement = connection.prepareStatement(createBidQuery);
-            createBidStatement.setInt(1, clientId);
-            createBidStatement.setInt(2, auctionId);
-            createBidStatement.setFloat(3, fAmount);
-            ResultSet createBidSet = createBidStatement.executeQuery();
+            fAmount = Float.parseFloat(amount);
+        } catch(Exception e) {
+            System.out.println("[RMISERVER] THE AMOUNT DOES NOT HAVE A VALID VALUE");
+            return "type: bid, ok: false";
+        }
+
+        int clientId = getClientId(username);
+        if(clientId == -1) return "type: bid, ok: false";
+
+        int auctionId = getAuctionId(id);
+        if(auctionId == -1) return "type: bid, ok: false";
+
+        if(assessValidBid(clientId, auctionId, fAmount) == -1) return "type: bid, ok: false";
+
+        try {
+            Statement createBidStatement = connection.createStatement();
+            String createBidQuery = "INSERT INTO bid (bid_id, client_id, auction_id, value) VALUES (bid_seq.nextVal, " + clientId + ", " + auctionId + ", " + fAmount + ")";
+            ResultSet createBidSet = createBidStatement.executeQuery(createBidQuery);
 
             if(createBidSet.next()) {
                 createBidSet.close();
                 connection.commit();
                 System.out.println("[RMISERVER] BID REGISTERED IN THE DATABASE WITH SUCCESS");
 
-                String updateQuery = "UPDATE auction SET current_value = ? WHERE auction_id = ?";
-                PreparedStatement updateStatement = connection.prepareStatement(updateQuery);
-                updateStatement.setFloat(1, fAmount);
-                updateStatement.setInt(2, Integer.parseInt(id));
-                ResultSet updateSet = updateStatement.executeQuery();
+                Statement updateStatement = connection.createStatement();
+                String updateQuery = "UPDATE auction SET current_value = " + fAmount + " WHERE auction_id = " + auctionId;
+                ResultSet updateSet = updateStatement.executeQuery(updateQuery);
 
                 if(updateSet.next()) {
                     updateSet.close();
@@ -572,130 +575,185 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized String editAuction(String username, String id, String title, String description, String deadline, String code, String amount) throws RemoteException {
         System.out.println("[RMISERVER] EDIT AUCTION REQUEST");
-        String reply = new String();
 
-        // SAVE A COPY OF THIS AUCTION BEFORE CHANGING THE ACTUAL ONE
-        code = "";
+        int atitle = -1;
+        int adescription = -1;
+        int adeadline = -1;
+        int aarticle = -1;
+        int aamount = -1;
 
-        try {
+        float fAmount = -1;
+        int articleId = -1;
+        Timestamp timestamp = null;
 
-            Statement verifyUserStatement = connection.createStatement();
-            String verifyUserQuery = "SELECT a.auction_id FROM auction a, client c WHERE (to_char(c.username) = '" + username + "' AND a.client_id = c.client_id AND auction_id = " + id + ")";
-            ResultSet verifyUserResultSet = verifyUserStatement.executeQuery(verifyUserQuery);
-
-            if(!verifyUserResultSet.next()) {
-                reply = "type: edit_auction, ok: false";
-            } else {
-                Statement verifyAuctionIdStatement = connection.createStatement();
-                String verifyAuctionIdQuery = "SELECT auction_id FROM auction WHERE auction_id = " + id;
-                ResultSet verifyAuctionIdResultSet = verifyAuctionIdStatement.executeQuery(verifyAuctionIdQuery);
-
-                if(!verifyAuctionIdResultSet.next()) {
-                    reply = "type: edit_auction, ok: false";
-                } else {
-
-                    if(!title.equals("")) {
-                        Statement updateTitleStatement = connection.createStatement();
-                        String updateTitleQuery = "UPDATE auction SET title = to_char('" + title + "') WHERE auction_id = '" + id + "'";
-                        ResultSet updateTitleResultSet = updateTitleStatement.executeQuery(updateTitleQuery);
-
-                        if(updateTitleResultSet.next()) {
-                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                            connection.commit();
-                        } else {
-                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                        }
-
-                        updateTitleResultSet.close();
-                    }
-
-                    if(!description.equals("")) {
-                        Statement updateDescriptionStatement = connection.createStatement();
-                        String updateDescriptionQuery = "UPDATE auction SET description = to_char('" + description + "') WHERE auction_id = '" + id + "'";
-                        ResultSet updateDescriptionResultSet = updateDescriptionStatement.executeQuery(updateDescriptionQuery);
-
-                        if(updateDescriptionResultSet.next()) {
-                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                            connection.commit();
-                        } else {
-                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                        }
-
-                        updateDescriptionResultSet.close();
-                    }
-
-                    if(!deadline.equals("")) {
-                        String format = "yyyy-mm-dd HH24-MI";
-                        Statement updateDeadlineStatement = connection.createStatement();
-                        String updateDeadlineQuery = "UPDATE auction SET deadline = to_date('" + deadline + "', '" + format + "') WHERE auction_id = '" + id + "'";
-                        ResultSet updateDeadlineResultSet = updateDeadlineStatement.executeQuery(updateDeadlineQuery);
-
-                        if(updateDeadlineResultSet.next()) {
-                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                            connection.commit();
-                        } else {
-                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                        }
-
-                        updateDeadlineResultSet.close();
-                    }
-
-                    if(!code.equals("")) {
-                        Statement updateCodeStatement = connection.createStatement();
-                        String updateCodeQuery = "UPDATE auction SET code = to_char('" + code + "') WHERE auction_id = '" + id + "'";
-                        ResultSet updateCodeResultSet = updateCodeStatement.executeQuery(updateCodeQuery);
-
-                        if(updateCodeResultSet.next()) {
-                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                            connection.commit();
-                        } else {
-                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                        }
-
-                        updateCodeResultSet.close();
-                    }
-
-                    if(!amount.equals("")) {
-                        Statement updateAmountStatement = connection.createStatement();
-                        String updateAmountQuery = "UPDATE auction SET amount = to_char('" + Float.parseFloat(amount) + "') WHERE auction_id = '" + id + "'";
-                        ResultSet updateAmountResultSet = updateAmountStatement.executeQuery(updateAmountQuery);
-
-                        if(updateAmountResultSet.next()) {
-                            System.out.println("[RMISERVER] COMMITING CHANGES TO THE DATABASE");
-                            connection.commit();
-                        } else {
-                            System.out.println("[RMISERVER] SOMETHING WENT WRONG NOT COMMITING CHANGES TO THE DATABASE");
-                        }
-
-                        updateAmountResultSet.close();
-                    }
-
-                    reply = "type: edit_auction, ok: true";
-                }
-                verifyAuctionIdResultSet.close();
-
+        if(!(amount.equals(""))) {
+            try {
+                fAmount = Float.parseFloat(amount);
+                aamount = 1;
+            } catch(Exception e) {
+                System.out.println("[RMISERVER] THE AMOUNT DOES NOT HAVE A VALID VALUE");
+                return "type: edit_auction, ok: false";
             }
-            verifyUserResultSet.close();
-        } catch(Exception e) {
-            e.printStackTrace();
+        } else aamount = 0;
+
+        int clientId = getClientId(username);
+        if(clientId == -1) return "type: edit_auction, ok: false";
+
+        int auctionId = getAuctionId(id);
+        if(auctionId == -1) return "type: edit_auction, ok: false";
+
+        if(assessUserAuction(clientId, auctionId) == -1) return "type: edit_auction, ok: false";
+
+        if(title.equals("")) atitle = 0;
+        else atitle = 1;
+
+        if(description.equals("")) adescription = 0;
+        else adescription = 1;
+
+        if(!deadline.equals("")) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm");
+            LocalDateTime dateTime = LocalDateTime.parse(deadline, formatter);
+            timestamp = Timestamp.valueOf(dateTime);
+            Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+
+            if(timestamp.before(currentTime)) return "type: edit_auction, ok: false";
+            adeadline = 1;
+        } else adeadline = 0;
+
+        if(!(code.equals(""))) {
+            articleId = getArticleId(code);
+            if(articleId == -1) {
+                createArticle(code);
+                articleId = getArticleId(code);
+                aarticle = 1;
+            }
+        } else aarticle = 0;
+
+        if(atitle == 0 && adescription == 0 && adeadline == 0 && aarticle == 0 && aamount == 0) return "type: edit_auction, ok: false";
+
+
+        StringBuilder arrayBuilder = new StringBuilder("");
+        arrayBuilder.append(atitle);
+        arrayBuilder.append(adescription);
+        arrayBuilder.append(aamount);
+        arrayBuilder.append(aarticle);
+        arrayBuilder.append(adeadline);
+
+        String myArray = arrayBuilder.toString();
+
+        StringBuilder iqueryBuilder = new StringBuilder("INSERT INTO history (history_id, auction_id");
+        StringBuilder lqueryBuilder = new StringBuilder(" VALUES (history_seq.nextVal, " + auctionId);
+
+        StringBuilder uiqueryBuilder = new StringBuilder("UPDATE auction SET client_id = " + clientId);
+        StringBuilder ulqueryBuilder = new StringBuilder(" WHERE auction_id = " + auctionId);
+
+        if(myArray.charAt(0) == '1') {
+            iqueryBuilder.append(", title");
+            lqueryBuilder.append(", ?");
+            uiqueryBuilder.append(", title = ?");
         }
 
-        return reply;
+        if(myArray.charAt(1) == '1') {
+            iqueryBuilder.append(", description");
+            lqueryBuilder.append(", ?");
+            uiqueryBuilder.append(", description = ?");
+        }
+
+        if(myArray.charAt(2) == '1') {
+            iqueryBuilder.append(", initial_value");
+            lqueryBuilder.append(", ?");
+            uiqueryBuilder.append(", initial_value = ?");
+        }
+
+        if(myArray.charAt(3) == '1') {
+            iqueryBuilder.append(", article_id");
+            lqueryBuilder.append(", ?");
+            uiqueryBuilder.append(", article_id = ?");
+        }
+
+        if(myArray.charAt(4) == '1') {
+            iqueryBuilder.append(", deadline");
+            lqueryBuilder.append(", ?");
+            uiqueryBuilder.append(", deadline = ?");
+        }
+
+        iqueryBuilder.append(")");
+        lqueryBuilder.append(")");
+
+        System.out.println(iqueryBuilder.toString() + lqueryBuilder.toString());
+        System.out.println(uiqueryBuilder.toString() + ulqueryBuilder.toString());
+
+        String historyQuery = iqueryBuilder.toString() + lqueryBuilder.toString();
+        String updateQuery = uiqueryBuilder.toString() + ulqueryBuilder.toString();
+
+        try {
+            PreparedStatement historyStatement = connection.prepareStatement(historyQuery);
+            int counter = 0;
+            for(int i = 0; i < myArray.length(); i++) {
+                if(i == 0 && (myArray.charAt(i) == '1')) {
+                    counter++;
+                    historyStatement.setString(counter, title);
+                } else if(i == 1 && myArray.charAt(i) == '1') {
+                    counter++;
+                    historyStatement.setString(counter, description);
+                } else if(i == 2 && myArray.charAt(i) == '1') {
+                    counter++;
+                    historyStatement.setFloat(counter, fAmount);
+                } else if(i == 3 && myArray.charAt(i) == '1') {
+                    counter++;
+                    historyStatement.setInt(counter, articleId);
+                } else if(i == 4 && myArray.charAt(i) == '1') {
+                    counter++;
+                    historyStatement.setTimestamp(counter, timestamp);
+                }
+            }
+
+            // TODO: ROLLBACKS CARALHO!
+
+            ResultSet historySet = historyStatement.executeQuery();
+
+            if(!historySet.next()) {
+                historySet.close();
+                System.out.println("[RMISERVER] DID NOT REGISTER AUCTION INTO HISTORY");
+                return "type: edit_auction, ok: false";
+            } else {
+                historySet.close();
+                connection.commit();
+                System.out.println("[RMISERVER] REGISTER AUCTION INTO HISTORY");
+            }
+
+            PreparedStatement editAuctionStatement = connection.prepareStatement(updateQuery);
+            ResultSet editAuctionSet = editAuctionStatement.executeQuery();
+
+            if(!editAuctionSet.next()) {
+                editAuctionSet.close();
+                System.out.println("[RMISERVER] DID NOT REGISTER CHANGES IN THE AUCTION");
+                return "type: edit_auction, ok: false";
+            } else {
+                editAuctionSet.close();
+                System.out.println("[RMISERVER] REGISTERED CHANGES IN THE AUCTION");
+                return "type: edit_auction, ok: true";
+            }
+
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+            return "type: edit_auction, ok: false";
+        }
     }
 
     public synchronized String message(String username, String id, String text) throws RemoteException {
         System.out.println("[RMISERVER] MESSAGE REQUEST");
 
         int clientId = getClientId(username);
-        int auctionId = getAuctionId(id);
+        if(clientId == -1) return "type: message, ok: false";
 
+        int auctionId = getAuctionId(id);
         if(auctionId == -1) return "type: message, ok: false";
 
         try {
-            String messageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES(message_seq.nextVal, ?, ?, ?)";
+            String messageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES(message_seq.nextVal, " + clientId + ", " + auctionId + ", ?)";
             PreparedStatement messageStatement = connection.prepareStatement(messageQuery);
-            messageStatement.setInt(1, clientId);
-            messageStatement.setInt(2, auctionId);
             messageStatement.setString(3, text);
             ResultSet messageSet = messageStatement.executeQuery();
 
@@ -747,42 +805,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         return sb.toString();
-
-        // String user = new String();
-        // ArrayList<String> onlineUsers = new ArrayList<String>();
-        //
-        // try {
-        //     Statement onlineUsersStatement = connection.createStatement();
-        //     String onlineUsersQuery = "SELECT username FROM client WHERE status = 1";
-        //     ResultSet onlineUsersResultSet = onlineUsersStatement.executeQuery(onlineUsersQuery);
-        //
-        //     if(onlineUsersResultSet.next()) {
-        //
-        //         user = onlineUsersResultSet.getString("username");
-        //         onlineUsers.add(user);
-        //
-        //         while(onlineUsersResultSet.next()) {
-        //             user = onlineUsersResultSet.getString("username");
-        //             onlineUsers.add(user);
-        //         }
-        //
-        //         StringBuilder sb = new StringBuilder();
-        //         sb.append("type: online_users, users_count: " + onlineUsers.size());
-        //         for(int i = 0; i < onlineUsers.size(); i++) {
-        //             sb.append(", users_" + i + "_username: " + onlineUsers.get(i));
-        //         }
-        //
-        //         reply = sb.toString();
-        //
-        //     } else {
-        //         reply = "type: online_users , users_count: 0";
-        //     }
-        //
-        //     onlineUsersResultSet.close();
-        // } catch(Exception e) {
-        //     e.printStackTrace();
-        // }
-        // return reply;
     }
 
     public synchronized void getNotifications(String username) throws RemoteException {
@@ -961,14 +983,16 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    private int assessValidBid(String id, float amount) {
+    private int assessValidBid(int clientId, int auctionId, float amount) {
         try {
-            String assessBidQuery = "SELECT deadline, current_value, initial_value FROM auction WHERE auction_id = ?";
-            PreparedStatement assessBidStatement = connection.prepareStatement(assessBidQuery);
-            assessBidStatement.setInt(1, Integer.parseInt(id));
-            ResultSet assessBidSet = assessBidStatement.executeQuery();
+            Statement assessBidStatement = connection.createStatement();
+            String assessBidQuery = "SELECT client_id, deadline, current_value, initial_value FROM auction WHERE auction_id = " + auctionId;
+            ResultSet assessBidSet = assessBidStatement.executeQuery(assessBidQuery);
 
             if(assessBidSet.next()) {
+
+                if(assessBidSet.getInt("client_id") == clientId) return -1;
+
                 Timestamp deadline = assessBidSet.getTimestamp("deadline");
                 Timestamp currentTime = new Timestamp(System.currentTimeMillis());
 
@@ -996,6 +1020,26 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return -1;
             }
 
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+            return -1;
+        }
+    }
+
+    private int assessUserAuction(int clientId, int auctionId) {
+        try {
+            Statement assessUserStatement = connection.createStatement();
+            String assessUserQuery = "SELECT * FROM auction WHERE auction_id = " + auctionId + " AND client_id = " + clientId;
+            ResultSet assessUserSet = assessUserStatement.executeQuery(assessUserQuery);
+
+            if(assessUserSet.next()) {
+                assessUserSet.close();
+                return 1;
+            } else {
+                assessUserSet.close();
+                return -1;
+            }
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");

@@ -357,11 +357,11 @@ class TCPConnection extends Thread {
             String amount = parse("amount", parameters);
 
             if(!parameters.contains("id")) return "type: edit_auction, ok: false";
-            if(!parameters.contains("title")) title = "";
-            if(!parameters.contains("description")) description = "";
-            if(!parameters.contains("deadline")) deadline = "";
-            if(!parameters.contains("code")) code = "";
-            if(!parameters.contains("amount")) amount = "";
+            if(!parameters.contains("title")) title = null;
+            if(!parameters.contains("description")) description = null;
+            if(!parameters.contains("deadline")) deadline = null;
+            if(!parameters.contains("code")) code = null;
+            if(!parameters.contains("amount")) amount = null;
 
             reply = editAuction(username, id, title, description, deadline, code, amount);
 
