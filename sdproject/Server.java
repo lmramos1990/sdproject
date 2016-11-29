@@ -229,6 +229,8 @@ class TCPConnection extends Thread {
                     reply = courseOfAction(action, data);
 
                     outToServer.println(reply);
+
+                    if(reply.equals("type: login, ok: true")) getNotifications(username);
                 } else {
                     reply = "[SERVER] THIS IS NOT A VALID REQUEST";
                     outToServer.println(reply);
@@ -272,7 +274,6 @@ class TCPConnection extends Thread {
                 if(reply.equals("type: login, ok: true")) {
                     client = new ClientObject(clientSocket, username);
                     Server.listOfClients.add(client);
-                    getNotifications(username);
                 } else {
                     username = "";
                 }
