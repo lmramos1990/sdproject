@@ -24,13 +24,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
     private static Properties properties = new Properties();
     private static String rmiRegistryIP = new String();
-    private ArrayList<NotificationCenter> serverList = new ArrayList<NotificationCenter>();
 
     private static String user = "bd";
     private static String pass = "oracle";
     private static String url = "jdbc:oracle:thin:@localhost:1521:XE";
     public static Connection connection;
 
+    public static ArrayList<NotificationCenter> serverList = new ArrayList<NotificationCenter>();
     public static String rmiServerIP = new String();
     public static int rmiregistryport = 0;
 
@@ -535,7 +535,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     updateSet.close();
                     System.out.println("[RMISERVER] AUCTION WAS UPDATED WITH SUCCESS");
 
-                    // TODO: ENVIAR NOTIFICAÇOES!
+                    bidNotifications(clientId, auctionId, amount);
 
                     return "type: bid, ok: true";
                 } else {
@@ -738,7 +738,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 connection.commit();
                 System.out.println("[RMISERVER] MESSAGE WAS REGISTERED IN THE DATABASE WITH SUCCESS");
 
-                // TODO: ENVIAR NOTIFICACAO
+                messageNotifications(clientId, auctionId, text);
 
                 return "type: message, ok: true";
             } else {
@@ -1045,6 +1045,67 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         return onlineUsers;
     }
+
+    private void bidNotifications(int clientId, int auctionId, float amount) {
+        try {
+            String notificationQuery = "SELECT DISTINCT client_id FROM bid WHERE auction_id = " + auctionId + " AND client_id != " + clientId;
+            Statement notificationStatement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            ResultSet notificationSet = notificationStatement.executeQuery(notificationQuery);
+
+            if(!notificationSet.next()) {
+                notificationSet.close();
+                System.out.println("[RMISERVER] NO CLIENTS NEED TO BE NOTIFIED");
+                return;
+            } else {
+                notificationSet.beforeFirst();
+
+                ArrayList<Integer> ids = new ArrayList<Integer>();
+
+                while(notificationSet.next()) {
+                    ids.add((Integer) notificationSet.getInt("client_id"));
+                }
+                notificationSet.close();
+
+                for(int i = 0; i < ids.size(); i++) {
+                    String getUserQuery = "SELECT username FROM client WHERE client_id = " + ids.get(i);
+                    Statement getUserStatement = connection.createStatement();
+                    ResultSet getUserSet = getUserStatement.executeQuery(getUserQuery);
+
+                    while(getUserSet.next()) {
+                        BidsNotifier notifier = new BidsNotifier(getUserSet.getString("username"), auctionId, amount);
+                    }
+                    getUserSet.close();
+                }
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+            return;
+        }
+    }
+
+    private void messageNotifications(int clientId, int auctionId, String text) {
+
+        // USER ESTA ONLINE -> IMEDIATO
+        ArrayList<String> onlineUsers = getOnlineUsers(String username);
+        // USER NAO ESTA ONLINE -> GUARDA
+
+
+
+
+
+        // RECEBE MENSAGEM QUEM ESTA NO LEILAO
+
+        // QUEM E QUE RECEBE MENSAGENS ?
+
+        try {
+            // String notificationQuery = "SELECT DISTINCT client_id FROM auction WHERE " <- MAL
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+            return;
+        }
+    }
 }
 
 class PrimaryServer extends Thread {
@@ -1299,5 +1360,61 @@ class DateChecker extends Thread {
                 e.printStackTrace();
             }
         }
+    }
+}
+
+class BidsNotifier extends Thread {
+    private String username;
+    private int auctionId;
+    private float amount;
+
+    public BidsNotifier(String username, int auctionId, float amount) {
+        this.username = username;
+        this.auctionId = auctionId;
+        this.amount = amount;
+        this.start();
+    }
+
+    public void run() {
+        String message = "type: notification_bid, id: " + auctionId + ", user: " + username + ", amount: " + amount;
+
+        for(int i = 0; i < RMIServer.serverList.size(); i++) {
+            try {
+                RMIServer.serverList.get(i).sendNotificationToUser(username, message);
+            } catch(RemoteException re) {
+                System.out.println("[NOTIFICATION CENTER] COULD NOT NOTIFY " + username);
+            }
+        }
+
+
+        interrupt();
+    }
+}
+
+class MessageNotifier extends Thread {
+    String username;
+    int auctionId;
+    String text;
+
+    public MessageNotifier(String username, int auctionId, String text) {
+        this.username = username;
+        this.auctionId = auctionId;
+        this.text = text;
+        this.start();
+    }
+
+    public void run() {
+        String message = "type: notification_message, id: " + auctionId + ", user: " + username + ", text: " + text;
+
+        for(int i = 0; i < RMIServer.serverList.size(); i++) {
+            try {
+                RMIServer.serverList.get(i).sendNotificationToUser(username, message);
+            } catch(RemoteException re) {
+                System.out.println("[NOTIFICATION CENTER] COULD NOT NOTIFY " + username);
+            }
+        }
+
+
+        interrupt();
     }
 }
