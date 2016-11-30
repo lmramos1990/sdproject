@@ -174,3 +174,8 @@ infer-out/
 
 #tomcat folder
 tomcat/
+
+
+
+#thing from the eclipse
+/build/
