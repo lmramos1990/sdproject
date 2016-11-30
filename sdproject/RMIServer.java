@@ -1342,7 +1342,7 @@ class BidsPool extends Thread {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
         }
-        interrupt(); // TODO: verify if the threads that are created dont die after this ...
+        interrupt();
     }
 }
 
@@ -1469,7 +1469,7 @@ class MessagePool extends Thread {
             interrupt();
         }
 
-        interrupt(); // TODO: verify if the threads that are created dont die after this ...
+        interrupt();
     }
 
     private int getOwnerId(int auctionId) {
