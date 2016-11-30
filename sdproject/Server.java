@@ -263,6 +263,8 @@ class TCPConnection extends Thread {
         String reply = new String();
 
         if(username.equals("") && action.equals("login")) {
+            String uuid = UUID.randomUUID().toString();
+
             if(!parameters.contains("username") || !parameters.contains("password")) {
                 reply = "type: login, ok: false";
             } else {
@@ -279,7 +281,8 @@ class TCPConnection extends Thread {
                 }
             }
         } else if(username.equals("") && action.equals("register")) {
-            // String uuid = UUID.randomUUID().toString();
+            String uuid = UUID.randomUUID().toString();
+
             if(!parameters.contains("username") || !parameters.contains("password")) {
                 reply = "type: register, ok: false";
             } else {
@@ -289,7 +292,8 @@ class TCPConnection extends Thread {
                 reply = register(registryUsername, password);
             }
         } else if(!username.equals("") && action.equals("create_auction")) {
-            // String uuid = UUID.randomUUID().toString();
+            String uuid = UUID.randomUUID().toString();
+
             if(!parameters.contains("code") || !parameters.contains("title") || !parameters.contains("description") || !parameters.contains("deadline") || !parameters.contains("amount")) {
                 reply = "type: create_auction, ok: false";
             } else {
@@ -319,6 +323,8 @@ class TCPConnection extends Thread {
                 }
             }
         } else if(!username.equals("") && action.equals("search_auction")) {
+            String uuid = UUID.randomUUID().toString();
+
             if(!parameters.contains("code")) {
                 reply = "type: search_auction, items_count: 0";
             } else {
@@ -326,6 +332,8 @@ class TCPConnection extends Thread {
                 reply = searchAuction(code);
             }
         } else if(!username.equals("") && action.equals("detail_auction")) {
+            String uuid = UUID.randomUUID().toString();
+
             if(!parameters.contains("id")) {
                 reply = "type: detail_auction, ok: false";
             } else {
@@ -342,8 +350,12 @@ class TCPConnection extends Thread {
                 reply = detailAuction(iid);
             }
         } else if(!username.equals("") && action.equals("my_auctions")) {
+            String uuid = UUID.randomUUID().toString();
+
             reply = myAuctions(username);
         } else if(!username.equals("") && action.equals("bid")) {
+            String uuid = UUID.randomUUID().toString();
+
             if(!parameters.contains("id") || !parameters.contains("amount")) {
                 reply = "type: bid, ok: false";
             } else {
@@ -371,6 +383,8 @@ class TCPConnection extends Thread {
                 reply = bid(username, iid, fAmount);
             }
         } else if(!username.equals("") && action.equals("edit_auction")) {
+            String uuid = UUID.randomUUID().toString();
+
             String id = parse("id", parameters);
             String title = parse("title", parameters);
             String description = parse("description", parameters);
@@ -415,6 +429,8 @@ class TCPConnection extends Thread {
             }
 
         } else if(!username.equals("") && action.equals("message")) {
+            String uuid = UUID.randomUUID().toString();
+
             if(!parameters.contains("id") || !parameters.contains("text")) {
                 reply = "type: message, ok: false";
             } else {
@@ -433,11 +449,13 @@ class TCPConnection extends Thread {
                 reply = message(username, iid, text);
             }
         } else if(!username.equals("") && action.equals("online_users")) {
+            String uuid = UUID.randomUUID().toString();
+
             reply = onlineUsers(username);
         } else if(username.equals("")) {
-            reply = "type: " + action + ", ok: false, message: this is not a valid request";
+            reply = "type: " + action + ", ok: false";
         } else {
-            reply = "[SERVER] THIS IS NOT A VALID REQUEST";
+            reply = "type: " + action + ", ok: false";
         }
 
         return reply;
