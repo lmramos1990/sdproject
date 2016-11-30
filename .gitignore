@@ -171,3 +171,6 @@ config.properties
 
 # infer folder
 infer-out/
+
+#tomcat folder
+tomcat/
