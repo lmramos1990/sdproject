@@ -11,6 +11,20 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.sql.Timestamp;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+
+import org.apache.commons.codec.binary.Base64;
+
 class Server extends UnicastRemoteObject implements NotificationCenter {
     public static ServerSocket serverSocket;
     private static int port = 7000;
@@ -186,6 +200,48 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     }
 }
 
+class Encryptor {
+    private static String key = "Bar12345Bar12345";
+    private static String initVector = "RandomInitVector";
+
+    public static String encrypt(String value) {
+        try {
+            IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
+            SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+            cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
+
+            byte[] encrypted = cipher.doFinal(value.getBytes());
+            return Base64.encodeBase64String(encrypted);
+        } catch (Exception ex) {
+            System.out.println("[SERVER] SOME ERROR WAS ENCOUNTERED DURING ENCRYPTION");
+            ex.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static String decrypt(String encrypted) {
+        try {
+            IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
+            SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+            cipher.init(Cipher.DECRYPT_MODE, skeySpec, iv);
+
+            byte[] original = cipher.doFinal(Base64.decodeBase64(encrypted));
+
+            return new String(original);
+        } catch (Exception ex) {
+            System.out.println("[SERVER] SOME ERROR WAS ENCOUNTERED DURING DECRYPTION");
+            ex.printStackTrace();
+        }
+
+        return null;
+    }
+}
+
 class TCPConnection extends Thread {
     BufferedReader inFromClient = null;
     PrintWriter outToClient;
@@ -265,7 +321,26 @@ class TCPConnection extends Thread {
             System.out.println("[SERVER] LOGIN");
             String uuid = UUID.randomUUID().toString();
 
-            String reply = logIn(request.get("username"), request.get("password"));
+            if(!isUser(request.get("username"))) return "type: login, ok: false";
+
+            String esalt = getSalt(request.get("username"));
+
+
+            String dsalt = new String();
+            String hpassword = new String();
+
+            try {
+                esalt = getSalt(request.get("username"));
+                if(esalt.equals("")) return "type: login, ok: false";
+                dsalt = Encryptor.decrypt(esalt);
+                hpassword = generateStrongPasswordHash(request.get("password"), dsalt);
+            } catch(Exception e) {
+                e.printStackTrace();
+                System.out.println();
+                return "type: login, ok: false";
+            }
+
+            String reply = logIn(request.get("username"), hpassword);
 
             if(reply.equals("type: login, ok: true")) {
                 username = request.get("username");
@@ -277,9 +352,24 @@ class TCPConnection extends Thread {
         } else if(username.equals("") && request.get("type").equals("register") && request.containsKey("username") && request.containsKey("password") && request.size() == 3) {
             System.out.println("[SERVER] REGISTER");
             String uuid = UUID.randomUUID().toString();
-            String reply = register(request.get("username"), request.get("password"));
 
-            return reply;
+            if(isUser(username)) return "type: register, ok: false";
+
+            String salt = new String();
+            String hpassword = new String();
+            String esalt = new String();
+
+            try {
+                salt = getSalt();
+                hpassword = generateStrongPasswordHash(request.get("password"), salt);
+                esalt = Encryptor.encrypt(salt);
+            } catch(Exception e) {
+                e.printStackTrace();
+                System.out.println("[SERVER] SOMETHING WENT WRONG WHEN GENERATING THE PWD HASH");
+                return "type: register, ok: false";
+            }
+
+            return register(request.get("username"), hpassword, esalt);
         } else if(!username.equals("") && request.get("type").equals("create_auction") && request.containsKey("code") && request.containsKey("title") && request.containsKey("description") && request.containsKey("deadline") && request.containsKey("amount") && request.size() == 6) {
             System.out.println("[SERVER] CREATE AUCTION");
             String uuid = UUID.randomUUID().toString();
@@ -484,7 +574,39 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String register(String username, String password) {
+    private boolean isUser(String username) {
+        boolean reply = true;
+
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.isUser(username);
+                reconnected = true;
+            } catch(Exception e) {
+
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {}
+            }
+
+            if(!reconnected && retries == 4) return true;
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                } catch(Exception sleep) {
+                    return true;
+                }
+            }
+        }
+
+        return reply;
+    }
+
+    private String getSalt(String username) {
         String reply = new String();
 
         int retries = 0;
@@ -492,7 +614,39 @@ class TCPConnection extends Thread {
         while(!reconnected) {
             try {
                 retries++;
-                reply = Server.iBei.register(username, password);
+                reply = Server.iBei.getSalt(username);
+                reconnected = true;
+            } catch(Exception e) {
+
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
+                } catch(Exception e2) {}
+            }
+
+            if(!reconnected && retries == 4) return "";
+            else if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                } catch(Exception sleep) {
+                    return "";
+                }
+            }
+        }
+
+        return reply;
+    }
+
+    private String register(String username, String hpassword, String esalt) {
+        String reply = new String();
+
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                retries++;
+                reply = Server.iBei.register(username, hpassword, esalt);
                 reconnected = true;
             } catch(Exception e) {
 
@@ -792,6 +946,65 @@ class TCPConnection extends Thread {
         }
 
         return;
+    }
+
+    private boolean validatePassword(String originalPassword, String storedPassword) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        String[] parts = storedPassword.split(":");
+        int iterations = Integer.parseInt(parts[0]);
+        byte[] salt = fromHex(parts[1]);
+        byte[] hash = fromHex(parts[2]);
+
+        PBEKeySpec spec = new PBEKeySpec(originalPassword.toCharArray(), salt, iterations, hash.length * 8);
+
+        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+
+        byte[] testHash = skf.generateSecret(spec).getEncoded();
+
+        int diff = hash.length ^ testHash.length;
+
+        for(int i = 0; i < hash.length && i < testHash.length; i++) {
+            diff |= hash[i] ^ testHash[i];
+        }
+
+        return diff == 0;
+    }
+
+    private String generateStrongPasswordHash(String password, String salt) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        int iterations = 1000;
+        char[] chars = password.toCharArray();
+        byte[] bsalt = salt.getBytes();
+
+        PBEKeySpec spec = new PBEKeySpec(chars, bsalt, iterations, 64 * 8);
+        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+        byte[] hash = skf.generateSecret(spec).getEncoded();
+        return iterations + ":" + toHex(bsalt) + ":" + toHex(hash);
+
+    }
+
+    private String getSalt() throws NoSuchAlgorithmException {
+        SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+        byte[] salt = new byte[16];
+        sr.nextBytes(salt);
+        return salt.toString();
+    }
+
+    private String toHex(byte[] array) throws NoSuchAlgorithmException {
+        BigInteger bi = new BigInteger(1, array);
+        String hex = bi.toString(16);
+        int paddingLength = (array.length * 2) - hex.length();
+        if(paddingLength > 0) {
+            return String.format("%0"  +paddingLength + "d", 0) + hex;
+        } else {
+            return hex;
+        }
+    }
+
+    private byte[] fromHex(String hex) throws NoSuchAlgorithmException {
+        byte[] bytes = new byte[hex.length() / 2];
+        for(int i = 0; i<bytes.length ;i++) {
+            bytes[i] = (byte)Integer.parseInt(hex.substring(2 * i, 2 * i + 2), 16);
+        }
+        return bytes;
     }
 }
 

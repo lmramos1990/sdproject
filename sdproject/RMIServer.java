@@ -12,14 +12,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
-import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
-
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
     private static Properties properties = new Properties();
@@ -142,9 +134,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         PrimaryServer primaryServer = new PrimaryServer();
     }
 
-    public synchronized String login(String username, String password) throws RemoteException {
+    public synchronized String login(String username, String hpassword) throws RemoteException {
         System.out.println("[RMISERVER] LOGIN REQUEST");
-        String reply = new String();
 
         System.out.println("[RMISERVER] CHECKING IF USER IS ONLINE");
         try {
@@ -160,7 +151,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         try {
-            String loginQuery = "SELECT username, pass FROM client WHERE to_char(username) = ?";
+            String loginQuery = "SELECT username, hpassword FROM client WHERE to_char(username) = ?";
             PreparedStatement loginStatement = connection.prepareStatement(loginQuery);
             loginStatement.setString(1, username);
             ResultSet loginSet = loginStatement.executeQuery();
@@ -172,65 +163,69 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             } else {
                 System.out.println("[RMISERVER] CHECKING CREDENTIALS");
 
-                String encryptedPassword = loginSet.getString("pass");
+                String encryptedPassword = loginSet.getString("hpassword");
                 loginSet.close();
 
-                try {
-                    if(validatePassword(password, encryptedPassword)) {
-                        System.out.println("[RMISERVER] CREDENTIALS CHECK OUT");
-                        return "type: login, ok: true";
-                    } else {
-                        System.out.println("[RMISERVER] CREDENTIALS DO NOT CHECK OUT");
-                        return "type: login, ok: false";
-                    }
-                } catch(Exception e) {
-                    System.out.println("[RMISERVER] SOME ERROR OCURRED WHEN CHECKING CREDENTIALS");
-                }
+                if(encryptedPassword.equals(hpassword)) return "type: login, ok: true";
+                else return "type: login, ok: false";
             }
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
             return "type: login, ok: false";
         }
-
-        return "type: login, ok: false";
     }
 
-    public synchronized String register(String username, String password) throws RemoteException {
+    public synchronized boolean isUser(String username) throws RemoteException {
+        if(getClientId(username) == -1) return false;
+        else return true;
+    }
+
+    public synchronized String getSalt(String username) throws RemoteException {
+        int clientId = getClientId(username);
+        if(clientId == -1) return "";
+
+        try {
+            String saltQuery = "SELECT esalt FROM client WHERE client_id = ?";
+            PreparedStatement saltStatement = connection.prepareStatement(saltQuery);
+            saltStatement.setInt(1, clientId);
+            ResultSet saltSet = saltStatement.executeQuery();
+
+            if(!saltSet.next()) {
+                saltSet.close();
+                return "";
+            } else {
+                String esalt = saltSet.getString("esalt");
+                saltSet.close();
+                return esalt;
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    public synchronized String register(String username, String hpassword, String esalt) throws RemoteException {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
-        int clientId = getClientId(username);
-
-        if(clientId != -1) return "type: register, ok: false";
-
-        String encryptedPassword = new String();
-
         try {
-            encryptedPassword = generateStrongPasswordHash(password);
-        } catch(Exception e) {
-            System.out.println("[RMISERVER] SOME ERROR OCURRED WHEN ENCRYPTING THE PASSWORD");
-            e.printStackTrace();
-            return "type: register, ok: false";
-        }
-
-        try {
-            String registerQuery = "INSERT INTO client (client_id, username, pass) VALUES(clients_seq.nextVal, ?, ?)";
+            String registerQuery = "INSERT INTO client (client_id, username, hpassword, esalt) VALUES(clients_seq.nextVal, ?, ?, ?)";
             PreparedStatement registerStatement = connection.prepareStatement(registerQuery);
             registerStatement.setString(1, username);
-            registerStatement.setString(2, encryptedPassword);
+            registerStatement.setString(2, hpassword);
+            registerStatement.setString(3, esalt);
             ResultSet registerSet = registerStatement.executeQuery();
 
-            if(registerSet.next()) {
+            if(!registerSet.next()) {
+                System.out.println("[RMISERVER] USER WAS NOT REGISTERED WITH SUCCESS");
+                registerSet.close();
+                return "type: register, ok: false";
+            } else {
                 System.out.println("[RMISERVER] USER REGISTERED IN THE DATABASE WITH SUCCESS");
                 connection.commit();
                 registerSet.close();
                 return "type: register, ok: true";
-            } else {
-                System.out.println("[RMISERVER] USER WAS NOT REGISTERED WITH SUCCESS");
-                registerSet.close();
-                return "type: register, ok: false";
             }
-
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
@@ -732,7 +727,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
-            connection.rollback();
             return "type: edit_auction, ok: false";
         }
     }
@@ -835,65 +829,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
             return;
         }
-    }
-
-    private boolean validatePassword(String originalPassword, String storedPassword) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        String[] parts = storedPassword.split(":");
-        int iterations = Integer.parseInt(parts[0]);
-        byte[] salt = fromHex(parts[1]);
-        byte[] hash = fromHex(parts[2]);
-
-        PBEKeySpec spec = new PBEKeySpec(originalPassword.toCharArray(), salt, iterations, hash.length * 8);
-
-        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-
-        byte[] testHash = skf.generateSecret(spec).getEncoded();
-
-        int diff = hash.length ^ testHash.length;
-
-        for(int i = 0; i < hash.length && i < testHash.length; i++) {
-            diff |= hash[i] ^ testHash[i];
-        }
-
-        return diff == 0;
-    }
-
-    private String generateStrongPasswordHash(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        int iterations = 1000;
-        char[] chars = password.toCharArray();
-        byte[] salt = getSalt().getBytes();
-
-        PBEKeySpec spec = new PBEKeySpec(chars, salt, iterations, 64 * 8);
-        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-        byte[] hash = skf.generateSecret(spec).getEncoded();
-        return iterations + ":" + toHex(salt) + ":" + toHex(hash);
-
-    }
-
-    private String getSalt() throws NoSuchAlgorithmException {
-        SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
-        byte[] salt = new byte[16];
-        sr.nextBytes(salt);
-        return salt.toString();
-    }
-
-    private String toHex(byte[] array) throws NoSuchAlgorithmException {
-        BigInteger bi = new BigInteger(1, array);
-        String hex = bi.toString(16);
-        int paddingLength = (array.length * 2) - hex.length();
-        if(paddingLength > 0) {
-            return String.format("%0"  +paddingLength + "d", 0) + hex;
-        } else {
-            return hex;
-        }
-    }
-
-    private byte[] fromHex(String hex) throws NoSuchAlgorithmException {
-        byte[] bytes = new byte[hex.length() / 2];
-        for(int i = 0; i<bytes.length ;i++) {
-            bytes[i] = (byte)Integer.parseInt(hex.substring(2 * i, 2 * i + 2), 16);
-        }
-        return bytes;
     }
 
     private int getClientId(String username) {
