@@ -200,48 +200,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     }
 }
 
-class Encryptor {
-    private static String key = "Bar12345Bar12345";
-    private static String initVector = "RandomInitVector";
-
-    public static String encrypt(String value) {
-        try {
-            IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
-            SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
-
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
-            cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
-
-            byte[] encrypted = cipher.doFinal(value.getBytes());
-            return Base64.encodeBase64String(encrypted);
-        } catch (Exception ex) {
-            System.out.println("[SERVER] SOME ERROR WAS ENCOUNTERED DURING ENCRYPTION");
-            ex.printStackTrace();
-        }
-
-        return null;
-    }
-
-    public static String decrypt(String encrypted) {
-        try {
-            IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
-            SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
-
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
-            cipher.init(Cipher.DECRYPT_MODE, skeySpec, iv);
-
-            byte[] original = cipher.doFinal(Base64.decodeBase64(encrypted));
-
-            return new String(original);
-        } catch (Exception ex) {
-            System.out.println("[SERVER] SOME ERROR WAS ENCOUNTERED DURING DECRYPTION");
-            ex.printStackTrace();
-        }
-
-        return null;
-    }
-}
-
 class TCPConnection extends Thread {
     BufferedReader inFromClient = null;
     PrintWriter outToClient;
@@ -1241,5 +1199,47 @@ class ServerLoad extends Thread {
         }
 
         return sb.toString();
+    }
+}
+
+class Encryptor {
+    private static String key = "Bar12345Bar12345";
+    private static String initVector = "RandomInitVector";
+
+    public static String encrypt(String value) {
+        try {
+            IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
+            SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+            cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
+
+            byte[] encrypted = cipher.doFinal(value.getBytes());
+            return Base64.encodeBase64String(encrypted);
+        } catch (Exception ex) {
+            System.out.println("[SERVER] SOME ERROR WAS ENCOUNTERED DURING ENCRYPTION");
+            ex.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static String decrypt(String encrypted) {
+        try {
+            IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
+            SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes("UTF-8"), "AES");
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+            cipher.init(Cipher.DECRYPT_MODE, skeySpec, iv);
+
+            byte[] original = cipher.doFinal(Base64.decodeBase64(encrypted));
+
+            return new String(original);
+        } catch (Exception ex) {
+            System.out.println("[SERVER] SOME ERROR WAS ENCOUNTERED DURING DECRYPTION");
+            ex.printStackTrace();
+        }
+
+        return null;
     }
 }
