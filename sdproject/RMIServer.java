@@ -47,10 +47,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         if(online == true) {
             try {
                 try {
-                    Class.forName("oracle.jdbc.OracleDriver");
-
                     System.out.println("[RMISERVER] ESTABLISHING CONNECTION TO THE DATABASE");
                     connection = DriverManager.getConnection(url, user, pass);
+                    connection.setAutoCommit(false);
                     System.out.println("[RMISERVER] CONNECTION TO THE DATABASE ESTABLISHED");
                 } catch(Exception e) {
                     System.out.println("ERROR: CREATING THE CONNECTION TO THE DATABASE");
@@ -71,6 +70,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                     System.out.println("[RMISERVER] ESTABLISHING CONNECTION TO THE DATABASE");
                     connection = DriverManager.getConnection(url, user, pass);
+                    connection.setAutoCommit(false);
                     System.out.println("[RMISERVER] CONNECTION TO THE DATABASE ESTABLISHED");
                 } catch(Exception e) {
                     System.out.println("ERROR: CREATING THE CONNECTION TO THE DATABASE");
@@ -294,7 +294,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         try {
-            String articleInAuctionQuery = "SELECT auction.auction_id, auction.title, article.code FROM auction, article WHERE article.article_id = ?";
+            String articleInAuctionQuery = "SELECT auction.auction_id, auction.title, article.code FROM auction, article WHERE article.article_id = auction.article_id AND auction.article_id = ?";
             PreparedStatement articleInAuctionStatement = connection.prepareStatement(articleInAuctionQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             articleInAuctionStatement.setInt(1, articleId);
             ResultSet articleInAuctionSet = articleInAuctionStatement.executeQuery();
@@ -466,11 +466,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         try {
             ArrayList<Integer> myAuctions = new ArrayList<Integer>();
 
-            String getAuctionsQuery = "SELECT DISTINCT auction.auction_id FROM message, auction, bid WHERE message.client_id = ? AND auction.client_id = ? AND bid.client_id = ?";
+            String getAuctionsQuery = "SELECT DISTINCT auction_id FROM auction WHERE (SELECT client_id FROM bid WHERE client_id = ?) = ? OR (SELECT client_id FROM message WHERE client_id = ?) = ? OR client_id = ?";
             PreparedStatement getAuctionsStatement = connection.prepareStatement(getAuctionsQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             getAuctionsStatement.setInt(1, clientId);
             getAuctionsStatement.setInt(2, clientId);
             getAuctionsStatement.setInt(3, clientId);
+            getAuctionsStatement.setInt(4, clientId);
+            getAuctionsStatement.setInt(5, clientId);
             ResultSet getAuctionsSet = getAuctionsStatement.executeQuery();
 
             if(!getAuctionsSet.next()) {

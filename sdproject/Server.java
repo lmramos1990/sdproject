@@ -7,6 +7,9 @@ import java.rmi.*;
 import java.text.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.sql.Timestamp;
 
 class Server extends UnicastRemoteObject implements NotificationCenter {
     public static ServerSocket serverSocket;
@@ -149,6 +152,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     }
 
     public boolean isUserOnline(String username) throws RemoteException {
+
         for(int i = 0; i < Server.listOfClients.size(); i++) {
             if(username.equals(Server.listOfClients.get(i).getUsername())) {
                 return true;
@@ -183,8 +187,8 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
 }
 
 class TCPConnection extends Thread {
-    BufferedReader inFromServer = null;
-    PrintWriter outToServer;
+    BufferedReader inFromClient = null;
+    PrintWriter outToClient;
     Socket clientSocket;
     ClientObject client;
 
@@ -196,8 +200,8 @@ class TCPConnection extends Thread {
         this.clientSocket = pclientSocket;
 
         try {
-            inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            outToServer = new PrintWriter(clientSocket.getOutputStream(), true);
+            inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            outToClient = new PrintWriter(clientSocket.getOutputStream(), true);
             this.start();
         } catch(IOException e) {
             System.out.println("ERROR: " + e.getMessage());
@@ -211,197 +215,202 @@ class TCPConnection extends Thread {
         String data = new String();
         String reply = new String();
 
-        try {
-            while(true) {
-                data = inFromServer.readLine();
+        while(true) {
+            try {
+                data = inFromClient.readLine();
 
-                if(!data.isEmpty()) {
-                    data = parseString(data);
+                if(data.equals("") || !data.startsWith("type")) {
+                    outToClient.println("[SERVER] THIS IS NOT A VALID REQUEST");
+                } else {
+            		HashMap<String, String> request = new HashMap<>();
+            		Arrays.stream(data.split(",")).map(s -> s.split(":")).forEach(i -> request.put(i[0].trim(), i[1].trim()));
 
-                    String action = parse("type", data);
-                    action = cleanUpStrings(action);
+                    reply = courseOfAction(request);
 
-                    if(!data.equals("")) System.out.println("[CLIENT] " + data);
-
-                    reply = courseOfAction(action, data);
-
-                    outToServer.println(reply);
+                    outToClient.println(reply);
 
                     if(reply.equals("type: login, ok: true")) getNotifications(username);
-                } else {
-                    reply = "[SERVER] THIS IS NOT A VALID REQUEST";
-                    outToServer.println(reply);
                 }
-            }
-        } catch(Exception e) {
-            System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
-            Server.numberOfClients--;
+            } catch(ArrayIndexOutOfBoundsException aioobe) {
+                outToClient.println("[SERVER] THIS IS NOT A VALID REQUEST");
+            } catch(IOException ioe) {
+                outToClient.println("[SERVER] THIS IS NOT A VALID REQUEST");
+            } catch(NullPointerException npe) {
+                System.out.println("[SERVER] A CLIENT HAS DISCONNECTED");
+                Server.numberOfClients--;
 
-            synchronized (this) {
-                if(!username.equals("")) {
-                    Server.listOfClients.remove(Server.listOfClients.indexOf(client));
+                synchronized (this) {
+                    if(!username.equals("")) {
+                        Server.listOfClients.remove(Server.listOfClients.indexOf(client));
 
-                    try {
-                        clientSocket.close();
-                    } catch(IOException ioe) {
-                        System.out.println("ERROR WHEN TRYING TO CLOSE THE CLIENT SOCKET: " + ioe.getMessage());
-                        Thread.currentThread().interrupt();
-                        return;
+                        try {
+                            clientSocket.close();
+                        } catch(IOException ioe) {
+                            System.out.println("ERROR WHEN TRYING TO CLOSE THE CLIENT SOCKET: " + ioe.getMessage());
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
                     }
                 }
-            }
 
-            Thread.currentThread().interrupt();
-            return;
+                Thread.currentThread().interrupt();
+                return;
+            }
         }
     }
 
-    private String courseOfAction(String action, String parameters) {
-        String reply = new String();
+    private String courseOfAction(HashMap<String, String> request) {
 
-        if(username.equals("") && action.equals("login")) {
+        if(username.equals("") && request.get("type").equals("login") && request.containsKey("username") && request.containsKey("password") && request.size() == 3) {
+            System.out.println("[SERVER] LOGIN");
             String uuid = UUID.randomUUID().toString();
 
-            if(!parameters.contains("username") || !parameters.contains("password")) {
-                reply = "type: login, ok: false";
-            } else {
-                username = parse("username", parameters);
-                String password = parse("password", parameters);
+            String reply = logIn(request.get("username"), request.get("password"));
 
-                reply = logIn(username, password);
-
-                if(reply.equals("type: login, ok: true")) {
-                    client = new ClientObject(clientSocket, username);
-                    Server.listOfClients.add(client);
-                } else {
-                    username = "";
-                }
+            if(reply.equals("type: login, ok: true")) {
+                username = request.get("username");
+                client = new ClientObject(clientSocket, username);
+                Server.listOfClients.add(client);
             }
-        } else if(username.equals("") && action.equals("register")) {
+
+            return reply;
+        } else if(username.equals("") && request.get("type").equals("register") && request.containsKey("username") && request.containsKey("password") && request.size() == 3) {
+            System.out.println("[SERVER] REGISTER");
+            String uuid = UUID.randomUUID().toString();
+            String reply = register(request.get("username"), request.get("password"));
+
+            return reply;
+        } else if(!username.equals("") && request.get("type").equals("create_auction") && request.containsKey("code") && request.containsKey("title") && request.containsKey("description") && request.containsKey("deadline") && request.containsKey("amount") && request.size() == 6) {
+            System.out.println("[SERVER] CREATE AUCTION");
             String uuid = UUID.randomUUID().toString();
 
-            if(!parameters.contains("username") || !parameters.contains("password")) {
-                reply = "type: register, ok: false";
-            } else {
-                String registryUsername = parse("username", parameters);
-                String password = parse("password", parameters);
+            float fAmount;
 
-                reply = register(registryUsername, password);
+            try {
+                fAmount = Float.parseFloat(request.get("amount"));
+            } catch(Exception e) {
+                System.out.println("[SERVER] THE AMOUNT DOES NOT HAVE A VALID VALUE");
+                return "type: create_auction, ok: false";
             }
-        } else if(!username.equals("") && action.equals("create_auction")) {
-            String uuid = UUID.randomUUID().toString();
 
-            if(!parameters.contains("code") || !parameters.contains("title") || !parameters.contains("description") || !parameters.contains("deadline") || !parameters.contains("amount")) {
-                reply = "type: create_auction, ok: false";
-            } else {
-                String code = parse("code", parameters);
-                String title = parse("title", parameters);
-                String description = parse("description", parameters);
-                String deadline = parse("deadline", parameters);
-                String amount = parse("amount", parameters);
-
-                DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH-mm");
-                java.util.Date dateobj = new java.util.Date();
-                String date = df.format(dateobj);
-
-                float fAmount;
-
-                try {
-                    fAmount = Float.parseFloat(amount);
-                } catch(Exception e) {
-                    System.out.println("[RMISERVER] THE AMOUNT DOES NOT HAVE A VALID VALUE");
-                    return "type: create_auction, ok: false";
-                }
-
-                if(date.compareTo(deadline) >= 0) {
-                    reply = "type: create_auction, ok: false";
-                } else {
-                    reply = createAuction(username, code, title, description, deadline, fAmount);
-                }
+            if(request.get("code").length() != 13) {
+                System.out.println("[SERVER] THIS IS NOT A VALID CODE");
+                return "type: create_auction, ok: false";
             }
-        } else if(!username.equals("") && action.equals("search_auction")) {
-            String uuid = UUID.randomUUID().toString();
 
-            if(!parameters.contains("code")) {
-                reply = "type: search_auction, items_count: 0";
-            } else {
-                String code = parse("code", parameters);
-                reply = searchAuction(code);
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm");
+                LocalDateTime dateTime = LocalDateTime.parse(request.get("deadline"), formatter);
+                Timestamp timestamp = Timestamp.valueOf(dateTime);
+                Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+
+                if(timestamp.before(currentTime)) return "type: create_auction, ok: false";
+            } catch(Exception e) {
+                System.out.println("[SERVER] THIS IS NOT A VALID DEADLINE");
+                return "type: create_auction, ok: false";
             }
-        } else if(!username.equals("") && action.equals("detail_auction")) {
+
+            return createAuction(username, request.get("code"), request.get("title"), request.get("description"), request.get("deadline"), fAmount);
+        } else if(!username.equals("") && request.get("type").equals("search_auction") && request.containsKey("code") && request.size() == 2) {
+            System.out.println("[SERVER] SEARCH AUCTION");
             String uuid = UUID.randomUUID().toString();
 
-            if(!parameters.contains("id")) {
-                reply = "type: detail_auction, ok: false";
-            } else {
-                String id = parse("id", parameters);
-                int iid;
-
-                try {
-                    iid = Integer.parseInt(id);
-                } catch(Exception e) {
-                    System.out.println("[SERVER] THE ID IS NOT VALID");
-                    return "type: edit_auction, ok: false";
-                }
-
-                reply = detailAuction(iid);
+            if(request.get("code").length() != 13) {
+                System.out.println("[SERVER] THIS IS NOT A VALID CODE");
+                return "type: search_auction, ok: false";
             }
-        } else if(!username.equals("") && action.equals("my_auctions")) {
+
+            return searchAuction(request.get("code"));
+
+        } else if(!username.equals("") && request.get("type").equals("detail_auction") && request.containsKey("id") && request.size() == 2) {
+            System.out.println("[SERVER] DETAIL_AUCTION");
             String uuid = UUID.randomUUID().toString();
 
-            reply = myAuctions(username);
-        } else if(!username.equals("") && action.equals("bid")) {
-            String uuid = UUID.randomUUID().toString();
+            int id;
 
-            if(!parameters.contains("id") || !parameters.contains("amount")) {
-                reply = "type: bid, ok: false";
-            } else {
-                String [] splitedString = parameters.split("bid");
-                String id = parse("id", splitedString[1]);
-                String amount = parse("amount", splitedString[1]);
-
-                float fAmount;
-                int iid;
-
-                try {
-                    iid = Integer.parseInt(id);
-                } catch(Exception e) {
-                    System.out.println("[SERVER] THE ID IS NOT VALID");
-                    return "type: bid, ok: false";
-                }
-
-                try {
-                    fAmount = Float.parseFloat(amount);
-                } catch(Exception e) {
-                    System.out.println("[RMISERVER] THE AMOUNT IS NOT VALID");
-                    return "type: bid, ok: false";
-                }
-
-                reply = bid(username, iid, fAmount);
+            try {
+                id = Integer.parseInt(request.get("id"));
+            } catch(Exception e) {
+                System.out.println("[SERVER] THE ID IS NOT VALID");
+                return "type: edit_auction, ok: false";
             }
-        } else if(!username.equals("") && action.equals("edit_auction")) {
+
+            return detailAuction(id);
+
+        } else if(!username.equals("") && request.get("type").equals("my_auctions") && request.size() == 1) {
+            System.out.println("[SERVER] MY_AUCTIONS");
             String uuid = UUID.randomUUID().toString();
 
-            String id = parse("id", parameters);
-            String title = parse("title", parameters);
-            String description = parse("description", parameters);
-            String deadline = parse("deadline", parameters);
-            String code = parse("code", parameters);
-            String amount = parse("amount", parameters);
+            return myAuctions(username);
+        } else if(!username.equals("") && request.get("type").equals("bid") && request.containsKey("id") && request.containsKey("amount") && request.size() == 3) {
+            System.out.println("[SERVER] BID");
+            String uuid = UUID.randomUUID().toString();
 
-            if(!parameters.contains("id")) return "type: edit_auction, ok: false";
-            if(!parameters.contains("title")) title = "";
-            if(!parameters.contains("description")) description = "";
-            if(!parameters.contains("deadline")) deadline = "";
-            if(!parameters.contains("code")) code = "";
-            if(!parameters.contains("amount")) amount = "";
+            float fAmount;
+            int id;
 
-            int iid;
+            try {
+                id = Integer.parseInt(request.get("id"));
+            } catch(Exception e) {
+                System.out.println("[SERVER] THE ID IS NOT VALID");
+                return "type: bid, ok: false";
+            }
+
+            try {
+                fAmount = Float.parseFloat(request.get("amount"));
+            } catch(Exception e) {
+                System.out.println("[SERVER] THE AMOUNT IS NOT VALID");
+                return "type: bid, ok: false";
+            }
+
+            return bid(username, id, fAmount);
+
+        } else if(!username.equals("") && request.get("type").equals("message") && request.containsKey("id") && request.containsKey("text") && request.size() == 3) {
+            System.out.println("[SERVER] MESSAGE");
+            String uuid = UUID.randomUUID().toString();
+
+            int id;
+
+            try {
+                id = Integer.parseInt(request.get("id"));
+            } catch(Exception e) {
+                System.out.println("[SERVER] THE ID IS NOT VALID");
+                return "type: message, ok: false";
+            }
+
+            return message(username, id, request.get("text"));
+
+        } else if(!username.equals("") && request.get("type").equals("online_users") && request.size() == 1) {
+            System.out.println("[SERVER] ONLINE USERS");
+            String uuid = UUID.randomUUID().toString();
+
+            return onlineUsers(username);
+        } else if(!username.equals("") && request.get("type").equals("edit_auction") && request.containsKey("id") && (request.size() > 2 && request.size() < 8)) {
+            System.out.println("[SERVER] EDIT AUCTION");
+
+            String title, description, deadline, code, amount;
+
+            if(!request.containsKey("title")) title = "";
+            else title = request.get("title");
+
+            if(!request.containsKey("description")) description = "";
+            else description = request.get("description");
+
+            if(!request.containsKey("deadline")) deadline = "";
+            else deadline = request.get("deadline");
+
+            if(!request.containsKey("code")) code = "";
+            else code = request.get("code");
+
+            if(!request.containsKey("amount")) amount = "";
+            else amount = request.get("amount");
+
+            int id;
             float fAmount = -1.0f;
             boolean isNumber = false;
 
             try {
-                iid = Integer.parseInt(id);
+                id = Integer.parseInt(request.get("id"));
             } catch(Exception e) {
                 System.out.println("[SERVER] THE ID IS NOT VALID");
                 return "type: edit_auction, ok: false";
@@ -419,43 +428,28 @@ class TCPConnection extends Thread {
                 }
             }
 
-            if(isNumber) reply = editAuction(username, iid, title, description, deadline, code, fAmount);
+            if(!deadline.equals("")) {
+                try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm");
+                    LocalDateTime dateTime = LocalDateTime.parse(request.get("deadline"), formatter);
+                    Timestamp timestamp = Timestamp.valueOf(dateTime);
+                    Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+
+                    if(timestamp.before(currentTime)) return "type: edit_auction, ok: false";
+                } catch(Exception e) {
+                    System.out.println("[SERVER] THIS IS NOT A VALID DEADLINE");
+                    return "type: edit_auction, ok: false";
+                }
+            }
+
+            if(isNumber) return editAuction(username, id, title, description, deadline, code, fAmount);
             else {
                 System.out.println("[SERVER] THE AMOUNT IS NOT VALID");
                 return "type: edit_auction, ok: false";
             }
-
-        } else if(!username.equals("") && action.equals("message")) {
-            String uuid = UUID.randomUUID().toString();
-
-            if(!parameters.contains("id") || !parameters.contains("text")) {
-                reply = "type: message, ok: false";
-            } else {
-                String id = parse("id", parameters);
-                String text = parse("text", parameters);
-
-                int iid;
-
-                try {
-                    iid = Integer.parseInt(id);
-                } catch(Exception e) {
-                    System.out.println("[SERVER] THE ID IS NOT VALID");
-                    return "type: message, ok: false";
-                }
-
-                reply = message(username, iid, text);
-            }
-        } else if(!username.equals("") && action.equals("online_users")) {
-            String uuid = UUID.randomUUID().toString();
-
-            reply = onlineUsers(username);
-        } else if(username.equals("")) {
-            reply = "type: " + action + ", ok: false";
         } else {
-            reply = "type: " + action + ", ok: false";
+            return "[SERVER] THIS IS NOT A VALID REQUEST";
         }
-
-        return reply;
     }
 
     private String logIn(String username, String password) {
@@ -469,19 +463,18 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.login(username, password);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -502,19 +495,18 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.register(username, password);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -536,18 +528,20 @@ class TCPConnection extends Thread {
                 Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+
+                e.printStackTrace();
+
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -568,19 +562,17 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.searchAuction(code);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -601,19 +593,17 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.detailAuction(id);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -634,19 +624,17 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.myAuctions(username);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -667,19 +655,17 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.bid(username, id, amount);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -700,19 +686,17 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.editAuction(username, id, title, description, deadline, code, amount);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -733,19 +717,17 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.message(username, id, text);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -766,19 +748,17 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.onlineUsers(username);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected && retries == 4) return "[SERVER] CANNOT HANDLE YOUR REQUEST AT THIS TIME";
             else if(!reconnected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
                 } catch(Exception sleep) {
                     return "[SERVER] SOMETHING WENT WRONG WITH THE THREAD SLEEP";
                 }
@@ -795,12 +775,11 @@ class TCPConnection extends Thread {
                 Server.iBei.startUpNotifications(username);
                 reconnected = true;
             } catch(Exception e) {
-                try{
+                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
+
+                try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiregistryport).lookup("iBei");
-                    Server.iBei.subscribe(Server.server);
-                } catch(Exception e2) {
-                    reconnected = false;
-                }
+                } catch(Exception e2) {}
             }
 
             if(!reconnected) {
@@ -813,72 +792,6 @@ class TCPConnection extends Thread {
         }
 
         return;
-    }
-
-    private String parse(String parameter, String request) {
-        int j = 0, k = 0;
-        int plen = parameter.length();
-
-        for(int i = 0; i < request.length(); i++) {
-            if(j != plen && (request.charAt(i) == parameter.charAt(j))) {
-                j++;
-            }
-
-            if(j == plen) {
-                j = i;
-                break;
-            }
-        }
-
-        for(int i = 0; i < request.length(); i++) {
-            if(request.charAt(i) == ',' && j < i) {
-                k = i;
-                break;
-            }
-        }
-
-        String string = new String();
-
-        if(k == 0) {
-            k = request.length();
-            string = request.substring(j + 1, k);
-        } else {
-            string = request.substring(j + 1, k);
-        }
-
-        StringBuilder sb = new StringBuilder(string);
-
-        while(string.charAt(0) == ' ' || string.charAt(0) == ':') {
-            sb.deleteCharAt(0);
-            string = sb.toString();
-        }
-
-        return string;
-    }
-
-    private String parseString(String reply) {
-
-        StringBuilder sb = new StringBuilder();
-
-        for(int i = 0; i < reply.length(); i++) {
-            if(!(reply.charAt(i) == '\0')) {
-                sb.append(reply.charAt(i));
-            } else break;
-        }
-
-        return sb.toString();
-    }
-
-    private String cleanUpStrings(String string) {
-        StringBuilder sb = new StringBuilder();
-
-        for(int i = 0; i < string.length(); i++) {
-            if(!(string.charAt(i) == ' ')) {
-                sb.append(string.charAt(i));
-            }
-        }
-
-        return sb.toString();
     }
 }
 
