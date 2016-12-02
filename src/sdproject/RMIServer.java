@@ -1094,6 +1094,9 @@ class SecondaryServer extends Thread {
     }
 
     public void run() {
+
+        // criar aqui a ligaçao pada o servidor primário para poder receber a lista actualizada de pedidos
+
         try {
             udpSocket = new DatagramSocket();
             udpSocket.setSoTimeout(500);

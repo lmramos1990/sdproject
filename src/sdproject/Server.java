@@ -28,9 +28,9 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     private static ServerSocket serverSocket;
     private static int port = 7000;
     static String rmiHost;
-    static int registryPort = -1;
+    static int registryPort;
 
-    static int numberOfClients = 0;
+    static int numberOfClients;
     static ArrayList <Socket> clientSockets = new ArrayList<>();
     static ArrayList<ClientObject> listOfClients = new ArrayList<>();
     static AuctionInterface iBei;
