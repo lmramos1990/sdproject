@@ -1,0 +1,18 @@
+<component name="ArtifactManager">
+  <artifact type="exploded-war" name="sdproject:war exploded">
+    <output-path>$PROJECT_DIR$/out/artifacts/sdproject_war_exploded</output-path>
+    <root id="root">
+      <element id="javaee-facet-resources" facet="sdproject/web/Web" />
+      <element id="directory" name="WEB-INF">
+        <element id="directory" name="classes">
+          <element id="module-output" name="sdproject" />
+        </element>
+        <element id="directory" name="lib">
+          <element id="library" level="project" name="Struts 2-2.3.20.1" />
+          <element id="library" level="project" name="ojdbc6" />
+          <element id="library" level="project" name="commons-codec-1.10" />
+        </element>
+      </element>
+    </root>
+  </artifact>
+</component>
