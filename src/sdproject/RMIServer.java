@@ -171,9 +171,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized boolean isUser(String username) throws RemoteException {
-        if(getClientId(username) == -1) return false;
-        else return true;
+    public synchronized String isUser(String username) throws RemoteException {
+        if(getClientId(username) == -1) return "NO";
+        else return "YES";
     }
 
     public synchronized String getSalt(String username) throws RemoteException {

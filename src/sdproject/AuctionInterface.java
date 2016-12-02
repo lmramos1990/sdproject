@@ -7,7 +7,7 @@ public interface AuctionInterface extends Remote {
 
     void subscribe(NotificationCenter nc) throws RemoteException;
     String login(String username, String hpassword) throws RemoteException;
-    boolean isUser(String username) throws RemoteException;
+    String isUser(String username) throws RemoteException;
     String getSalt(String username) throws RemoteException;
     String register(String username, String hpassword, String esalt) throws RemoteException;
     String createAuction(String username, String code, String title, String description, String deadline, float amount) throws RemoteException;
