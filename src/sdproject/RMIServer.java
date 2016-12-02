@@ -33,6 +33,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         String url = "jdbc:oracle:thin:@localhost:1521:XE";
 
         readProperties();
+
+        System.setProperty("java.rmi.server.hostname", rmiHost);
+
         Registry registry = LocateRegistry.createRegistry(registryPort);
 
         if(online) {
@@ -81,7 +84,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     }
 
     public static void main(String[] args) {
-        System.setProperty("java.net.preferIPv4Stack", "true");
+        System.setProperty("java.net.preferIPv4Stack" , "true");
         System.getProperties().put("java.security.policy", "policy.all");
         System.setSecurityManager(new RMISecurityManager());
 
@@ -134,8 +137,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] CHECKING IF USER IS ONLINE");
         try {
             for(NotificationCenter aServerList : serverList) {
-                if (aServerList.isUserOnline(username)) {
-                    System.out.println("[RMISERVER] SENDING REPLY");
+                if(aServerList.isUserOnline(username)) {
                     return "type: login, ok: false";
                 }
             }
@@ -203,13 +205,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
         if(requestsMap.containsKey(uuid)) {
-            if(requestsMap.get(uuid) == 1) {
-                if(isUser(username).equals("YES")) return "type: register, ok: true";
-                else {
-                    requestsMap.replace(uuid, 1, 0);
-                    // send map to the secondary server
-                }
-            }
+            if(requestsMap.get(uuid) == 1) return "type: register, ok: true";
         } else {
             requestsMap.put(uuid, 0);
             // send map to the secondary server
@@ -240,13 +236,22 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
             try {
                 connection.rollback();
-            } catch(SQLException ignored) {}
+            } catch(SQLException e1) {e1.printStackTrace();}
             return "type: register, ok: false";
         }
     }
 
-    public synchronized String createAuction(String username, String code, String title, String description, String deadline, float amount) throws RemoteException {
+    public synchronized String createAuction(String uuid, String username, String code, String title, String description, String deadline, float amount) throws RemoteException {
         System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
+
+        if(requestsMap.containsKey(uuid)) {
+            if(requestsMap.get(uuid) == 1) return "type: create_auction, ok: true";
+        } else {
+            requestsMap.put(uuid, 0);
+            // send map to the secondary server
+        }
+
+
 
         int clientId = getClientId(username);
         if(clientId == -1) return "type: create_auction, ok: false";
@@ -280,8 +285,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 System.out.println("[RMISERVER] AUCTION WAS NOT REGISTERED IN THE DATABASE WITH SUCCESS");
                 return "type: create_auction, ok: false";
             } else {
-                connection.commit();
                 createAuctionSet.close();
+                connection.commit();
+                requestsMap.replace(uuid, 0, 1);
+                // enviar este hm para o servidor secundario
                 System.out.println("[RMISERVER] AUCTION REGISTERED IN THE DATABASE WITH SUCCESS");
                 return "type: create_auction, ok: true";
             }
@@ -360,7 +367,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             String reply;
 
-            if(getAuctionSet.next()) {
+            if(!getAuctionSet.next()) {
+                getAuctionSet.close();
+                return "type: detail_auction, ok: false";
+            } else {
                 String deadline;
                 StringBuilder dlsb = new StringBuilder(getAuctionSet.getString("deadline"));
 
@@ -373,9 +383,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                 reply = "type: detail_auction, title: " + getAuctionSet.getString("title") + ", description: " + getAuctionSet.getString("description") + ", deadline: " + deadline + ", messages_count: ";
                 getAuctionSet.close();
-            } else {
-                getAuctionSet.close();
-                return "type: detail_auction, ok: false";
             }
 
             String getMessageQuery = "SELECT client_id, text FROM message WHERE auction_id = ?";
@@ -523,8 +530,15 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String bid(String username, int id, float amount) throws RemoteException {
+    public synchronized String bid(String uuid, String username, int id, float amount) throws RemoteException {
         System.out.println("[RMISERVER] BID REQUEST");
+
+        if(requestsMap.containsKey(uuid)) {
+            if(requestsMap.get(uuid) == 1) return "type: bid, ok: true";
+        } else {
+            requestsMap.put(uuid, 0);
+            // send map to the secondary server
+        }
 
         int clientId = getClientId(username);
         if(clientId == -1) return "type: bid, ok: false";
@@ -550,8 +564,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return "type: bid, ok: false";
             } else {
                 createBidSet.close();
-                connection.commit();
-                System.out.println("[RMISERVER] BID REGISTERED IN THE DATABASE WITH SUCCESS");
 
                 String updateQuery = "UPDATE auction SET current_value = ? WHERE auction_id = ?";
                 PreparedStatement updateStatement = connection.prepareStatement(updateQuery);
@@ -559,13 +571,15 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 updateStatement.setInt(2, auctionId);
                 ResultSet updateSet = updateStatement.executeQuery();
 
-                if(updateSet.next()) {
+                if(!updateSet.next()) {
                     updateSet.close();
                     System.out.println("[RMISERVER] AUCTION WAS NOT UPDATED WITH SUCCESS");
                     return "type: bid, ok: false";
                 } else {
                     updateSet.close();
                     connection.commit();
+                    requestsMap.replace(uuid, 0, 1);
+                    // enviar par ao servidor secundario
                     System.out.println("[RMISERVER] AUCTION WAS UPDATED WITH SUCCESS");
 
                     new BidsPool(username, clientId, auctionId, amount);
@@ -580,8 +594,16 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String editAuction(String username, int id, String title, String description, String deadline, String code, float amount) throws RemoteException {
+    public synchronized String editAuction(String uuid, String username, int id, String title, String description, String deadline, String code, float amount) throws RemoteException {
         System.out.println("[RMISERVER] EDIT AUCTION REQUEST");
+
+
+        if(requestsMap.containsKey(uuid)) {
+            if(requestsMap.get(uuid) == 1) return "type: edit_auction, ok: true";
+        } else {
+            requestsMap.put(uuid, 0);
+            // send map to the secondary server
+        }
 
         int atitle;
         int adescription;
@@ -727,6 +749,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             } else {
                 updateSet.close();
                 connection.commit();
+                requestsMap.replace(uuid, 0, 1);
+                // enviar para o servidor secundario
                 System.out.println("[RMISERVER] REGISTERED CHANGES IN THE AUCTION");
                 return "type: edit_auction, ok: true";
             }
@@ -738,8 +762,15 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String message(String username, int id, String text) throws RemoteException {
+    public synchronized String message(String uuid, String username, int id, String text) throws RemoteException {
         System.out.println("[RMISERVER] MESSAGE REQUEST");
+
+        if(requestsMap.containsKey(uuid)) {
+            if(requestsMap.get(uuid) == 1) return "type: message, ok: true";
+        } else {
+            requestsMap.put(uuid, 0);
+            // send map to the secondary server
+        }
 
         int clientId = getClientId(username);
         if(clientId == -1) return "type: message, ok: false";
@@ -762,6 +793,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             } else {
                 messageSet.close();
                 connection.commit();
+                requestsMap.replace(uuid, 0, 1);
+                // enviar para o servidor secundario
                 System.out.println("[RMISERVER] MESSAGE WAS REGISTERED IN THE DATABASE WITH SUCCESS");
 
                 new MessagePool(username, clientId, auctionId, text);
@@ -838,6 +871,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
+    public synchronized void cleanUpUUID(String uuid) throws RemoteException {
+        requestsMap.remove(uuid);
+    }
+
     private int getClientId(String username) {
         try {
             String getIdQuery = "SELECT client_id FROM client WHERE to_char(username) = ?";
@@ -845,13 +882,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             getIdStatement.setString(1, username);
             ResultSet getIdSet = getIdStatement.executeQuery();
 
-            if(getIdSet.next()) {
+            if(!getIdSet.next()) {
+                getIdSet.close();
+                return -1;
+            } else {
                 int id = getIdSet.getInt("client_id");
                 getIdSet.close();
                 return id;
-            } else {
-                getIdSet.close();
-                return -1;
             }
         } catch(Exception e) {
             e.printStackTrace();
@@ -869,13 +906,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             getArticleIdStatement.setString(1, code);
             ResultSet getArticleIdSet = getArticleIdStatement.executeQuery();
 
-            if(getArticleIdSet.next()) {
+            if(!getArticleIdSet.next()) {
+                getArticleIdSet.close();
+                return -1;
+            } else {
                 articleId = getArticleIdSet.getInt("article_id");
                 getArticleIdSet.close();
                 return articleId;
-            } else {
-                getArticleIdSet.close();
-                return -1;
             }
         } catch(Exception e) {
             e.printStackTrace();
@@ -891,7 +928,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             createArticleStatement.setString(1, code);
             ResultSet createArticleSet = createArticleStatement.executeQuery();
 
-            if(createArticleSet.next()) {
+            if(!createArticleSet.next()) {
                 createArticleSet.close();
                 System.out.println("[RMISERVER] ARTICLE WAS NOT REGISTERED WITH SUCCESS");
             } else {
@@ -962,8 +999,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             assessBidStatement.setInt(1, auctionId);
             ResultSet assessBidSet = assessBidStatement.executeQuery();
 
-            if(assessBidSet.next()) {
-
+            if(!assessBidSet.next()) {
+                System.out.println("[RMISERVER] NOT POSSIBLE TO REGISTER THIS BID");
+                assessBidSet.close();
+                return -1;
+            } else {
                 if(assessBidSet.getInt("client_id") == clientId) return -1;
 
                 float currentValue = assessBidSet.getFloat("current_value");
@@ -978,10 +1018,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     assessBidSet.close();
                     return -1;
                 }
-            } else {
-                System.out.println("[RMISERVER] NOT POSSIBLE TO REGISTER THIS BID");
-                assessBidSet.close();
-                return -1;
             }
 
         } catch(Exception e) {
@@ -999,12 +1035,12 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             assessUserStatement.setInt(2, clientId);
             ResultSet assessUserSet = assessUserStatement.executeQuery();
 
-            if(assessUserSet.next()) {
-                assessUserSet.close();
-                return 1;
-            } else {
+            if(!assessUserSet.next()) {
                 assessUserSet.close();
                 return -1;
+            } else {
+                assessUserSet.close();
+                return 1;
             }
         } catch(Exception e) {
             e.printStackTrace();

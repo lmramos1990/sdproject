@@ -110,7 +110,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
                 Socket clientSocket = serverSocket.accept();
                 clientSockets.add(clientSocket);
                 System.out.println("[SERVER] A CLIENT HAS CONNECTED WITH ME");
-                Server.numberOfClients++;
+                numberOfClients++;
                 new TCPConnection(clientSocket);
             }
         } catch(IOException e) {
@@ -160,7 +160,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     }
 
     public boolean isUserOnline(String username) throws RemoteException {
-
         for(int i = 0; i < Server.listOfClients.size(); i++) {
             if(username.equals(Server.listOfClients.get(i).getUsername())) {
                 return true;
@@ -235,6 +234,7 @@ class TCPConnection extends Thread {
                     outToClient.println(reply);
 
                     if(reply.equals("type: login, ok: true")) getNotifications(username);
+
                 }
             } catch(ArrayIndexOutOfBoundsException | IOException ioe) {
                 outToClient.println("[SERVER] THIS IS NOT A VALID REQUEST");
@@ -323,9 +323,6 @@ class TCPConnection extends Thread {
             return register(uuid, request.get("username"), hpassword, esalt);
         } else if(!username.equals("") && request.get("type").equals("create_auction") && request.containsKey("code") && request.containsKey("title") && request.containsKey("description") && request.containsKey("deadline") && request.containsKey("amount") && request.size() == 6) {
             System.out.println("[SERVER] CREATE AUCTION");
-            String uuid = UUID.randomUUID().toString();
-
-            System.out.println("THIS IS THE UUID: " + uuid);
 
             float fAmount;
 
@@ -353,7 +350,9 @@ class TCPConnection extends Thread {
                 return "type: create_auction, ok: false";
             }
 
-            return createAuction(username, request.get("code"), request.get("title"), request.get("description"), request.get("deadline"), fAmount);
+            String uuid = UUID.randomUUID().toString();
+
+            return createAuction(uuid, username, request.get("code"), request.get("title"), request.get("description"), request.get("deadline"), fAmount);
         } else if(!username.equals("") && request.get("type").equals("search_auction") && request.containsKey("code") && request.size() == 2) {
             System.out.println("[SERVER] SEARCH AUCTION");
 
@@ -384,9 +383,6 @@ class TCPConnection extends Thread {
             return myAuctions(username);
         } else if(!username.equals("") && request.get("type").equals("bid") && request.containsKey("id") && request.containsKey("amount") && request.size() == 3) {
             System.out.println("[SERVER] BID");
-            String uuid = UUID.randomUUID().toString();
-
-            System.out.println("THIS IS THE UUID: " + uuid);
 
             float fAmount;
             int id;
@@ -405,13 +401,12 @@ class TCPConnection extends Thread {
                 return "type: bid, ok: false";
             }
 
-            return bid(username, id, fAmount);
+            String uuid = UUID.randomUUID().toString();
+
+            return bid(uuid, username, id, fAmount);
 
         } else if(!username.equals("") && request.get("type").equals("message") && request.containsKey("id") && request.containsKey("text") && request.size() == 3) {
             System.out.println("[SERVER] MESSAGE");
-            String uuid = UUID.randomUUID().toString();
-
-            System.out.println("THIS IS THE UUID: " + uuid);
 
             int id;
 
@@ -422,7 +417,9 @@ class TCPConnection extends Thread {
                 return "type: message, ok: false";
             }
 
-            return message(username, id, request.get("text"));
+            String uuid = UUID.randomUUID().toString();
+
+            return message(uuid, username, id, request.get("text"));
 
         } else if(!username.equals("") && request.get("type").equals("online_users") && request.size() == 1) {
             System.out.println("[SERVER] ONLINE USERS");
@@ -485,8 +482,10 @@ class TCPConnection extends Thread {
                 }
             }
 
-            if(isNumber) return editAuction(username, id, title, description, deadline, code, fAmount);
-            else {
+            if(isNumber) {
+                String uuid = UUID.randomUUID().toString();
+                return editAuction(uuid, username, id, title, description, deadline, code, fAmount);
+            } else {
                 System.out.println("[SERVER] THE AMOUNT IS NOT VALID");
                 return "type: edit_auction, ok: false";
             }
@@ -504,6 +503,7 @@ class TCPConnection extends Thread {
             try {
                 retries++;
                 reply = Server.iBei.login(username, password);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -528,6 +528,7 @@ class TCPConnection extends Thread {
             try {
                 retries++;
                 reply = Server.iBei.isUser(username);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -550,6 +551,7 @@ class TCPConnection extends Thread {
             try {
                 retries++;
                 reply = Server.iBei.getSalt(username);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -572,28 +574,6 @@ class TCPConnection extends Thread {
             try {
                 retries++;
                 reply = Server.iBei.register(uuid, username, hpassword, esalt);
-                reconnected = true;
-            } catch(Exception e) {
-                try {
-                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
-            }
-
-            if(!reconnected) reply = reconnect(retries);
-        }
-
-        return reply;
-    }
-
-    private String createAuction(String username, String code, String title, String description, String deadline, float amount) {
-        String reply = "";
-
-        int retries = 0;
-        boolean reconnected = false;
-        while(!reconnected && retries < 4) {
-            try {
-                retries++;
-                reply = Server.iBei.createAuction(username, code, title, description, deadline, amount);
                 Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
@@ -604,6 +584,33 @@ class TCPConnection extends Thread {
 
             if(!reconnected) reply = reconnect(retries);
         }
+
+        cleanUpUUID(uuid);
+
+        return reply;
+    }
+
+    private String createAuction(String uuid, String username, String code, String title, String description, String deadline, float amount) {
+        String reply = "";
+
+        int retries = 0;
+        boolean reconnected = false;
+        while(!reconnected && retries < 4) {
+            try {
+                retries++;
+                reply = Server.iBei.createAuction(uuid, username, code, title, description, deadline, amount);
+                Server.iBei.subscribe(Server.server);
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
+                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+        }
+
+        cleanUpUUID(uuid);
 
         return reply;
     }
@@ -617,6 +624,7 @@ class TCPConnection extends Thread {
             try {
                 retries++;
                 reply = Server.iBei.searchAuction(code);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -639,6 +647,7 @@ class TCPConnection extends Thread {
             try {
                 retries++;
                 reply = Server.iBei.detailAuction(id);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -661,6 +670,7 @@ class TCPConnection extends Thread {
             try {
                 retries++;
                 reply = Server.iBei.myAuctions(username);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -674,7 +684,7 @@ class TCPConnection extends Thread {
         return reply;
     }
 
-    private String bid(String username, int id, float amount) {
+    private String bid(String uuid, String username, int id, float amount) {
         String reply = "";
 
         int retries = 0;
@@ -682,7 +692,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < 4) {
             try {
                 retries++;
-                reply = Server.iBei.bid(username, id, amount);
+                reply = Server.iBei.bid(uuid, username, id, amount);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -692,11 +703,13 @@ class TCPConnection extends Thread {
 
             if(!reconnected) reply = reconnect(retries);
         }
+
+        cleanUpUUID(uuid);
 
         return reply;
     }
 
-    private String editAuction(String username, int id, String title, String description, String deadline, String code, float amount) {
+    private String editAuction(String uuid, String username, int id, String title, String description, String deadline, String code, float amount) {
         String reply = "";
 
         int retries = 0;
@@ -704,7 +717,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < 4) {
             try {
                 retries++;
-                reply = Server.iBei.editAuction(username, id, title, description, deadline, code, amount);
+                reply = Server.iBei.editAuction(uuid, username, id, title, description, deadline, code, amount);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -714,11 +728,13 @@ class TCPConnection extends Thread {
 
             if(!reconnected) reply = reconnect(retries);
         }
+
+        cleanUpUUID(uuid);
 
         return reply;
     }
 
-    private String message(String username, int id, String text) {
+    private String message(String uuid, String username, int id, String text) {
         String reply = "";
 
         int retries = 0;
@@ -726,7 +742,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < 4) {
             try {
                 retries++;
-                reply = Server.iBei.message(username, id, text);
+                reply = Server.iBei.message(uuid, username, id, text);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -736,6 +753,8 @@ class TCPConnection extends Thread {
 
             if(!reconnected) reply = reconnect(retries);
         }
+
+        cleanUpUUID(uuid);
 
         return reply;
     }
@@ -749,6 +768,7 @@ class TCPConnection extends Thread {
             try {
                 retries++;
                 reply = Server.iBei.onlineUsers(username);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -767,6 +787,30 @@ class TCPConnection extends Thread {
         while(!reconnected) {
             try {
                 Server.iBei.startUpNotifications(username);
+                Server.iBei.subscribe(Server.server);
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) {
+                try {
+                    Thread.sleep(10000);
+                } catch(Exception sleep) {
+                    return;
+                }
+            }
+        }
+    }
+
+    private void cleanUpUUID(String uuid) {
+        boolean reconnected = false;
+        while(!reconnected) {
+            try {
+                Server.iBei.cleanUpUUID(uuid);
+                Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
                 try {
