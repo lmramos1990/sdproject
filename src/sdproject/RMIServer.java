@@ -211,6 +211,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             // send map to the secondary server
         }
 
+        if(getClientId(username) != -1) return "type: register, ok: false";
+
         try {
             String registerQuery = "INSERT INTO client (client_id, username, hpassword, esalt) VALUES(clients_seq.nextVal, ?, ?, ?)";
             PreparedStatement registerStatement = connection.prepareStatement(registerQuery);
