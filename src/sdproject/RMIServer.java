@@ -15,9 +15,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
     public static Connection connection;
 
+    private HashMap<String, Integer> requestsMap = new HashMap<>();
+
     static ArrayList<NotificationCenter> serverList = new ArrayList<>();
-    static String rmiServerIP = "";
-    private static int rmiRegistryPort = 0;
+    static String rmiHost;
+    private int registryPort;
 
     private RMIServer() throws RemoteException {
         super();
@@ -31,7 +33,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         String url = "jdbc:oracle:thin:@localhost:1521:XE";
 
         readProperties();
-        Registry registry = LocateRegistry.createRegistry(rmiRegistryPort);
+        Registry registry = LocateRegistry.createRegistry(registryPort);
 
         if(online) {
             try {
@@ -79,7 +81,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     }
 
     public static void main(String[] args) {
-
+        System.setProperty("java.net.preferIPv4Stack", "true");
         System.getProperties().put("java.security.policy", "policy.all");
         System.setSecurityManager(new RMISecurityManager());
 
@@ -95,7 +97,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    private static void readProperties() {
+    private void readProperties() {
         InputStream inputStream = null;
 
         try {
@@ -104,19 +106,16 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             inputStream = new FileInputStream(propFileName);
 
-            if (inputStream != null) {
-                prop.load(inputStream);
-            } else {
-                throw new FileNotFoundException("ERROR: PROPERTY '" + propFileName + "' NOT FOUND IN THE CLASSPATH");
-            }
+            prop.load(inputStream);
 
-            rmiServerIP = prop.getProperty("rmiServerIP");
-            rmiRegistryPort = Integer.parseInt(prop.getProperty("rmiRegistryPort"));
+            rmiHost = prop.getProperty("rmiHost");
+            registryPort = Integer.parseInt(prop.getProperty("registryPort"));
 
         } catch (Exception e) {
-            System.out.println("Exception: " + e);
+            e.printStackTrace();
         } finally {
             try {
+                assert inputStream != null;
                 inputStream.close();
             } catch(Exception e) {
                 System.out.println("ERROR: " + e.getMessage());
@@ -134,8 +133,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         System.out.println("[RMISERVER] CHECKING IF USER IS ONLINE");
         try {
-            for(int i = 0; i < serverList.size(); i++) {
-                if(serverList.get(i).isUserOnline(username)) {
+            for(NotificationCenter aServerList : serverList) {
+                if (aServerList.isUserOnline(username)) {
                     System.out.println("[RMISERVER] SENDING REPLY");
                     return "type: login, ok: false";
                 }
@@ -200,8 +199,21 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String register(String username, String hpassword, String esalt) throws RemoteException {
+    public synchronized String register(String uuid, String username, String hpassword, String esalt) throws RemoteException {
         System.out.println("[RMISERVER] REGISTER REQUEST");
+
+        if(requestsMap.containsKey(uuid)) {
+            if(requestsMap.get(uuid) == 1) {
+                if(isUser(username).equals("YES")) return "type: register, ok: true";
+                else {
+                    requestsMap.replace(uuid, 1, 0);
+                    // send map to the secondary server
+                }
+            }
+        } else {
+            requestsMap.put(uuid, 0);
+            // send map to the secondary server
+        }
 
         try {
             String registerQuery = "INSERT INTO client (client_id, username, hpassword, esalt) VALUES(clients_seq.nextVal, ?, ?, ?)";
@@ -216,14 +228,19 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 registerSet.close();
                 return "type: register, ok: false";
             } else {
+                registerSet.close();
                 System.out.println("[RMISERVER] USER REGISTERED IN THE DATABASE WITH SUCCESS");
                 connection.commit();
-                registerSet.close();
+                requestsMap.replace(uuid, 0, 1);
+                // send the map to the secondary server
                 return "type: register, ok: true";
             }
-        } catch(Exception e) {
+        } catch(SQLException e) {
             e.printStackTrace();
-            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
+            try {
+                connection.rollback();
+            } catch(SQLException ignored) {}
             return "type: register, ok: false";
         }
     }
@@ -313,8 +330,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                 StringBuilder sb = new StringBuilder(reply);
 
-                for(int i = 0;i < items.size(); i++) {
-                    sb.append(items.get(i));
+                for(String item : items) {
+                    sb.append(item);
                 }
 
                 reply = sb.toString();
@@ -368,10 +385,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             if(!getMessageSet.next()) {
                 getMessageSet.close();
-                StringBuilder sb = new StringBuilder(reply);
                 String messagePartReply = "0";
-                sb.append(messagePartReply);
-                reply = sb.toString();
+                reply = reply + messagePartReply;
             } else {
 
                 ArrayList <String> items = new ArrayList<>();
@@ -395,8 +410,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                 StringBuilder sb = new StringBuilder(reply);
                 sb.append(items.size());
-                for(int i = 0; i < items.size(); i++) {
-                    sb.append(items.get(i));
+                for(String item : items) {
+                    sb.append(item);
                 }
 
                 reply = sb.toString();
@@ -408,10 +423,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             ResultSet getBidsSet = getBidsStatement.executeQuery();
 
             if(!getBidsSet.next()) {
-                StringBuilder sb2 = new StringBuilder(reply);
                 String endString = ", bids_count: 0";
-                sb2.append(endString);
-                reply = sb2.toString();
+                reply = reply + endString;
                 getBidsSet.close();
                 return reply;
             } else {
@@ -434,9 +447,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 }
 
                 StringBuilder sb2 = new StringBuilder(reply);
-                sb2.append(", bids_count: " + bids.size());
-                for(int i = 0; i < bids.size(); i++) {
-                    sb2.append(bids.get(i));
+                sb2.append(", bids_count: ").append(bids.size());
+                for(String bid : bids) {
+                    sb2.append(bid);
                 }
 
                 reply = sb2.toString();
@@ -619,20 +632,16 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         if(atitle == 0 && adescription == 0 && adeadline == 0 && aarticle == 0 && aamount == 0) return "type: edit_auction, ok: false";
 
-        StringBuilder arrayBuilder = new StringBuilder("");
-        arrayBuilder.append(atitle);
-        arrayBuilder.append(adescription);
-        arrayBuilder.append(aamount);
-        arrayBuilder.append(aarticle);
-        arrayBuilder.append(adeadline);
-
-        String myArray = arrayBuilder.toString();
+        String myArray = "" + atitle +
+                adescription +
+                aamount +
+                aarticle +
+                adeadline;
 
         StringBuilder iqueryBuilder = new StringBuilder("INSERT INTO history (history_id, auction_id");
         StringBuilder lqueryBuilder = new StringBuilder(" VALUES (history_seq.nextVal, " + auctionId);
 
         StringBuilder uiqueryBuilder = new StringBuilder("UPDATE auction SET client_id = " + clientId);
-        StringBuilder ulqueryBuilder = new StringBuilder(" WHERE auction_id = " + auctionId);
 
         if(myArray.charAt(0) == '1') {
             iqueryBuilder.append(", title");
@@ -668,7 +677,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         lqueryBuilder.append(")");
 
         String historyQuery = iqueryBuilder.toString() + lqueryBuilder.toString();
-        String updateQuery = uiqueryBuilder.toString() + ulqueryBuilder.toString();
+        String updateQuery = uiqueryBuilder.toString() + " WHERE auction_id = " + auctionId;
 
         try {
             PreparedStatement historyStatement = connection.prepareStatement(historyQuery);
@@ -772,9 +781,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         ArrayList<String> onlineUsers = getOnlineUsers(username);
 
         StringBuilder sb = new StringBuilder();
-        sb.append("type: online_users, users_count: " + onlineUsers.size());
+        assert onlineUsers != null;
+        sb.append("type: online_users, users_count: ").append(onlineUsers.size());
         for(int i = 0; i < onlineUsers.size(); i++) {
-            sb.append(", users_" + i + "_username: " + onlineUsers.get(i));
+            sb.append(", users_").append(i).append("_username: ").append(onlineUsers.get(i));
         }
 
         return sb.toString();
@@ -800,9 +810,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 getNotificationsSet.beforeFirst();
 
                 while(getNotificationsSet.next()) {
-                    for(int i = 0; i < serverList.size(); i++) {
+                    for(NotificationCenter aServerList : serverList) {
                         String message = "[STARTUP NOTIFICATION] FROM: " + getNotificationsSet.getString("whoisfrom") + " MESSAGE: " + getNotificationsSet.getString("message");
-                        serverList.get(i).sendNotificationToUser(username, message);
+                        aServerList.sendNotificationToUser(username, message);
                     }
                 }
 
@@ -1008,10 +1018,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         System.out.println("[RMISERVER] CHECKING ONLINE USERS");
         try {
-            for(int i = 0; i < serverList.size(); i++) {
-                for(int j = 0; j < serverList.get(i).getOnlineUsers().size(); j++) {
-                    if(!serverList.get(i).getOnlineUsers().get(j).equals(username)) {
-                        onlineUsers.add((String) serverList.get(i).getOnlineUsers().get(j));
+            for(NotificationCenter aServerList : serverList) {
+                for(int j = 0; j < aServerList.getOnlineUsers().size(); j++) {
+                    if (!aServerList.getOnlineUsers().get(j).equals(username)) {
+                        onlineUsers.add((String) aServerList.getOnlineUsers().get(j));
                     }
                 }
             }
@@ -1077,7 +1087,7 @@ class PrimaryServer extends Thread {
 class SecondaryServer extends Thread {
 
     private DatagramSocket udpSocket;
-    private static int count = 0;
+    private int count = 0;
 
     SecondaryServer() {
         this.start();
@@ -1096,7 +1106,7 @@ class SecondaryServer extends Thread {
         InetAddress ipAddress;
 
         try {
-            ipAddress = InetAddress.getByName(RMIServer.rmiServerIP);
+            ipAddress = InetAddress.getByName(RMIServer.rmiHost);
         } catch(Exception e) {
             System.out.println("ERROR: " + e.getMessage());
             Thread.currentThread().interrupt();
@@ -1156,8 +1166,7 @@ class SecondaryServer extends Thread {
                 InetAddress ipAddress;
 
                 try {
-                    // SUBJECT TO CHANGE!!!
-                    ipAddress = InetAddress.getByName(RMIServer.rmiServerIP);
+                    ipAddress = InetAddress.getByName(RMIServer.rmiHost);
                 } catch(Exception e) {
                     System.out.println("ERROR: " + e.getMessage());
                     timer.cancel();
@@ -1258,13 +1267,13 @@ class BidsPool extends Thread {
                 }
                 notificationSet.close();
 
-                for(int i = 0; i < ids.size(); i++) {
+                for(Integer id : ids) {
                     String getUserQuery = "SELECT username FROM client WHERE client_id = ?";
                     PreparedStatement getUserStatement = RMIServer.connection.prepareStatement(getUserQuery);
-                    getUserStatement.setInt(1, ids.get(i));
+                    getUserStatement.setInt(1, id);
                     ResultSet getUserSet = getUserStatement.executeQuery();
 
-                    while(getUserSet.next()) {
+                    while (getUserSet.next()) {
                         new BidsNotifier(getUserSet.getString("username"), username, auctionId, amount);
                     }
                     getUserSet.close();
@@ -1359,10 +1368,12 @@ class MessagePool extends Thread {
         ArrayList<String> currentlyOnline = fetchUsersOnline(username);
         ArrayList<Integer> myArray = new ArrayList<>();
 
+        assert toNotifyNames != null;
         for(int i = 0; i < toNotifyNames.size(); i++) {
             myArray.add(0);
-            for(int j = 0; j < currentlyOnline.size(); j++) {
-                if(toNotifyNames.get(i).equals(currentlyOnline.get(j))) {
+            assert currentlyOnline != null;
+            for(String aCurrentlyOnline : currentlyOnline) {
+                if (toNotifyNames.get(i).equals(aCurrentlyOnline)) {
                     myArray.set(i, 1);
                 }
             }
@@ -1426,13 +1437,13 @@ class MessagePool extends Thread {
         ArrayList<String> usernames = new ArrayList<>();
 
         try {
-            for(int i = 0; i < ids.size(); i++) {
+            for(Integer id : ids) {
                 String getNamesQuery = "SELECT username FROM client WHERE client_id = ?";
                 PreparedStatement getNamesStatement = RMIServer.connection.prepareStatement(getNamesQuery);
-                getNamesStatement.setInt(1, ids.get(i));
+                getNamesStatement.setInt(1, id);
                 ResultSet getNamesSet = getNamesStatement.executeQuery();
 
-                if(!getNamesSet.next()) {
+                if (!getNamesSet.next()) {
                     System.out.println("[NOTIFIER] SOME ERROR OCURRED WHEN FETCHING USERNAMES");
                     getNamesSet.close();
                     return null;
