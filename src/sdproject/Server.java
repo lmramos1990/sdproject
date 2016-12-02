@@ -23,7 +23,6 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.commons.codec.binary.Base64;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 class Server extends UnicastRemoteObject implements NotificationCenter {
     private static ServerSocket serverSocket;
@@ -62,27 +61,30 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
             re.printStackTrace();
         }
 
-        while(!connected) {
+
+        while(!connected && connecting < 6) {
             try {
                 connecting++;
                 iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiRegistryIP, rmiRegistryPort).lookup("iBei");
                 iBei.subscribe(server);
                 connected = true;
-            } catch(Exception e) {}
-
-            if(connecting == 6) {
-                System.out.println("[SERVER] CANNOT ESTABLISH A CONNECTION TO THE RMI SERVER AT THIS MOMENT");
-                System.exit(0);
+            } catch(Exception e) {
+                System.out.println("[SERVER] CANNOT LOCATE THE RMISERVER AT THIS MOMENT");
             }
 
             if(!connected) {
                 try {
                     Thread.sleep(10000);
-                    System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
-                } catch(Exception e) {
-                    return;
+                } catch(InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
+        }
+
+        if(!connected) {
+            System.out.println("[SERVER] CANNOT CONNECT TO THE RMI AT THIS TIME");
+            System.out.println("[SERVER] POWERING DOWN");
+            System.exit(0);
         }
 
         try {
@@ -114,7 +116,6 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
             }
         } catch(IOException e) {
             e.printStackTrace();
-            System.out.println("ERROR: " + e.getMessage());
         }
     }
 
@@ -137,7 +138,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
             rmiRegistryPort = Integer.parseInt(prop.getProperty("rmiRegistryPort"));
 
         } catch(Exception e) {
-            System.out.println("Exception: " + e);
+            e.printStackTrace();
         } finally {
             try {
                 inputStream.close();
@@ -309,7 +310,7 @@ class TCPConnection extends Thread {
 
             String user = isUser(request.get("username"));
 
-            if(user.equals("NO")) return "type: login, ok: false";
+            if(user.equals("YES")) return "type: register, ok: false";
             else if(user.equals("SERVER DOWN")) return "[SERVER] CANNOT HANDLE THE REQUEST AT THIS MOMENT";
 
             String salt;
@@ -512,8 +513,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.login(username, password);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -538,8 +537,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.isUser(username);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -562,8 +559,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.getSalt(username);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -586,8 +581,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.register(username, hpassword, esalt);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -611,8 +604,6 @@ class TCPConnection extends Thread {
                 Server.iBei.subscribe(Server.server);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -635,8 +626,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.searchAuction(code);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -659,8 +648,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.detailAuction(id);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -683,8 +670,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.myAuctions(username);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -707,8 +692,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.bid(username, id, amount);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -731,8 +714,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.editAuction(username, id, title, description, deadline, code, amount);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -755,8 +736,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.message(username, id, text);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -779,8 +758,6 @@ class TCPConnection extends Thread {
                 reply = Server.iBei.onlineUsers(username);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION TO THE [RMISERVER] WAS LOST ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
                 } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
@@ -799,11 +776,9 @@ class TCPConnection extends Thread {
                 Server.iBei.startUpNotifications(username);
                 reconnected = true;
             } catch(Exception e) {
-                System.out.println("[SERVER] CONNECTION FAILED, ATTEMPTING ANOTHER TIME");
-
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiRegistryIP, Server.rmiRegistryPort).lookup("iBei");
-                } catch(Exception e2) {e2.printStackTrace();}
+                } catch(Exception e2) {}
             }
 
             if(!reconnected) {
@@ -863,14 +838,14 @@ class TCPConnection extends Thread {
 }
 
 class ServerLoad extends Thread {
-    private static MulticastSocket mcSocket;
-    private static int mcport = 8000;
-    private static int port;
-    private static String ipAddress;
+    private MulticastSocket mcSocket;
+    private int mcport = 10000;
+    private int port;
+    private String ipAddress;
 
     ServerLoad(String address, int tcpport) {
-        ipAddress = address;
-        port = tcpport;
+        this.ipAddress = address;
+        this.port = tcpport;
         this.start();
     }
 
@@ -878,7 +853,7 @@ class ServerLoad extends Thread {
         try {
             mcSocket = new MulticastSocket(mcport);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
+            e.printStackTrace();
             Thread.currentThread().interrupt();
             return;
         }
@@ -887,7 +862,7 @@ class ServerLoad extends Thread {
             InetAddress group = InetAddress.getByName("228.5.6.7");
             mcSocket.joinGroup(group);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
+            e.printStackTrace();
             Thread.currentThread().interrupt();
             return;
         }
@@ -896,7 +871,7 @@ class ServerLoad extends Thread {
         receiveOthersInfo();
     }
 
-    private static void sendMyInformation() {
+    private void sendMyInformation() {
 
         Timer timer = new Timer();
 
@@ -926,8 +901,8 @@ class ServerLoad extends Thread {
         }, 0, 1000);
     }
 
-    private static void receiveOthersInfo() {
-        ArrayList<String> serversList = new ArrayList<String>();
+    private void receiveOthersInfo() {
+        ArrayList<String> serversList = new ArrayList<>();
         boolean threadRunning = false;
 
         while(true) {
@@ -1036,7 +1011,7 @@ class ServerLoad extends Thread {
         }
     }
 
-    private static String parse(String parameter, String request) {
+    private String parse(String parameter, String request) {
         int j = 0, k = 0;
         int plen = parameter.length();
 
@@ -1077,7 +1052,7 @@ class ServerLoad extends Thread {
         return string;
     }
 
-    private static String parseString(String reply) {
+    private String parseString(String reply) {
 
         StringBuilder sb = new StringBuilder();
 
