@@ -40,6 +40,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         super();
     }
 
+    @SuppressWarnings("InfiniteLoopStatement")
     public static void main(String args[]) {
         if(args.length > 0) {
             System.out.println("ERROR: USAGE IS java TCPServer");
@@ -208,11 +209,12 @@ class TCPConnection extends Thread {
         try {
             inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             outToClient = new PrintWriter(clientSocket.getOutputStream(), true);
-            this.start();
         } catch(IOException e) {
-            System.out.println("ERROR: " + e.getMessage());
+            e.printStackTrace();
             Thread.currentThread().interrupt();
         }
+
+        this.start();
     }
 
     public void run() {
@@ -267,10 +269,10 @@ class TCPConnection extends Thread {
         if(username.equals("") && request.get("type").equals("login") && request.containsKey("username") && request.containsKey("password") && request.size() == 3) {
             System.out.println("[SERVER] LOGIN");
 
-            String user = isUser(request.get("username"));
+            String isUser = isUser(request.get("username"));
 
-            if(user.equals("NO")) return "type: login, ok: false";
-            else if(user.equals("SERVER DOWN")) return "[SERVER] CANNOT HANDLE THE REQUEST AT THIS MOMENT";
+            if(isUser.equals("NO")) return "type: login, ok: false, message: this user is not registered";
+            else if(isUser.equals("SERVER DOWN")) return "type: login, ok: false, message: we are experiencing some problems on our servers, try again later";
 
             String esalt;
             String dsalt;
@@ -299,10 +301,10 @@ class TCPConnection extends Thread {
         } else if(username.equals("") && request.get("type").equals("register") && request.containsKey("username") && request.containsKey("password") && request.size() == 3) {
             System.out.println("[SERVER] REGISTER");
 
-            String user = isUser(request.get("username"));
+            String isUser = isUser(request.get("username"));
 
-            if(user.equals("YES")) return "type: register, ok: false";
-            else if(user.equals("SERVER DOWN")) return "[SERVER] CANNOT HANDLE THE REQUEST AT THIS MOMENT";
+            if(isUser.equals("YES")) return "type: register, ok: false, message: this user already exists";
+            else if(isUser.equals("SERVER DOWN")) return "type: register, ok: false, message: we are experiencing some problems on our servers, try again later";
 
             String salt;
             String hpassword;
@@ -490,7 +492,7 @@ class TCPConnection extends Thread {
                 return "type: edit_auction, ok: false";
             }
         } else {
-            return "[SERVER] THIS IS NOT A VALID REQUEST";
+            return "type: " + request.get("type") + ", ok: false, message: this is not a valid request";
         }
     }
 
@@ -508,14 +510,14 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][LOGIN] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN")) reply = "type: login, ok: false, message: we are experiencing some problems on our servers, try again later";
         }
 
-        if(!reply.equals("SERVER DOWN")) return reply;
-        else return "[SERVER] CANNOT HANDLE THE REQUEST AT THIS MOMENT";
+        return reply;
 
     }
 
@@ -533,7 +535,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception ignored) {}
             }
 
             if(!reconnected) reply = reconnect(retries);
@@ -556,7 +558,7 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception ignored) {}
             }
 
             if(!reconnected) reply = reconnect(retries);
@@ -579,13 +581,14 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][REGISTER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
         }
 
-        cleanUpUUID(uuid);
+        if(reply.equals("SERVER DOWN")) reply = "type: register, ok: false, message: we are experiencing some problems on our servers, try again later";
+        else cleanUpUUID(uuid);
 
         return reply;
     }
@@ -604,13 +607,14 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][CREATE AUCTION] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
         }
 
-        cleanUpUUID(uuid);
+        if(reply.equals("SERVER DOWN")) reply = "type: create_auction, ok: false, message: we are experiencing some problems on our servers, try again later";
+        else cleanUpUUID(uuid);
 
         return reply;
     }
@@ -629,10 +633,11 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][SEARCH AUCTION] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN")) reply = "type: search_auction, items_count: 0, message: we are experiencing some problems on our servers, try again later";
         }
 
         return reply;
@@ -652,10 +657,11 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][DETAIL AUCTION] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN")) reply = "type: detail_auction, ok: false, message: we are experiencing some problems on our servers, try again later";
         }
 
         return reply;
@@ -675,10 +681,11 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][MY AUCTIONS] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN")) reply = "type: my_auction, items_count = 0, message: we are experiencing some problems on our servers, try again later";
         }
 
         return reply;
@@ -698,13 +705,14 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][BID] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
         }
 
-        cleanUpUUID(uuid);
+        if(reply.equals("SERVER DOWN")) reply = "type: bid, ok: false, message: we are experiencing some problems on our servers, try again later";
+        else cleanUpUUID(uuid);
 
         return reply;
     }
@@ -723,13 +731,14 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][EDIT AUCTION] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
         }
 
-        cleanUpUUID(uuid);
+        if(reply.equals("SERVER DOWN")) reply = "type: edit_auction, ok: false, message: we are experiencing some problems on our servers, try again later";
+        else cleanUpUUID(uuid);
 
         return reply;
     }
@@ -748,13 +757,14 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][MESSAGE] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
         }
 
-        cleanUpUUID(uuid);
+        if(reply.equals("SERVER DOWN")) reply = "type: message, ok: false, message: we are experiencing some problems on our servers, try again later";
+        else cleanUpUUID(uuid);
 
         return reply;
     }
@@ -773,10 +783,11 @@ class TCPConnection extends Thread {
             } catch(Exception e) {
                 try {
                     Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception e2) {System.out.println("[SERVER] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+                } catch(Exception e2) {System.out.println("[SERVER][ONLINE USERS] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
             }
 
             if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN")) reply = "type: online_users, users_count = 0, message: we are experiencing some problems on our servers, try again later";
         }
 
         return reply;

@@ -25,8 +25,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         super();
     }
 
-    RMIServer(boolean online) throws RemoteException {
+    RMIServer(boolean online, HashMap<String, Integer> requestsMap) throws RemoteException {
         RMIServer rmiServer = new RMIServer();
+        this.requestsMap = requestsMap;
 
         String user = "bd";
         String pass = "oracle";
@@ -54,7 +55,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                 primaryRMIServer();
             } catch(Exception e) {
-                System.out.println("ERROR: " + e.getMessage());
+                e.printStackTrace();
             }
         } else {
             try {
@@ -86,6 +87,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public static void main(String[] args) {
         System.setProperty("java.net.preferIPv4Stack" , "true");
         System.getProperties().put("java.security.policy", "policy.all");
+        //noinspection deprecation
         System.setSecurityManager(new RMISecurityManager());
 
         if(args.length > 0) {
@@ -94,7 +96,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         try {
-            new RMIServer(false);
+            new RMIServer(false, null);
         } catch(Exception e) {
             new SecondaryServer();
         }
@@ -205,13 +207,18 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
         if(requestsMap.containsKey(uuid)) {
-            if(requestsMap.get(uuid) == 1) return "type: register, ok: true";
+            System.out.println("I HAVE THIS UUID");
+            if(requestsMap.get(uuid) == 1) {
+                System.out.println("mudou a base de dados");
+                return "type: register, ok: true";
+            }
         } else {
+            System.out.println("I DONT HAVE THIS UUID");
+            System.out.println("nao mudou a base de dados");
+            if(getClientId(username) != -1) return "type: register, ok: false";
             requestsMap.put(uuid, 0);
-            // send map to the secondary server
+            new TCPSender(requestsMap);
         }
-
-        if(getClientId(username) != -1) return "type: register, ok: false";
 
         try {
             String registerQuery = "INSERT INTO client (client_id, username, hpassword, esalt) VALUES(clients_seq.nextVal, ?, ?, ?)";
@@ -229,12 +236,21 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 registerSet.close();
                 System.out.println("[RMISERVER] USER REGISTERED IN THE DATABASE WITH SUCCESS");
                 connection.commit();
+                System.out.println("vou dar um sleep");
+                try {
+                    Thread.sleep(10000);
+                } catch(InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("acabei o sleep");
                 requestsMap.replace(uuid, 0, 1);
-                // send the map to the secondary server
+                System.out.println("acabei de mudar o hashmap");
+                new TCPSender(requestsMap);
                 return "type: register, ok: true";
             }
         } catch(SQLException e) {
             e.printStackTrace();
+
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
             try {
                 connection.rollback();
@@ -296,7 +312,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             }
         } catch(Exception e) {
             e.printStackTrace();
-            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
+            try {
+                connection.rollback();
+            } catch(SQLException e1) {e1.printStackTrace();}
             return "type: create_auction, ok: false";
         }
     }
@@ -591,7 +611,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             }
         } catch(Exception e) {
             e.printStackTrace();
-            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
+            try {
+                connection.rollback();
+            } catch(SQLException e1) {e1.printStackTrace();}
             return "type: bid, ok: false";
         }
     }
@@ -759,7 +783,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         } catch(Exception e) {
             e.printStackTrace();
-            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
+            try {
+                connection.rollback();
+            } catch(SQLException e1) {e1.printStackTrace();}
             return "type: edit_auction, ok: false";
         }
     }
@@ -805,7 +833,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             }
         } catch(Exception e) {
             e.printStackTrace();
-            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
+            try {
+                connection.rollback();
+            } catch(SQLException e1) {e1.printStackTrace();}
             return "type: message, ok: false";
         }
     }
@@ -875,6 +907,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized void cleanUpUUID(String uuid) throws RemoteException {
         requestsMap.remove(uuid);
+        new TCPSender(requestsMap);
     }
 
     private int getClientId(String username) {
@@ -940,7 +973,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             }
         } catch(Exception e) {
             e.printStackTrace();
-            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
+            try {
+                connection.rollback();
+            } catch(SQLException e1) {e1.printStackTrace();}
         }
     }
 
@@ -1122,10 +1159,63 @@ class PrimaryServer extends Thread {
     }
 }
 
+class TCPSender extends Thread {
+
+    private HashMap<String, Integer> requestMap;
+
+    TCPSender(HashMap<String, Integer> requestMap) {
+        this.requestMap = requestMap;
+        this.start();
+    }
+
+    public void run() {
+        try {
+            Socket socket = new Socket(InetAddress.getByName(RMIServer.rmiHost), 47555);
+            System.out.println("[TCPSENDER] JUST CONNECTED TO SOMEONE");
+            ObjectOutputStream toReceiver = new ObjectOutputStream(socket.getOutputStream());
+            System.out.println("THIS IS THE REQUESTS MAP: " + requestMap + " SENDING IT NOW");
+            toReceiver.writeObject(requestMap);
+            socket.close();
+        } catch(IOException ignored) {}
+
+        interrupt();
+    }
+}
+
+class TCPReceiver extends Thread {
+
+    public Socket socket;
+
+    TCPReceiver() {
+        this.start();
+    }
+
+    @SuppressWarnings("InfiniteLoopStatement")
+    public void run() {
+        try {
+            ServerSocket serverSocket = new ServerSocket(47555);
+
+            while(true) {
+                socket = serverSocket.accept();
+                System.out.println("[TCPRECEIVER] someone just connected to me");
+                ObjectInputStream fromSender = new ObjectInputStream(socket.getInputStream());
+                HashMap<String, Integer> requestMap = (HashMap<String, Integer>) fromSender.readObject();
+
+                System.out.println("THIS IS THE MAP I RECEIVED: " + requestMap + " AND IM AM A MEGA BOSS");
+                System.out.println("CHUTAR ISTO PARA O SECONDARY SERVER");
+                SecondaryServer.requestMap = requestMap;
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
 class SecondaryServer extends Thread {
 
     private DatagramSocket udpSocket;
     private int count = 0;
+    static HashMap<String, Integer> requestMap;
 
     SecondaryServer() {
         this.start();
@@ -1133,13 +1223,13 @@ class SecondaryServer extends Thread {
 
     public void run() {
 
-        // criar aqui a ligaçao pada o servidor primário para poder receber a lista actualizada de pedidos
+        new TCPReceiver();
 
         try {
             udpSocket = new DatagramSocket();
             udpSocket.setSoTimeout(500);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
+            e.printStackTrace();
             Thread.currentThread().interrupt();
             return;
         }
@@ -1149,7 +1239,7 @@ class SecondaryServer extends Thread {
         try {
             ipAddress = InetAddress.getByName(RMIServer.rmiHost);
         } catch(Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
+            e.printStackTrace();
             Thread.currentThread().interrupt();
             return;
         }
@@ -1175,9 +1265,9 @@ class SecondaryServer extends Thread {
         } catch(SocketTimeoutException ste) {
 
             try {
-                new RMIServer(true);
+                new RMIServer(true, requestMap);
             } catch(Exception e) {
-                System.out.println("ERROR: " + e.getMessage());
+                e.printStackTrace();
                 Thread.currentThread().interrupt();
                 return;
             }
@@ -1189,7 +1279,7 @@ class SecondaryServer extends Thread {
             return;
         }
 
-        System.out.println("[RMISERVER] IM THE SECONDARY SERVER");
+        System.out.println("[SECONDARY RMISERVER] STARTING THE TESTS OF THE PRIMARY RMISERVER");
 
         Timer timer = new Timer();
 
@@ -1199,7 +1289,7 @@ class SecondaryServer extends Thread {
                 try {
                     udpSocket.setSoTimeout(2000);
                 } catch(Exception e) {
-                    System.out.println("ERROR: " + e.getMessage());
+                    e.printStackTrace();
                     timer.cancel();
                     return;
                 }
@@ -1209,7 +1299,7 @@ class SecondaryServer extends Thread {
                 try {
                     ipAddress = InetAddress.getByName(RMIServer.rmiHost);
                 } catch(Exception e) {
-                    System.out.println("ERROR: " + e.getMessage());
+                    e.printStackTrace();
                     timer.cancel();
                     return;
                 }
@@ -1250,15 +1340,17 @@ class SecondaryServer extends Thread {
 
                 String newString = sb.toString();
 
-                if(!(newString.equals("Y"))) {
-                    System.out.println("PRIMARY SERVER FAILED TO RESPOND");
-                } else System.out.println("PRIMARY SERVER IS ALIVE");
+                System.out.println("THIS IS THE REQUESTS MAP: " + requestMap);
 
-                if(count == 12) {
+                if(!(newString.equals("Y"))) {
+                    System.out.println("[SECONDARY RMISERVER] PRIMARY RMISERVER FAILED TO RESPOND");
+                } else System.out.println("[SECONDARY RMISERVER] PRIMARY RMISERVER IS ALIVE");
+
+                if(count == 6) {
                     try {
-                        new RMIServer(true);
+                        new RMIServer(true, requestMap);
                     } catch(Exception e) {
-                        System.out.println("ERROR: " + e);
+                        e.printStackTrace();
                         timer.cancel();
                         return;
                     }
@@ -1444,7 +1536,11 @@ class MessagePool extends Thread {
             }
         } catch(Exception e) {
             e.printStackTrace();
-            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
+            try {
+                RMIServer.connection.rollback();
+            } catch(SQLException e1) {e1.printStackTrace();}
             interrupt();
         }
 
