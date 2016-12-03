@@ -34,6 +34,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     static ArrayList <Socket> clientSockets = new ArrayList<>();
     static ArrayList<ClientObject> listOfClients = new ArrayList<>();
     static AuctionInterface iBei;
+
     public static Server server;
 
     private Server() throws RemoteException {
@@ -201,6 +202,7 @@ class TCPConnection extends Thread {
     private ClientObject client;
 
     private String username = "";
+    private int numberOfRetries = 40;
 
     TCPConnection(Socket pclientSocket) {
         this.username = "";
@@ -498,10 +500,10 @@ class TCPConnection extends Thread {
 
     private String logIn(String username, String password) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.login(username, password);
@@ -523,10 +525,10 @@ class TCPConnection extends Thread {
 
     private String isUser(String username) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.isUser(username);
@@ -546,10 +548,10 @@ class TCPConnection extends Thread {
 
     private String getSalt(String username) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.getSalt(username);
@@ -569,10 +571,10 @@ class TCPConnection extends Thread {
 
     private String register(String uuid, String username, String hpassword, String esalt) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.register(uuid, username, hpassword, esalt);
@@ -595,10 +597,10 @@ class TCPConnection extends Thread {
 
     private String createAuction(String uuid, String username, String code, String title, String description, String deadline, float amount) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.createAuction(uuid, username, code, title, description, deadline, amount);
@@ -621,10 +623,10 @@ class TCPConnection extends Thread {
 
     private String searchAuction(String code) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.searchAuction(code);
@@ -645,10 +647,10 @@ class TCPConnection extends Thread {
 
     private String detailAuction(int id) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.detailAuction(id);
@@ -669,10 +671,10 @@ class TCPConnection extends Thread {
 
     private String myAuctions(String username) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.myAuctions(username);
@@ -693,10 +695,10 @@ class TCPConnection extends Thread {
 
     private String bid(String uuid, String username, int id, float amount) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.bid(uuid, username, id, amount);
@@ -719,10 +721,10 @@ class TCPConnection extends Thread {
 
     private String editAuction(String uuid, String username, int id, String title, String description, String deadline, String code, float amount) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.editAuction(uuid, username, id, title, description, deadline, code, amount);
@@ -745,10 +747,10 @@ class TCPConnection extends Thread {
 
     private String message(String uuid, String username, int id, String text) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.message(uuid, username, id, text);
@@ -771,10 +773,10 @@ class TCPConnection extends Thread {
 
     private String onlineUsers(String username) {
         String reply = "";
-
         int retries = 0;
         boolean reconnected = false;
-        while(!reconnected && retries < 4) {
+
+        while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
                 reply = Server.iBei.onlineUsers(username);
@@ -795,6 +797,7 @@ class TCPConnection extends Thread {
 
     private void getNotifications(String username) {
         boolean reconnected = false;
+
         while(!reconnected) {
             try {
                 Server.iBei.startUpNotifications(username);
@@ -818,6 +821,7 @@ class TCPConnection extends Thread {
 
     private void cleanUpUUID(String uuid) {
         boolean reconnected = false;
+
         while(!reconnected) {
             try {
                 Server.iBei.cleanUpUUID(uuid);
@@ -870,11 +874,11 @@ class TCPConnection extends Thread {
     }
 
     private String reconnect(int retries) {
-        if(retries == 4) {
+        if(retries == numberOfRetries) {
             return "SERVER DOWN";
         } else {
             try {
-                Thread.sleep(10000);
+                Thread.sleep(1000);
                 return "JUST SLEPT";
             } catch (InterruptedException e) {
                 e.printStackTrace();

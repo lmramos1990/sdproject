@@ -15,7 +15,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
     public static Connection connection;
 
-    private HashMap<String, Integer> requestsMap = new HashMap<>();
+    private static HashMap<String, Integer> requestsMap = new HashMap<>();
 
     static ArrayList<NotificationCenter> serverList = new ArrayList<>();
     static String rmiHost;
@@ -27,7 +27,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     RMIServer(boolean online, HashMap<String, Integer> requestsMap) throws RemoteException {
         RMIServer rmiServer = new RMIServer();
-        this.requestsMap = requestsMap;
+        if(requestsMap != null) RMIServer.requestsMap = new HashMap<>(requestsMap);
 
         String user = "bd";
         String pass = "oracle";
@@ -82,6 +82,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public void subscribe(NotificationCenter nc) throws RemoteException {
         if(serverList.indexOf(nc) == -1) serverList.add(nc);
+        else serverList.set(serverList.indexOf(nc), nc);
     }
 
     public static void main(String[] args) {
@@ -128,7 +129,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    private static void primaryRMIServer() {
+    private void primaryRMIServer() {
         System.out.println("[RMISERVER] IM THE PRIMARY SERVER");
         new PrimaryServer();
     }
@@ -207,14 +208,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
         if(requestsMap.containsKey(uuid)) {
-            System.out.println("I HAVE THIS UUID");
             if(requestsMap.get(uuid) == 1) {
-                System.out.println("mudou a base de dados");
                 return "type: register, ok: true";
             }
         } else {
-            System.out.println("I DONT HAVE THIS UUID");
-            System.out.println("nao mudou a base de dados");
             if(getClientId(username) != -1) return "type: register, ok: false";
             requestsMap.put(uuid, 0);
             new TCPSender(requestsMap);
@@ -236,16 +233,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 registerSet.close();
                 System.out.println("[RMISERVER] USER REGISTERED IN THE DATABASE WITH SUCCESS");
                 connection.commit();
-                System.out.println("vou dar um sleep");
-                try {
-                    Thread.sleep(10000);
-                } catch(InterruptedException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("acabei o sleep");
+
                 requestsMap.replace(uuid, 0, 1);
-                System.out.println("acabei de mudar o hashmap");
                 new TCPSender(requestsMap);
+
                 return "type: register, ok: true";
             }
         } catch(SQLException e) {
@@ -1171,9 +1162,7 @@ class TCPSender extends Thread {
     public void run() {
         try {
             Socket socket = new Socket(InetAddress.getByName(RMIServer.rmiHost), 47555);
-            System.out.println("[TCPSENDER] JUST CONNECTED TO SOMEONE");
             ObjectOutputStream toReceiver = new ObjectOutputStream(socket.getOutputStream());
-            System.out.println("THIS IS THE REQUESTS MAP: " + requestMap + " SENDING IT NOW");
             toReceiver.writeObject(requestMap);
             socket.close();
         } catch(IOException ignored) {}
@@ -1184,7 +1173,7 @@ class TCPSender extends Thread {
 
 class TCPReceiver extends Thread {
 
-    public Socket socket;
+    static ServerSocket serverSocket;
 
     TCPReceiver() {
         this.start();
@@ -1193,17 +1182,16 @@ class TCPReceiver extends Thread {
     @SuppressWarnings("InfiniteLoopStatement")
     public void run() {
         try {
-            ServerSocket serverSocket = new ServerSocket(47555);
+
+            System.out.println("BEFORE CREATING A SERVER SOCKET");
+            serverSocket = new ServerSocket(47555);
+            System.out.println("AFTER CREATING A SERVER SOCKET");
 
             while(true) {
-                socket = serverSocket.accept();
-                System.out.println("[TCPRECEIVER] someone just connected to me");
+                Socket socket = serverSocket.accept();
                 ObjectInputStream fromSender = new ObjectInputStream(socket.getInputStream());
-                HashMap<String, Integer> requestMap = (HashMap<String, Integer>) fromSender.readObject();
 
-                System.out.println("THIS IS THE MAP I RECEIVED: " + requestMap + " AND IM AM A MEGA BOSS");
-                System.out.println("CHUTAR ISTO PARA O SECONDARY SERVER");
-                SecondaryServer.requestMap = requestMap;
+                SecondaryServer.requestMap = (HashMap<String, Integer>) fromSender.readObject();
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -1212,7 +1200,6 @@ class TCPReceiver extends Thread {
 }
 
 class SecondaryServer extends Thread {
-
     private DatagramSocket udpSocket;
     private int count = 0;
     static HashMap<String, Integer> requestMap;
@@ -1340,14 +1327,14 @@ class SecondaryServer extends Thread {
 
                 String newString = sb.toString();
 
-                System.out.println("THIS IS THE REQUESTS MAP: " + requestMap);
-
                 if(!(newString.equals("Y"))) {
                     System.out.println("[SECONDARY RMISERVER] PRIMARY RMISERVER FAILED TO RESPOND");
                 } else System.out.println("[SECONDARY RMISERVER] PRIMARY RMISERVER IS ALIVE");
 
                 if(count == 6) {
                     try {
+                        TCPReceiver.serverSocket.close();
+                        TCPReceiver.currentThread().interrupt();
                         new RMIServer(true, requestMap);
                     } catch(Exception e) {
                         e.printStackTrace();
