@@ -251,7 +251,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == 1) {
+            if(aServerList.getRequestDBStatus(uuid) == -1) {
+                aServerList.addToList(uuid);
+            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
                 return "type: create_auction, ok: true";
             }
         }
@@ -542,10 +544,14 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] BID REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == 1) {
+            if(aServerList.getRequestDBStatus(uuid) == -1) {
+                aServerList.addToList(uuid);
+            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
                 return "type: bid, ok: true";
             }
         }
+
+
 
         int clientId = getClientId(username);
         if(clientId == -1) return "type: bid, ok: false";
@@ -611,7 +617,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] EDIT AUCTION REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == 1) {
+            if(aServerList.getRequestDBStatus(uuid) == -1) {
+                aServerList.addToList(uuid);
+            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
                 return "type: edit_auction, ok: true";
             }
         }
@@ -784,7 +792,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] MESSAGE REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == 1) {
+            if(aServerList.getRequestDBStatus(uuid) == -1) {
+                aServerList.addToList(uuid);
+            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
                 return "type: message, ok: true";
             }
         }
