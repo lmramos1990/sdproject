@@ -213,6 +213,10 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
 
         return -1;
     }
+
+    public void addToList(String uuid) throws RemoteException {
+        requests.add(new RequestObject(uuid, 0));
+    }
 }
 
 class TCPConnection extends Thread {
@@ -893,7 +897,6 @@ class TCPConnection extends Thread {
             }
         }
     }
-
 }
 
 class ServerLoad extends Thread {

@@ -205,7 +205,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == 1) {
+            if(aServerList.getRequestDBStatus(uuid) == -1) {
+                aServerList.addToList(uuid);
+            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
                 return "type: register, ok: true";
             }
         }
