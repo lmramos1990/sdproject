@@ -36,6 +36,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     static AuctionInterface iBei;
 
     public static Server server;
+    private ArrayList<RequestObject> requests = new ArrayList<>();
 
     private Server() throws RemoteException {
         super();
@@ -174,14 +175,14 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     public ArrayList getOnlineUsers() throws RemoteException {
         ArrayList<String> onlineUsersList = new ArrayList<>();
 
-        for(int i = 0; i < Server.listOfClients.size(); i++) {
-            onlineUsersList.add(Server.listOfClients.get(i).getUsername());
+        for(ClientObject listOfClient : listOfClients) {
+            onlineUsersList.add(listOfClient.getUsername());
         }
 
         return onlineUsersList;
     }
 
-    public void sendNotificationToUser(String username, String message) {
+    public void sendNotificationToUser(String username, String message) throws RemoteException {
         PrintWriter toTheClient;
 
         for(int i = 0; i < Server.listOfClients.size(); i++) {
@@ -192,6 +193,25 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
                 } catch(Exception e) {e.printStackTrace();}
             }
         }
+    }
+
+    public void updateRequest(String uuid) throws RemoteException {
+        for(RequestObject request : requests) {
+            if(uuid.equals(request.getUUID())) {
+                request.setModified(1);
+                return;
+            }
+        }
+    }
+
+    public int getRequestDBStatus(String uuid) throws RemoteException {
+        for (RequestObject request : requests) {
+            if(uuid.equals(request.getUUID())) {
+                return request.getModified();
+            }
+        }
+
+        return -1;
     }
 }
 
@@ -820,27 +840,7 @@ class TCPConnection extends Thread {
     }
 
     private void cleanUpUUID(String uuid) {
-        boolean reconnected = false;
-
-        while(!reconnected) {
-            try {
-                Server.iBei.cleanUpUUID(uuid);
-                Server.iBei.subscribe(Server.server);
-                reconnected = true;
-            } catch(Exception e) {
-                try {
-                    Server.iBei = (AuctionInterface) LocateRegistry.getRegistry(Server.rmiHost, Server.registryPort).lookup("iBei");
-                } catch(Exception ignored) {}
-            }
-
-            if(!reconnected) {
-                try {
-                    Thread.sleep(10000);
-                } catch(Exception sleep) {
-                    return;
-                }
-            }
-        }
+        // REMOVE THINGS FROM THE REQUESTS LIST
     }
 
     private String generateStrongPasswordHash(String password, String salt) throws NoSuchAlgorithmException, InvalidKeySpecException {

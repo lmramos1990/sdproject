@@ -15,8 +15,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
     public static Connection connection;
 
-    private static HashMap<String, Integer> requestsMap = new HashMap<>();
-
     static ArrayList<NotificationCenter> serverList = new ArrayList<>();
     static String rmiHost;
     private int registryPort;
@@ -25,9 +23,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         super();
     }
 
-    RMIServer(boolean online, HashMap<String, Integer> requestsMap) throws RemoteException {
+    RMIServer(boolean online) throws RemoteException {
         RMIServer rmiServer = new RMIServer();
-        if(requestsMap != null) RMIServer.requestsMap = new HashMap<>(requestsMap);
 
         String user = "bd";
         String pass = "oracle";
@@ -97,7 +94,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         try {
-            new RMIServer(false, null);
+            new RMIServer(false);
         } catch(Exception e) {
             new SecondaryServer();
         }
@@ -207,15 +204,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String register(String uuid, String username, String hpassword, String esalt) throws RemoteException {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
-        if(requestsMap.containsKey(uuid)) {
-            if(requestsMap.get(uuid) == 1) {
+        for(NotificationCenter aServerList : serverList) {
+            if(aServerList.getRequestDBStatus(uuid) == 1) {
                 return "type: register, ok: true";
             }
-        } else {
-            if(getClientId(username) != -1) return "type: register, ok: false";
-            requestsMap.put(uuid, 0);
-            new TCPSender(requestsMap);
         }
+
+        if(getClientId(username) != -1) return "type: register, ok: false";
 
         try {
             String registerQuery = "INSERT INTO client (client_id, username, hpassword, esalt) VALUES(clients_seq.nextVal, ?, ?, ?)";
@@ -231,11 +226,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return "type: register, ok: false";
             } else {
                 registerSet.close();
-                System.out.println("[RMISERVER] USER REGISTERED IN THE DATABASE WITH SUCCESS");
                 connection.commit();
-
-                requestsMap.replace(uuid, 0, 1);
-                new TCPSender(requestsMap);
+                System.out.println("[RMISERVER] USER REGISTERED IN THE DATABASE WITH SUCCESS");
+                for(NotificationCenter aServerList : serverList) {
+                    aServerList.updateRequest(uuid);
+                }
 
                 return "type: register, ok: true";
             }
@@ -253,14 +248,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String createAuction(String uuid, String username, String code, String title, String description, String deadline, float amount) throws RemoteException {
         System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
 
-        if(requestsMap.containsKey(uuid)) {
-            if(requestsMap.get(uuid) == 1) return "type: create_auction, ok: true";
-        } else {
-            requestsMap.put(uuid, 0);
-            new TCPSender(requestsMap);
+        for(NotificationCenter aServerList : serverList) {
+            if(aServerList.getRequestDBStatus(uuid) == 1) {
+                return "type: create_auction, ok: true";
+            }
         }
-
-
 
         int clientId = getClientId(username);
         if(clientId == -1) return "type: create_auction, ok: false";
@@ -296,9 +288,12 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             } else {
                 createAuctionSet.close();
                 connection.commit();
-                requestsMap.replace(uuid, 0, 1);
-                new TCPSender(requestsMap);
                 System.out.println("[RMISERVER] AUCTION REGISTERED IN THE DATABASE WITH SUCCESS");
+
+                for(NotificationCenter aServerList : serverList) {
+                    aServerList.updateRequest(uuid);
+                }
+
                 return "type: create_auction, ok: true";
             }
         } catch(Exception e) {
@@ -492,13 +487,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         try {
             ArrayList<Integer> myAuctions = new ArrayList<>();
 
-            String getAuctionsQuery = "SELECT DISTINCT auction_id FROM auction WHERE (SELECT client_id FROM bid WHERE client_id = ?) = ? OR (SELECT client_id FROM message WHERE client_id = ?) = ? OR client_id = ?";
+            String getAuctionsQuery = "SELECT DISTINCT bid.auction_id FROM bid WHERE bid.client_id = ? UNION SELECT DISTINCT message.auction_id FROM message WHERE message.client_id = ? UNION SELECT DISTINCT auction.auction_id FROM auction WHERE auction.client_id = ?";
             PreparedStatement getAuctionsStatement = connection.prepareStatement(getAuctionsQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             getAuctionsStatement.setInt(1, clientId);
             getAuctionsStatement.setInt(2, clientId);
             getAuctionsStatement.setInt(3, clientId);
-            getAuctionsStatement.setInt(4, clientId);
-            getAuctionsStatement.setInt(5, clientId);
             ResultSet getAuctionsSet = getAuctionsStatement.executeQuery();
 
             if(!getAuctionsSet.next()) {
@@ -546,11 +539,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String bid(String uuid, String username, int id, float amount) throws RemoteException {
         System.out.println("[RMISERVER] BID REQUEST");
 
-        if(requestsMap.containsKey(uuid)) {
-            if(requestsMap.get(uuid) == 1) return "type: bid, ok: true";
-        } else {
-            requestsMap.put(uuid, 0);
-            new TCPSender(requestsMap);
+        for(NotificationCenter aServerList : serverList) {
+            if(aServerList.getRequestDBStatus(uuid) == 1) {
+                return "type: bid, ok: true";
+            }
         }
 
         int clientId = getClientId(username);
@@ -591,9 +583,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 } else {
                     updateSet.close();
                     connection.commit();
-                    requestsMap.replace(uuid, 0, 1);
-                    new TCPSender(requestsMap);
                     System.out.println("[RMISERVER] AUCTION WAS UPDATED WITH SUCCESS");
+
+                    for(NotificationCenter aServerList : serverList) {
+                        aServerList.updateRequest(uuid);
+                    }
 
                     new BidsPool(username, clientId, auctionId, amount);
 
@@ -614,12 +608,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String editAuction(String uuid, String username, int id, String title, String description, String deadline, String code, float amount) throws RemoteException {
         System.out.println("[RMISERVER] EDIT AUCTION REQUEST");
 
-
-        if(requestsMap.containsKey(uuid)) {
-            if(requestsMap.get(uuid) == 1) return "type: edit_auction, ok: true";
-        } else {
-            requestsMap.put(uuid, 0);
-            new TCPSender(requestsMap);
+        for(NotificationCenter aServerList : serverList) {
+            if(aServerList.getRequestDBStatus(uuid) == 1) {
+                return "type: edit_auction, ok: true";
+            }
         }
 
         int atitle;
@@ -766,9 +758,12 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             } else {
                 updateSet.close();
                 connection.commit();
-                requestsMap.replace(uuid, 0, 1);
-                new TCPSender(requestsMap);
                 System.out.println("[RMISERVER] REGISTERED CHANGES IN THE AUCTION");
+
+                for(NotificationCenter aServerList : serverList) {
+                    aServerList.updateRequest(uuid);
+                }
+
                 return "type: edit_auction, ok: true";
             }
 
@@ -786,11 +781,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String message(String uuid, String username, int id, String text) throws RemoteException {
         System.out.println("[RMISERVER] MESSAGE REQUEST");
 
-        if(requestsMap.containsKey(uuid)) {
-            if(requestsMap.get(uuid) == 1) return "type: message, ok: true";
-        } else {
-            requestsMap.put(uuid, 0);
-            new TCPSender(requestsMap);
+        for(NotificationCenter aServerList : serverList) {
+            if(aServerList.getRequestDBStatus(uuid) == 1) {
+                return "type: message, ok: true";
+            }
         }
 
         int clientId = getClientId(username);
@@ -814,9 +808,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             } else {
                 messageSet.close();
                 connection.commit();
-                requestsMap.replace(uuid, 0, 1);
-                new TCPSender(requestsMap);
                 System.out.println("[RMISERVER] MESSAGE WAS REGISTERED IN THE DATABASE WITH SUCCESS");
+
+                for(NotificationCenter aServerList : serverList) {
+                    aServerList.updateRequest(uuid);
+                }
 
                 new MessagePool(username, clientId, auctionId, text);
 
@@ -894,11 +890,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
         }
-    }
-
-    public synchronized void cleanUpUUID(String uuid) throws RemoteException {
-        requestsMap.remove(uuid);
-        new TCPSender(requestsMap);
     }
 
     private int getClientId(String username) {
@@ -1150,67 +1141,15 @@ class PrimaryServer extends Thread {
     }
 }
 
-class TCPSender extends Thread {
-
-    private HashMap<String, Integer> requestMap;
-
-    TCPSender(HashMap<String, Integer> requestMap) {
-        this.requestMap = requestMap;
-        this.start();
-    }
-
-    public void run() {
-        try {
-            Socket socket = new Socket(InetAddress.getByName(RMIServer.rmiHost), 47555);
-            ObjectOutputStream toReceiver = new ObjectOutputStream(socket.getOutputStream());
-            toReceiver.writeObject(requestMap);
-            socket.close();
-        } catch(IOException ignored) {}
-
-        interrupt();
-    }
-}
-
-class TCPReceiver extends Thread {
-
-    static ServerSocket serverSocket;
-
-    TCPReceiver() {
-        this.start();
-    }
-
-    @SuppressWarnings("InfiniteLoopStatement")
-    public void run() {
-        try {
-
-            System.out.println("BEFORE CREATING A SERVER SOCKET");
-            serverSocket = new ServerSocket(47555);
-            System.out.println("AFTER CREATING A SERVER SOCKET");
-
-            while(true) {
-                Socket socket = serverSocket.accept();
-                ObjectInputStream fromSender = new ObjectInputStream(socket.getInputStream());
-
-                SecondaryServer.requestMap = (HashMap<String, Integer>) fromSender.readObject();
-            }
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-}
-
 class SecondaryServer extends Thread {
     private DatagramSocket udpSocket;
     private int count = 0;
-    static HashMap<String, Integer> requestMap;
 
     SecondaryServer() {
         this.start();
     }
 
     public void run() {
-
-        new TCPReceiver();
 
         try {
             udpSocket = new DatagramSocket();
@@ -1252,7 +1191,7 @@ class SecondaryServer extends Thread {
         } catch(SocketTimeoutException ste) {
 
             try {
-                new RMIServer(true, requestMap);
+                new RMIServer(true);
             } catch(Exception e) {
                 e.printStackTrace();
                 Thread.currentThread().interrupt();
@@ -1333,9 +1272,7 @@ class SecondaryServer extends Thread {
 
                 if(count == 6) {
                     try {
-                        TCPReceiver.serverSocket.close();
-                        TCPReceiver.currentThread().interrupt();
-                        new RMIServer(true, requestMap);
+                        new RMIServer(true);
                     } catch(Exception e) {
                         e.printStackTrace();
                         timer.cancel();
