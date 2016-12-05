@@ -257,7 +257,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             if(requestsMap.get(uuid) == 1) return "type: create_auction, ok: true";
         } else {
             requestsMap.put(uuid, 0);
-            // send map to the secondary server
+            new TCPSender(requestsMap);
         }
 
 
@@ -297,7 +297,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 createAuctionSet.close();
                 connection.commit();
                 requestsMap.replace(uuid, 0, 1);
-                // enviar este hm para o servidor secundario
+                new TCPSender(requestsMap);
                 System.out.println("[RMISERVER] AUCTION REGISTERED IN THE DATABASE WITH SUCCESS");
                 return "type: create_auction, ok: true";
             }
@@ -550,7 +550,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             if(requestsMap.get(uuid) == 1) return "type: bid, ok: true";
         } else {
             requestsMap.put(uuid, 0);
-            // send map to the secondary server
+            new TCPSender(requestsMap);
         }
 
         int clientId = getClientId(username);
@@ -592,7 +592,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     updateSet.close();
                     connection.commit();
                     requestsMap.replace(uuid, 0, 1);
-                    // enviar par ao servidor secundario
+                    new TCPSender(requestsMap);
                     System.out.println("[RMISERVER] AUCTION WAS UPDATED WITH SUCCESS");
 
                     new BidsPool(username, clientId, auctionId, amount);
@@ -619,7 +619,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             if(requestsMap.get(uuid) == 1) return "type: edit_auction, ok: true";
         } else {
             requestsMap.put(uuid, 0);
-            // send map to the secondary server
+            new TCPSender(requestsMap);
         }
 
         int atitle;
@@ -767,7 +767,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 updateSet.close();
                 connection.commit();
                 requestsMap.replace(uuid, 0, 1);
-                // enviar para o servidor secundario
+                new TCPSender(requestsMap);
                 System.out.println("[RMISERVER] REGISTERED CHANGES IN THE AUCTION");
                 return "type: edit_auction, ok: true";
             }
@@ -790,7 +790,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             if(requestsMap.get(uuid) == 1) return "type: message, ok: true";
         } else {
             requestsMap.put(uuid, 0);
-            // send map to the secondary server
+            new TCPSender(requestsMap);
         }
 
         int clientId = getClientId(username);
@@ -815,7 +815,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 messageSet.close();
                 connection.commit();
                 requestsMap.replace(uuid, 0, 1);
-                // enviar para o servidor secundario
+                new TCPSender(requestsMap);
                 System.out.println("[RMISERVER] MESSAGE WAS REGISTERED IN THE DATABASE WITH SUCCESS");
 
                 new MessagePool(username, clientId, auctionId, text);
