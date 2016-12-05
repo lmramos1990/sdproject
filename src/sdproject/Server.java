@@ -36,7 +36,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     static AuctionInterface iBei;
 
     public static Server server;
-    private ArrayList<RequestObject> requests = new ArrayList<>();
+    static ArrayList<RequestObject> requests = new ArrayList<>();
 
     private Server() throws RemoteException {
         super();
@@ -840,7 +840,14 @@ class TCPConnection extends Thread {
     }
 
     private void cleanUpUUID(String uuid) {
-        // REMOVE THINGS FROM THE REQUESTS LIST
+        synchronized(this) {
+            for(int i = 0; i < Server.requests.size(); i++) {
+                if(uuid.equals(Server.requests.get(i).getUUID())) {
+                    Server.requests.remove(i);
+                    return;
+                }
+            }
+        }
     }
 
     private String generateStrongPasswordHash(String password, String salt) throws NoSuchAlgorithmException, InvalidKeySpecException {
