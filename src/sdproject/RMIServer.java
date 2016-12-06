@@ -231,6 +231,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     aServerList.updateRequest(uuid);
                 }
 
+                test(10000);
+
                 return "type: register, ok: true";
             }
         } catch(SQLException e) {
@@ -1107,6 +1109,14 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         return onlineUsers;
+    }
+
+    private void test(int ms) {
+        try {
+            Thread.sleep(ms);
+        } catch(InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
 

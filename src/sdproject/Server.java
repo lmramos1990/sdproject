@@ -213,6 +213,13 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         return -1;
     }
 
+//    private void printRequestObjects() {
+//        for (RequestObject request : requests) {
+//            System.out.println("REQUEST UUID: " + request.getUUID());
+//            System.out.println("REQUEST FLAG: " + request.getModified());
+//        }
+//    }
+
 }
 
 class TCPConnection extends Thread {
@@ -541,8 +548,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.login(username, password);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.login(username, password);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -566,8 +573,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.isUser(username);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.isUser(username);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -589,8 +596,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.getSalt(username);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.getSalt(username);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -612,8 +619,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.register(uuid, username, hpassword, esalt);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.register(uuid, username, hpassword, esalt);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -638,8 +645,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.createAuction(uuid, username, code, title, description, deadline, amount);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.createAuction(uuid, username, code, title, description, deadline, amount);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -664,8 +671,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.searchAuction(code);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.searchAuction(code);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -688,8 +695,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.detailAuction(id);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.detailAuction(id);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -712,8 +719,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.myAuctions(username);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.myAuctions(username);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -736,8 +743,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.bid(uuid, username, id, amount);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.bid(uuid, username, id, amount);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -762,8 +769,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.editAuction(uuid, username, id, title, description, deadline, code, amount);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.editAuction(uuid, username, id, title, description, deadline, code, amount);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -788,8 +795,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.message(uuid, username, id, text);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.message(uuid, username, id, text);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -814,8 +821,8 @@ class TCPConnection extends Thread {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = Server.iBei.onlineUsers(username);
                 Server.iBei.subscribe(Server.server);
+                reply = Server.iBei.onlineUsers(username);
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -835,8 +842,8 @@ class TCPConnection extends Thread {
 
         while(!reconnected) {
             try {
-                Server.iBei.startUpNotifications(username);
                 Server.iBei.subscribe(Server.server);
+                Server.iBei.startUpNotifications(username);
                 reconnected = true;
             } catch(Exception e) {
                 try {
