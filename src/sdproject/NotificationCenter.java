@@ -9,6 +9,5 @@ public interface NotificationCenter extends Remote {
     ArrayList getOnlineUsers() throws RemoteException;
     void sendNotificationToUser(String username, String message) throws RemoteException;
     void updateRequest(String uuid) throws RemoteException;
-    int getRequestDBStatus(String uuid) throws RemoteException;
-    void addToList(String uuid) throws RemoteException;
+    int requestStatus(String uuid) throws RemoteException;
 }

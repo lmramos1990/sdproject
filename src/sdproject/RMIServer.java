@@ -205,11 +205,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == -1) {
-                aServerList.addToList(uuid);
-            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
-                return "type: register, ok: true";
-            }
+            if(aServerList.requestStatus(uuid) == 1) return "type: register, ok: true";
         }
 
         if(getClientId(username) != -1) return "type: register, ok: false";
@@ -251,11 +247,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == -1) {
-                aServerList.addToList(uuid);
-            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
-                return "type: create_auction, ok: true";
-            }
+            if(aServerList.requestStatus(uuid) == 1) return "type: create_auction, ok: true";
         }
 
         int clientId = getClientId(username);
@@ -544,11 +536,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] BID REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == -1) {
-                aServerList.addToList(uuid);
-            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
-                return "type: bid, ok: true";
-            }
+            if(aServerList.requestStatus(uuid) == 1) return "type: bid, ok: true";
         }
 
 
@@ -617,11 +605,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] EDIT AUCTION REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == -1) {
-                aServerList.addToList(uuid);
-            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
-                return "type: edit_auction, ok: true";
-            }
+            if(aServerList.requestStatus(uuid) == 1) return "type: edit_auction, ok: true";
         }
 
         int atitle;
@@ -792,11 +776,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] MESSAGE REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
-            if(aServerList.getRequestDBStatus(uuid) == -1) {
-                aServerList.addToList(uuid);
-            } else if(aServerList.getRequestDBStatus(uuid) == 1) {
-                return "type: message, ok: true";
-            }
+            if(aServerList.requestStatus(uuid) == 1) return "type: message, ok: true";
         }
 
         int clientId = getClientId(username);

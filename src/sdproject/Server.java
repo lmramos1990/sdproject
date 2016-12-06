@@ -204,19 +204,15 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         }
     }
 
-    public int getRequestDBStatus(String uuid) throws RemoteException {
-        for (RequestObject request : requests) {
+    public int requestStatus(String uuid) throws RemoteException {
+        for(RequestObject request : requests) {
             if(uuid.equals(request.getUUID())) {
                 return request.getModified();
             }
         }
-
         return -1;
     }
 
-    public void addToList(String uuid) throws RemoteException {
-        requests.add(new RequestObject(uuid, 0));
-    }
 }
 
 class TCPConnection extends Thread {
@@ -347,6 +343,9 @@ class TCPConnection extends Thread {
             }
 
             String uuid = UUID.randomUUID().toString();
+            RequestObject requestObject = new RequestObject(uuid, 0);
+
+            if(!Server.requests.contains(requestObject)) Server.requests.add(requestObject);
 
             return register(uuid, request.get("username"), hpassword, esalt);
         } else if(!username.equals("") && request.get("type").equals("create_auction") && request.containsKey("code") && request.containsKey("title") && request.containsKey("description") && request.containsKey("deadline") && request.containsKey("amount") && request.size() == 6) {
@@ -379,6 +378,9 @@ class TCPConnection extends Thread {
             }
 
             String uuid = UUID.randomUUID().toString();
+            RequestObject requestObject = new RequestObject(uuid, 0);
+
+            if(!Server.requests.contains(requestObject)) Server.requests.add(requestObject);
 
             return createAuction(uuid, username, request.get("code"), request.get("title"), request.get("description"), request.get("deadline"), fAmount);
         } else if(!username.equals("") && request.get("type").equals("search_auction") && request.containsKey("code") && request.size() == 2) {
@@ -430,6 +432,9 @@ class TCPConnection extends Thread {
             }
 
             String uuid = UUID.randomUUID().toString();
+            RequestObject requestObject = new RequestObject(uuid, 0);
+
+            if(!Server.requests.contains(requestObject)) Server.requests.add(requestObject);
 
             return bid(uuid, username, id, fAmount);
 
@@ -446,6 +451,9 @@ class TCPConnection extends Thread {
             }
 
             String uuid = UUID.randomUUID().toString();
+            RequestObject requestObject = new RequestObject(uuid, 0);
+
+            if(!Server.requests.contains(requestObject)) Server.requests.add(requestObject);
 
             return message(uuid, username, id, request.get("text"));
 
@@ -512,6 +520,9 @@ class TCPConnection extends Thread {
 
             if(isNumber) {
                 String uuid = UUID.randomUUID().toString();
+                RequestObject requestObject = new RequestObject(uuid, 0);
+
+                if(!Server.requests.contains(requestObject)) Server.requests.add(requestObject);
                 return editAuction(uuid, username, id, title, description, deadline, code, fAmount);
             } else {
                 System.out.println("[SERVER] THE AMOUNT IS NOT VALID");
