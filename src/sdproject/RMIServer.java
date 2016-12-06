@@ -713,7 +713,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         float oldAmount = -1;
 
         try {
-            String oldQuery = "SELECT title, description, deadline, initial_value FROM auction WHERE auction_id = ?";
+            String oldQuery = "SELECT title, description, deadline, initial_value, article_id FROM auction WHERE auction_id = ?";
             PreparedStatement oldStatement = connection.prepareStatement(oldQuery);
             oldStatement.setInt(1, id);
             ResultSet oldSet = oldStatement.executeQuery();
