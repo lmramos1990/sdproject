@@ -230,7 +230,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     aServerList.updateRequest(uuid);
                 }
 
-                test(150000);
+                test(15);
 
                 return "type: register, ok: true";
             }
