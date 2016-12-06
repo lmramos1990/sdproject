@@ -1,5 +1,6 @@
 package sdproject;
 
+import javax.xml.transform.Result;
 import java.util.*;
 import java.net.*;
 import java.io.*;
@@ -704,6 +705,31 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         String historyQuery = iqueryBuilder.toString() + lqueryBuilder.toString();
         String updateQuery = uiqueryBuilder.toString() + " WHERE auction_id = " + auctionId;
 
+        String oldTitle = "";
+        String oldDescription = "";
+        Timestamp oldDeadline = null;
+        int oldArticleId = -1;
+        float oldAmount = -1;
+
+        try {
+            String oldQuery = "SELECT title, description, deadline, initial_value FROM auction WHERE auction_id = ?";
+            PreparedStatement oldStatement = connection.prepareStatement(oldQuery);
+            oldStatement.setInt(1, id);
+            ResultSet oldSet = oldStatement.executeQuery();
+
+            if(!oldSet.next()) {
+                System.out.println("SOMETHING WENT VERY WRONG");
+                oldSet.close();
+            } else {
+                oldTitle = oldSet.getString("title");
+                oldDescription = oldSet.getString("description");
+                oldDeadline = oldSet.getTimestamp("deadline");
+                oldArticleId = oldSet.getInt("article_id");
+                oldAmount = oldSet.getFloat("initial_value");
+                oldSet.close();
+            }
+        } catch(SQLException e) {e.printStackTrace();}
+
         try {
             PreparedStatement historyStatement = connection.prepareStatement(historyQuery);
             PreparedStatement updateStatement = connection.prepareStatement(updateQuery);
@@ -711,23 +737,23 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             for(int i = 0; i < myArray.length(); i++) {
                 if(i == 0 && (myArray.charAt(i) == '1')) {
                     counter++;
-                    historyStatement.setString(counter, title);
+                    historyStatement.setString(counter, oldTitle);
                     updateStatement.setString(counter, title);
                 } else if(i == 1 && myArray.charAt(i) == '1') {
                     counter++;
-                    historyStatement.setString(counter, description);
+                    historyStatement.setString(counter, oldDescription);
                     updateStatement.setString(counter, description);
                 } else if(i == 2 && myArray.charAt(i) == '1') {
                     counter++;
-                    historyStatement.setFloat(counter, amount);
+                    historyStatement.setFloat(counter, oldAmount);
                     updateStatement.setFloat(counter, amount);
                 } else if(i == 3 && myArray.charAt(i) == '1') {
                     counter++;
-                    historyStatement.setInt(counter, articleId);
+                    historyStatement.setInt(counter, oldArticleId);
                     updateStatement.setInt(counter, articleId);
                 } else if(i == 4 && myArray.charAt(i) == '1') {
                     counter++;
-                    historyStatement.setTimestamp(counter, timestamp);
+                    historyStatement.setTimestamp(counter, oldDeadline);
                     updateStatement.setTimestamp(counter, timestamp);
                 }
             }
