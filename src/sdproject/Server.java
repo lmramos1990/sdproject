@@ -29,6 +29,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
     private static int port = 7000;
     static String rmiHost;
     static int registryPort;
+    static String machineHost;
 
     static int numberOfClients;
     static ArrayList <Socket> clientSockets = new ArrayList<>();
@@ -50,7 +51,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
         }
 
         readProperties();
-        System.setProperty("java.rmi.server.hostname", rmiHost);
+        System.setProperty("java.rmi.server.hostname", machineHost);
         System.setProperty("java.net.preferIPv4Stack" , "true");
 
         System.out.println("[SERVER] TRYING TO ESTABLISH A CONNECTION TO THE RMI SERVER");
@@ -134,6 +135,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
 
             rmiHost = prop.getProperty("rmiHost");
             registryPort = Integer.parseInt(prop.getProperty("registryPort"));
+            machineHost = prop.getProperty("machineHost");
 
         } catch(Exception e) {
             e.printStackTrace();

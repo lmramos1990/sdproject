@@ -667,7 +667,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         StringBuilder iqueryBuilder = new StringBuilder("INSERT INTO history (history_id, auction_id");
         StringBuilder lqueryBuilder = new StringBuilder(" VALUES (history_seq.nextVal, " + auctionId);
-
         StringBuilder uiqueryBuilder = new StringBuilder("UPDATE auction SET client_id = " + clientId);
 
         if(myArray.charAt(0) == '1') {
@@ -1096,7 +1095,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         try {
             for(NotificationCenter aServerList : serverList) {
                 for(int j = 0; j < aServerList.getOnlineUsers().size(); j++) {
-                    if (!aServerList.getOnlineUsers().get(j).equals(username)) {
+                    if(!aServerList.getOnlineUsers().get(j).equals(username)) {
                         onlineUsers.add((String) aServerList.getOnlineUsers().get(j));
                     }
                 }
