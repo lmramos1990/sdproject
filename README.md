@@ -1,11 +1,5 @@
-# SDProject
+#Distributed Systems Project
 
-Inicializar o Projeto:  
-* Instalar base de dados Oracle Express
-* Ligar a Base de Dados e correr o ficheiro ibei.sql
-* Inicializar:
-   *    RMIServer: `java -cp ojdbc.jar:. sdproject.RMIServer`
-   *    Server: `java sdproject.Server`
-   *    Client: `java sdproject.Client`  OU telnet OU Netcat OU tester.py
-
-Tecnologias Usadas: Java 8 & PL/SQL.
+start one or two RMIServer instances<br>
+start one or more Server instances<br>
+start one or more nc or telnet instance and send commands to the server<br>
