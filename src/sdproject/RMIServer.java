@@ -1107,13 +1107,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return onlineUsers;
     }
 
-    private void test(int s) {
+    /*private void test(int s) {
         try {
             Thread.sleep(s * 1000);
         } catch(InterruptedException e) {
             e.printStackTrace();
         }
-    }
+    }*/
 }
 
 class PrimaryServer extends Thread {
