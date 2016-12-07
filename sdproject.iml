@@ -31,5 +31,6 @@
     <orderEntry type="library" name="Struts 2-2.3.20.1" level="project" />
     <orderEntry type="library" name="ojdbc6" level="project" />
     <orderEntry type="library" name="commons-codec-1.10" level="project" />
+    <orderEntry type="library" name="servlet-api" level="project" />
   </component>
 </module>
