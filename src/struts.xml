@@ -10,9 +10,8 @@
     <constant name="struts.ui.theme" value="simple" />
     <constant name="struts.action.extension" value=""/>
 
-    <package name="indexpackage" namespace="/" extends="struts-default">
-        <action name="index.jsp">
-            <result>index.jsp</result>
+    <package name="default" namespace="/" extends="struts-default">
+        <action name=""><result>WEB-INF/index.jsp</result>
         </action>
     </package>
 

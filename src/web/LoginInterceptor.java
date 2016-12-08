@@ -20,7 +20,6 @@ public class LoginInterceptor implements Interceptor {
             isSession = Action.LOGIN;
         }
 
-
         return isSession;
     }
 

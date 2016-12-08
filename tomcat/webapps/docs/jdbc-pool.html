@@ -32,7 +32,7 @@
   </script></head><body><div id="wrapper"><header><div id="header"><div><div><div class="logo noPrint"><a href="http://tomcat.apache.org/"><img alt="Tomcat Home" src="./images/tomcat.png"></a></div><div style="height: 1px;"></div><div class="asfLogo noPrint"><a href="http://www.apache.org/" target="_blank"><img src="./images/asf-feather.png" alt="The Apache Software Foundation" style="width: 266px; height: 83px;"></a></div><h1>Apache Tomcat 8</h1><div class="versionInfo">
           Version 8.5.8,
           <time datetime="2016-11-03">Nov 3 2016</time></div><div style="height: 1px;"></div><div style="clear: left;"></div></div></div></div></header><div id="middle"><div><div id="mainLeft" class="noprint"><div><nav><div><h2>Links</h2><ul><li><a href="index.html">Docs Home</a></li><li><a href="http://wiki.apache.org/tomcat/FAQ">FAQ</a></li><li><a href="#comments_section">User Comments</a></li></ul></div><div><h2>User Guide</h2><ul><li><a href="introduction.html">1) Introduction</a></li><li><a href="setup.html">2) Setup</a></li><li><a href="appdev/index.html">3) First webapp</a></li><li><a href="deployer-howto.html">4) Deployer</a></li><li><a href="manager-howto.html">5) Manager</a></li><li><a href="realm-howto.html">6) Realms and AAA</a></li><li><a href="security-manager-howto.html">7) Security Manager</a></li><li><a href="jndi-resources-howto.html">8) JNDI Resources</a></li><li><a href="jndi-datasource-examples-howto.html">9) JDBC DataSources</a></li><li><a href="class-loader-howto.html">10) Classloading</a></li><li><a href="jasper-howto.html">11) JSPs</a></li><li><a href="ssl-howto.html">12) SSL/TLS</a></li><li><a href="ssi-howto.html">13) SSI</a></li><li><a href="cgi-howto.html">14) CGI</a></li><li><a href="proxy-howto.html">15) Proxy Support</a></li><li><a href="mbeans-descriptors-howto.html">16) MBeans Descriptors</a></li><li><a href="default-servlet.html">17) Default Servlet</a></li><li><a href="cluster-howto.html">18) Clustering</a></li><li><a href="balancer-howto.html">19) Load Balancer</a></li><li><a href="connectors.html">20) Connectors</a></li><li><a href="monitoring.html">21) Monitoring and Management</a></li><li><a href="logging.html">22) Logging</a></li><li><a href="apr.html">23) APR/Native</a></li><li><a href="virtual-hosting-howto.html">24) Virtual Hosting</a></li><li><a href="aio.html">25) Advanced IO</a></li><li><a href="extras.html">26) Additional Components</a></li><li><a href="maven-jars.html">27) Mavenized</a></li><li><a href="security-howto.html">28) Security Considerations</a></li><li><a href="windows-service-howto.html">29) Windows Service</a></li><li><a href="windows-auth-howto.html">30) Windows Authentication</a></li><li><a href="jdbc-pool.html">31) Tomcat's JDBC Pool</a></li><li><a href="web-socket-howto.html">32) WebSocket</a></li><li><a href="rewrite.html">33) Rewrite</a></li></ul></div><div><h2>Reference</h2><ul><li><a href="RELEASE-NOTES.txt">Release Notes</a></li><li><a href="config/index.html">Configuration</a></li><li><a href="api/index.html">Tomcat Javadocs</a></li><li><a href="servletapi/index.html">Servlet Javadocs</a></li><li><a href="jspapi/index.html">JSP 2.3 Javadocs</a></li><li><a href="elapi/index.html">EL 3.0 Javadocs</a></li><li><a href="websocketapi/index.html">WebSocket 1.1 Javadocs</a></li><li><a href="http://tomcat.apache.org/connectors-doc/">JK 1.2 Documentation</a></li></ul></div><div><h2>Apache Tomcat Development</h2><ul><li><a href="building.html">Building</a></li><li><a href="changelog.html">Changelog</a></li><li><a href="http://wiki.apache.org/tomcat/TomcatVersions">Status</a></li><li><a href="developers.html">Developers</a></li><li><a href="architecture/index.html">Architecture</a></li><li><a href="funcspecs/index.html">Functional Specs.</a></li><li><a href="tribes/introduction.html">Tribes</a></li></ul></div></nav></div></div><div id="mainRight"><div id="content"><h2>The Tomcat JDBC Connection Pool</h2><h3 id="Table_of_Contents">Table of Contents</h3><div class="text">
-<ul><li><a href="#Introduction">Introduction</a></li><li><a href="#How_to_use">How to use</a><ol><li><a href="#Additional_features">Additional features</a></li><li><a href="#Inside_the_Apache_Tomcat_Container">Inside the Apache Tomcat Container</a></li><li><a href="#Standalone">Standalone</a></li><li><a href="#JMX">JMX</a></li></ol></li><li><a href="#Attributes">Attributes</a><ol><li><a href="#JNDI_Factory_and_Type">JNDI Factory and Type</a></li><li><a href="#System_Properties">System Properties</a></li><li><a href="#Common_Attributes">Common Attributes</a></li><li><a href="#Tomcat_JDBC_Enhanced_Attributes">Tomcat JDBC Enhanced Attributes</a></li></ol></li><li><a href="#Advanced_usage">Advanced usage</a><ol><li><a href="#JDBC_interceptors">JDBC interceptors</a></li><li><a href="#Configuring_JDBC_interceptors">Configuring JDBC interceptors</a></li><li><a href="#org.apache.tomcat.jdbc.pool.JdbcInterceptor">org.apache.tomcat.jdbc.pool.JdbcInterceptor</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.ConnectionState">org.apache.tomcat.jdbc.pool.web.interceptor.ConnectionState</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer">org.apache.tomcat.jdbc.pool.web.interceptor.StatementFinalizer</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.StatementCache">org.apache.tomcat.jdbc.pool.web.interceptor.StatementCache</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.StatementDecoratorInterceptor">org.apache.tomcat.jdbc.pool.web.interceptor.StatementDecoratorInterceptor</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.QueryTimeoutInterceptor">org.apache.tomcat.jdbc.pool.web.interceptor.QueryTimeoutInterceptor</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport">org.apache.tomcat.jdbc.pool.web.interceptor.SlowQueryReport</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReportJmx">org.apache.tomcat.jdbc.pool.web.interceptor.SlowQueryReportJmx</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer">org.apache.tomcat.jdbc.pool.web.interceptor.ResetAbandonedTimer</a></li></ol></li><li><a href="#Code_Example">Code Example</a><ol><li><a href="#Plain_Ol'_Java">Plain Ol' Java</a></li><li><a href="#As_a_Resource">As a Resource</a></li><li><a href="#Asynchronous_Connection_Retrieval">Asynchronous Connection Retrieval</a></li><li><a href="#Interceptors">Interceptors</a></li><li><a href="#Getting_the_actual_JDBC_connection">Getting the actual JDBC connection</a></li></ol></li><li><a href="#Building">Building</a><ol><li><a href="#Building_from_source">Building from source</a></li></ol></li></ul>
+<ul><li><a href="#Introduction">Introduction</a></li><li><a href="#How_to_use">How to use</a><ol><li><a href="#Additional_features">Additional features</a></li><li><a href="#Inside_the_Apache_Tomcat_Container">Inside the Apache Tomcat Container</a></li><li><a href="#Standalone">Standalone</a></li><li><a href="#JMX">JMX</a></li></ol></li><li><a href="#Attributes">Attributes</a><ol><li><a href="#JNDI_Factory_and_Type">JNDI Factory and Type</a></li><li><a href="#System_Properties">System Properties</a></li><li><a href="#Common_Attributes">Common Attributes</a></li><li><a href="#Tomcat_JDBC_Enhanced_Attributes">Tomcat JDBC Enhanced Attributes</a></li></ol></li><li><a href="#Advanced_usage">Advanced usage</a><ol><li><a href="#JDBC_interceptors">JDBC interceptors</a></li><li><a href="#Configuring_JDBC_interceptors">Configuring JDBC interceptors</a></li><li><a href="#org.apache.tomcat.jdbc.pool.JdbcInterceptor">org.apache.tomcat.jdbc.pool.JdbcInterceptor</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.ConnectionState">org.apache.tomcat.jdbc.pool.interceptor.ConnectionState</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer">org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.StatementCache">org.apache.tomcat.jdbc.pool.interceptor.StatementCache</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.StatementDecoratorInterceptor">org.apache.tomcat.jdbc.pool.interceptor.StatementDecoratorInterceptor</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.QueryTimeoutInterceptor">org.apache.tomcat.jdbc.pool.interceptor.QueryTimeoutInterceptor</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport">org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReportJmx">org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReportJmx</a></li><li><a href="#org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer">org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer</a></li></ol></li><li><a href="#Code_Example">Code Example</a><ol><li><a href="#Plain_Ol'_Java">Plain Ol' Java</a></li><li><a href="#As_a_Resource">As a Resource</a></li><li><a href="#Asynchronous_Connection_Retrieval">Asynchronous Connection Retrieval</a></li><li><a href="#Interceptors">Interceptors</a></li><li><a href="#Getting_the_actual_JDBC_connection">Getting the actual JDBC connection</a></li></ol></li><li><a href="#Building">Building</a><ol><li><a href="#Building_from_source">Building from source</a></li></ol></li></ul>
 </div><h3 id="Introduction">Introduction</h3><div class="text">
 
   <p>The <strong>JDBC Connection Pool <code>org.apache.tomcat.jdbc.pool</code></strong>
@@ -485,7 +485,7 @@
 </div><h3 id="Advanced_usage">Advanced usage</h3><div class="text">
   <div class="subsection"><h4 id="JDBC_interceptors">JDBC interceptors</h4><div class="text">
     <p>To see an example of how to use an interceptor, take a look at
-    <code>org.apache.tomcat.jdbc.pool.web.interceptor.ConnectionState</code>.
+    <code>org.apache.tomcat.jdbc.pool.interceptor.ConnectionState</code>.
     This simple interceptor is a cache of three attributes, transaction isolation level, auto commit and read only state,
     in order for the system to avoid not needed roundtrips to the database.
     </p>
@@ -498,12 +498,12 @@
     <p>Configuring JDBC interceptors is done using the <b>jdbcInterceptors</b> property.
     The property contains a list of semicolon separated class names. If the
     classname is not fully qualified it will be prefixed with the
-    <code>org.apache.tomcat.jdbc.pool.web.interceptor.</code> prefix.
+    <code>org.apache.tomcat.jdbc.pool.interceptor.</code> prefix.
     </p>
     <p>Example:<br>
       <code>
-          jdbcInterceptors="org.apache.tomcat.jdbc.pool.web.interceptor.ConnectionState;
-          org.apache.tomcat.jdbc.pool.web.interceptor.StatementFinalizer"
+      jdbcInterceptors="org.apache.tomcat.jdbc.pool.interceptor.ConnectionState;
+        org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer"
       </code>
       <br>
       is the same as
@@ -538,7 +538,7 @@
         </p>
       </td></tr></table>
   </div></div>
-  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.ConnectionState">org.apache.tomcat.jdbc.pool.web.interceptor.ConnectionState</h4><div class="text">
+  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.ConnectionState">org.apache.tomcat.jdbc.pool.interceptor.ConnectionState</h4><div class="text">
     <p>Caches the connection for the following attributes <code>autoCommit</code>, <code>readOnly</code>,
        <code>transactionIsolation</code> and <code>catalog</code>.
        It is a performance enhancement to avoid roundtrip to the database when getters are called or setters are called with an already set value.
@@ -549,7 +549,7 @@
           Description
         </th></tr></table>
   </div></div>
-  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer">org.apache.tomcat.jdbc.pool.web.interceptor.StatementFinalizer</h4><div class="text">
+  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer">org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer</h4><div class="text">
     <p>Keeps track of all statements created using <code>createStatement</code>, <code>prepareStatement</code> or <code>prepareCall</code>
        and closes these statements when the connection is returned to the pool.
     </p>
@@ -565,7 +565,7 @@
         </p>
       </td></tr></table>
   </div></div>
-  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.StatementCache">org.apache.tomcat.jdbc.pool.web.interceptor.StatementCache</h4><div class="text">
+  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.StatementCache">org.apache.tomcat.jdbc.pool.interceptor.StatementCache</h4><div class="text">
     <p>Caches <code>PreparedStatement</code> and/or <code>CallableStatement</code>
        instances on a connection.
     </p>
@@ -595,7 +595,7 @@
         </p>
       </td></tr></table>
   </div></div>
-  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.StatementDecoratorInterceptor">org.apache.tomcat.jdbc.pool.web.interceptor.StatementDecoratorInterceptor</h4><div class="text">
+  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.StatementDecoratorInterceptor">org.apache.tomcat.jdbc.pool.interceptor.StatementDecoratorInterceptor</h4><div class="text">
     <p>See <a href="http://bz.apache.org/bugzilla/show_bug.cgi?id=48392">48392</a>. Interceptor to wrap statements and result sets in order to prevent access to the actual connection
        using the methods <code>ResultSet.getStatement().getConnection()</code> and <code>Statement.getConnection()</code>
     </p>
@@ -605,7 +605,7 @@
           Description
         </th></tr></table>
   </div></div>
-  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.QueryTimeoutInterceptor">org.apache.tomcat.jdbc.pool.web.interceptor.QueryTimeoutInterceptor</h4><div class="text">
+  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.QueryTimeoutInterceptor">org.apache.tomcat.jdbc.pool.interceptor.QueryTimeoutInterceptor</h4><div class="text">
     <p>Automatically calls <code>java.sql.Statement.setQueryTimeout(seconds)</code> when a new statement is created.
        The pool itself doesn't timeout the query, it is still up to the JDBC driver to enforce query timeouts.
     </p>
@@ -620,7 +620,7 @@
         </p>
       </td></tr></table>
   </div></div>
-  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport">org.apache.tomcat.jdbc.pool.web.interceptor.SlowQueryReport</h4><div class="text">
+  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport">org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport</h4><div class="text">
     <p>Keeps track of query performance and issues log entries when queries exceed a time threshold of fail.
        The log level used is <code>WARN</code>
     </p>
@@ -647,7 +647,7 @@
         </p>
       </td></tr></table>
   </div></div>
-  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReportJmx">org.apache.tomcat.jdbc.pool.web.interceptor.SlowQueryReportJmx</h4><div class="text">
+  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReportJmx">org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReportJmx</h4><div class="text">
     <p>Extends the <code>SlowQueryReport</code> and in addition to log entries it issues JMX notification
        for monitoring tools to react to. Inherits all the attributes from its parent class.
        This class uses Tomcat's JMX engine so it wont work outside of the Tomcat container.
@@ -669,7 +669,7 @@
         </p>
       </td></tr></table>
   </div></div>
-  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer">org.apache.tomcat.jdbc.pool.web.interceptor.ResetAbandonedTimer</h4><div class="text">
+  <div class="subsection"><h4 id="org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer">org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer</h4><div class="text">
     <p>
         The abandoned timer starts when a connection is checked out from the pool.
         This means if you have a 30second timeout and run 10x10second queries using the connection
@@ -719,8 +719,8 @@
           p.setLogAbandoned(true);
           p.setRemoveAbandoned(true);
           p.setJdbcInterceptors(
-            "org.apache.tomcat.jdbc.pool.web.interceptor.ConnectionState;"+
-            "org.apache.tomcat.jdbc.pool.web.interceptor.StatementFinalizer");
+            "org.apache.tomcat.jdbc.pool.interceptor.ConnectionState;"+
+            "org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer");
           DataSource datasource = new DataSource();
           datasource.setPoolProperties(p);
 
@@ -764,8 +764,8 @@
           logAbandoned="true"
           minEvictableIdleTimeMillis="30000"
           jmxEnabled="true"
-          jdbcInterceptors="org.apache.tomcat.jdbc.pool.web.interceptor.ConnectionState;
-            org.apache.tomcat.jdbc.pool.web.interceptor.StatementFinalizer"
+          jdbcInterceptors="org.apache.tomcat.jdbc.pool.interceptor.ConnectionState;
+            org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer"
           username="root"
           password="password"
           driverClassName="com.mysql.jdbc.Driver"
@@ -861,7 +861,7 @@
        An interceptor can have properties, and would be configured like this
     </p>
 <div class="codeBox"><pre><code>  String jdbcInterceptors=
-    "org.apache.tomcat.jdbc.pool.web.interceptor.ConnectionState(useEquals=true,fast=yes)"</code></pre></div>
+    "org.apache.tomcat.jdbc.pool.interceptor.ConnectionState(useEquals=true,fast=yes)"</code></pre></div>
 
     <p>Interceptor properties<br>
        Since interceptors can have properties, you need to be able to read the values of these properties within your

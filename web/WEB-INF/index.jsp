@@ -8,22 +8,13 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Welcome to iBei</title>
+    <title>INDEX PAGE</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="bootstrap/styles/signin.css" rel="stylesheet">
 </head>
     <body>
-        <div class="container">
-            <form class="form-signin" method="post">
-                <h2 class="form-signin-heading">Please log-in</h2>
-                <label for="inputUsername" class="sr-only">USERNAME</label>
-                <input name="username" type="email" id="inputUsername" class="form-control" placeholder="USERNAME" required autofocus>
-                <label for="inputPassword" class="sr-only">PASSWORD</label>
-                <input name="password" type="password" id="inputPassword" class="form-control" placeholder="PASSWORD" required>
-                <button class="btn btn-lg btn-primary btn-block" type="submit">Log-in</button>
-            </form>
-        </div> <!-- /container -->
+        this is the index page!
     </body>
 </html>
