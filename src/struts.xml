@@ -5,9 +5,29 @@
         "http://struts.apache.org/dtds/struts-2.3.dtd">
 
 <struts>
-
     <!-- devMode equals debug information and reload everything for every request -->
     <constant name="struts.devMode" value="true" />
     <constant name="struts.ui.theme" value="simple" />
+    <constant name="struts.action.extension" value=""/>
+
+    <package name="indexpackage" namespace="/" extends="struts-default">
+        <action name="index.jsp">
+            <result>index.jsp</result>
+        </action>
+    </package>
+
+    <package name="loginpackage" extends="struts-default">
+        <interceptors>
+            <interceptor name="logininterceptor" class="web.LoginInterceptor"/>
+        </interceptors>
+        
+        <action name="login" class="web.LoginAction" method="execute">
+            <interceptor-ref name="logininterceptor"/>
+            <result name="login">index.jsp</result>
+            <result name="success">landingpage.jsp</result>
+            <result name="error">error.jsp</result>
+        </action>
+    </package>
+
 
 </struts>

@@ -10,14 +10,18 @@ public class LoginInterceptor implements Interceptor {
 
     @Override
     public String intercept(ActionInvocation invocation) throws Exception {
+        System.out.println("[INTERCEPTOR] I JUST RAN");
         Map<String, Object> session = invocation.getInvocationContext().getSession();
+        String isSession;
 
-        if(session.get("username") != null && session.get("loggedin") != null) {
-            System.out.println(invocation.invoke());
-            return invocation.invoke();
+        if(session.get("username") != null) {
+            isSession = Action.SUCCESS;
         } else {
-            return Action.SUCCESS;
+            isSession = Action.LOGIN;
         }
+
+
+        return isSession;
     }
 
     @Override
