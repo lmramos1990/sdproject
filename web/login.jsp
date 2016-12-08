@@ -4,9 +4,14 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title> Meeto - Login</title>
+    <title>Welcome to iBei</title>
 </head>
     <body>
-
+        <h1>Log-in</h1>
+        <s:form action="login" method="POST" name="loginform">
+            <s:textfield name="username" label="Username"/><br>
+            <s:textfield name="password" label="Password"/><br>
+            <s:submit value="Log-in"/><br>
+        </s:form>
     </body>
 </html>
