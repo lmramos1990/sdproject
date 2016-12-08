@@ -8,11 +8,11 @@
     <title>Welcome to iBei</title>
 </head>
 <body>
-<h1 align="center">REGISTAR</h1>
+<h1 align="center">Register</h1>
 <table align="center" border="0" width="10%" cellpadding="5">
     <tbody>
+    <h4 align="center">Username or Password incorrect</h4>
     <s:form method="post" action="register" >
-        <h4 align="center">Username or Password incorrect</h4>
         <tr>
             <td> <s:textfield name="username" label="username"/></td>
         </tr>

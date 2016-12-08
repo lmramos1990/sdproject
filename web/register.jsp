@@ -8,10 +8,10 @@
     <title>Welcome to iBei</title>
 </head>
 <body>
-<h1 align="center">REGISTAR</h1>
+<h1 align="center">Register</h1>
 <table align="center" border="0" width="10%" cellpadding="5">
     <tbody>
-    <s:form method="post" action="register" >
+    <s:form method="post" action="register" name="registerform">
         <tr>
             <td> <s:textfield name="username" label="username"/></td>
         </tr>
