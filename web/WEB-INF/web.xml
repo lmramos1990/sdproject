@@ -5,8 +5,14 @@
          version="3.1">
     <display-name>iBei</display-name>
     <welcome-file-list>
-        <welcome-file>WEB-INF/index.jsp</welcome-file>
+        <welcome-file>login.jsp</welcome-file>
     </welcome-file-list>
+
+
+    <session-config>
+        <session-timeout>15</session-timeout>
+    </session-config>
+
     <filter>
         <filter-name>struts2</filter-name>
         <filter-class>org.apache.struts2.dispatcher.ng.filter.StrutsPrepareAndExecuteFilter</filter-class>
@@ -16,8 +22,4 @@
         <filter-name>struts2</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-
-    <session-config>
-        <session-timeout>15</session-timeout>
-    </session-config>
 </web-app>

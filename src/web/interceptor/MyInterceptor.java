@@ -1,26 +1,26 @@
-package web;
+package web.interceptor;
 
-import com.opensymphony.xwork2.Action;
 import com.opensymphony.xwork2.ActionInvocation;
 import com.opensymphony.xwork2.interceptor.Interceptor;
+import web.action.LoginAction;
+import web.action.RegisterAction;
 
 import java.util.Map;
 
-public class LoginInterceptor implements Interceptor {
+public class MyInterceptor implements Interceptor {
 
     @Override
     public String intercept(ActionInvocation invocation) throws Exception {
         System.out.println("[INTERCEPTOR] I JUST RAN");
         Map<String, Object> session = invocation.getInvocationContext().getSession();
-        String isSession;
 
-        if(session.get("username") != null) {
-            isSession = Action.SUCCESS;
-        } else {
-            isSession = Action.LOGIN;
-        }
+        if(session.containsKey("loggedin")) return invocation.invoke();
 
-        return isSession;
+        Object action=invocation.getAction();
+        if(action instanceof RegisterAction) return invocation.invoke();
+        if(!(action instanceof LoginAction)) return "loginRedirect";
+
+        return invocation.invoke();
     }
 
     @Override

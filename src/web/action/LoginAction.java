@@ -1,4 +1,4 @@
-package web;
+package web.action;
 
 import com.opensymphony.xwork2.Action;
 import console.AuctionInterface;

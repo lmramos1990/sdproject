@@ -5,28 +5,37 @@
         "http://struts.apache.org/dtds/struts-2.3.dtd">
 
 <struts>
-    <!-- devMode equals debug information and reload everything for every request -->
     <constant name="struts.devMode" value="true" />
-    <constant name="struts.ui.theme" value="simple" />
-    <constant name="struts.action.extension" value=""/>
 
-    <package name="default" namespace="/" extends="struts-default">
-        <action name=""><result>WEB-INF/index.jsp</result>
-        </action>
-    </package>
-
-    <package name="loginpackage" extends="struts-default">
+    <package name="webserver" extends="struts-default">
         <interceptors>
-            <interceptor name="logininterceptor" class="web.LoginInterceptor"/>
+            <interceptor name="myinterceptor" class="web.interceptor.MyInterceptor"/>
+            <interceptor-stack name="newStack">
+                <interceptor-ref name="myinterceptor"/>
+                <interceptor-ref name="defaultStack"/>
+            </interceptor-stack>
         </interceptors>
-        
-        <action name="login" class="web.LoginAction" method="execute">
-            <interceptor-ref name="logininterceptor"/>
-            <result name="login">index.jsp</result>
-            <result name="success">landingpage.jsp</result>
-            <result name="error">error.jsp</result>
+
+        <global-results>
+            <result name="loginRedirect" type="redirect">login.jsp</result>
+            <result name="exceptionError" type="redirect">error.jsp</result>
+        </global-results>
+
+        <global-exception-mappings>
+            <exception-mapping exception="java.lang.NullPointerException" result="exceptionError" />
+        </global-exception-mappings>
+
+        <action name="login" class="web.action.LoginAction" method="execute">
+            <interceptor-ref name="newStack"/>
+            <result name="success" type="redirect">home.jsp</result>
+            <result name="error" type="redirect">loginerror.jsp</result>
         </action>
+
+        <action name="register" class="web.action.RegisterAction" method="execute">
+            <interceptor-ref name="newStack"/>
+            <result name="success" type="redirect">login.jsp</result>
+            <result name="error" type="redirect">registererror.jsp</result>
+        </action>
+
     </package>
-
-
 </struts>
