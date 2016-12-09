@@ -11,6 +11,6 @@
     <title>iBei</title>
 </head>
 <body>
-    FODASSE!
+    LANDING PAGE
 </body>
 </html>

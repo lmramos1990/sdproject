@@ -3,8 +3,6 @@ package web.interceptor;
 import com.opensymphony.xwork2.ActionInvocation;
 import com.opensymphony.xwork2.interceptor.Interceptor;
 import web.action.LoginAction;
-import web.action.RegisterAction;
-
 import java.util.Map;
 
 public class MyInterceptor implements Interceptor {
@@ -14,11 +12,19 @@ public class MyInterceptor implements Interceptor {
         System.out.println("[INTERCEPTOR] I JUST RAN");
         Map<String, Object> session = invocation.getInvocationContext().getSession();
 
-        if(session.containsKey("loggedin")) return invocation.invoke();
+        System.out.println("THIS IS THE CODE OF THE INVOCATION: " + invocation.invoke());
+        System.out.println("THIS IS THE ACTION OF THE INVOCATION: " + invocation.getAction());
 
-        Object action=invocation.getAction();
-        if(action instanceof RegisterAction) return invocation.invoke();
-        if(!(action instanceof LoginAction)) return "loginRedirect";
+        if(session.containsKey("loggedin")) {
+            System.out.println("loggedin");
+            return invocation.invoke();
+        }
+
+        Object action = invocation.getAction();
+        if(!(action instanceof LoginAction)) {
+            System.out.println("not an instance of login");
+            return "login";
+        }
 
         return invocation.invoke();
     }
