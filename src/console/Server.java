@@ -1,16 +1,21 @@
 package console;
 
+import shared.*;
+import java.io.*;
 import java.util.*;
 import java.net.*;
-import java.io.*;
-import java.rmi.*;
+
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+
 import java.sql.Timestamp;
 
 import java.math.BigInteger;
+
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;

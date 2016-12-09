@@ -1,4 +1,4 @@
-package console;
+package shared;
 
 public class RequestObject {
     private String uuid;
@@ -9,7 +9,7 @@ public class RequestObject {
         this.modified = modified;
     }
 
-    String getUUID() {
+    public String getUUID() {
         return uuid;
     }
 

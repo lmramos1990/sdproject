@@ -1,8 +1,8 @@
 package web.action;
 
 import com.opensymphony.xwork2.Action;
-import console.AuctionInterface;
-import console.Encryptor;
+import shared.AuctionInterface;
+import shared.Encryptor;
 import org.apache.struts2.interceptor.SessionAware;
 
 import javax.crypto.SecretKeyFactory;

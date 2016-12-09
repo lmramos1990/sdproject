@@ -1,8 +1,8 @@
-package console;
+package shared;
 
 import java.rmi.Remote;
-import java.util.*;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 
 public interface NotificationCenter extends Remote {
     boolean isUserOnline(String username) throws RemoteException;

@@ -12,8 +12,6 @@ public class MyInterceptor implements Interceptor {
         System.out.println("[INTERCEPTOR] I JUST RAN");
         Map<String, Object> session = invocation.getInvocationContext().getSession();
 
-        System.out.println("THIS IS THE CODE OF THE INVOCATION: " + invocation.invoke());
-        System.out.println("THIS IS THE ACTION OF THE INVOCATION: " + invocation.getAction());
 
         if(session.containsKey("loggedin")) {
             System.out.println("loggedin");

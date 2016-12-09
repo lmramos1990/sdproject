@@ -11,6 +11,6 @@
     <title>iBei</title>
 </head>
 <body>
-    LANDING PAGE
+    <h1>this is the web-site landing page</h1>
 </body>
 </html>

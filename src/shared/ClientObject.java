@@ -1,21 +1,21 @@
-package console;
+package shared;
 
-import java.net.*;
+import java.net.Socket;
 
-class ClientObject {
+public class ClientObject {
     private Socket clientSocket;
     private String username;
 
-    ClientObject(Socket clientSocket, String username) {
+    public ClientObject(Socket clientSocket, String username) {
         this.clientSocket = clientSocket;
         this.username = username;
     }
 
-    Socket getClientSocket() {
+    public Socket getClientSocket() {
         return clientSocket;
     }
 
-    String getUsername() {
+    public String getUsername() {
         return username;
     }
 }
