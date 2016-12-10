@@ -34,6 +34,16 @@ public class Bean {
     private String username;
     private String password;
 
+    private String uuid;
+    private String auctionid;
+    private String articlecode;
+    private String title;
+    private String description;
+    private String deadline;
+    private String amount;
+
+    private String text;
+
     public Bean() {
 
         readProperties();
@@ -125,7 +135,7 @@ public class Bean {
         else return Action.ERROR;
     }
 
-    public String register(String uuid, String username, String password) {
+    public String register(String uuid) {
         String isUser = isUser(username);
 
         if(isUser.equals("SERVER DOWN") || isUser.equals("YES")) return Action.ERROR;

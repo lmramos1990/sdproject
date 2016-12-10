@@ -1,5 +1,9 @@
 package web.action;
 
+import web.beans.Bean;
+
+import java.util.UUID;
+
 public class RegisterAction {
 
     private String username;
@@ -8,7 +12,14 @@ public class RegisterAction {
     public String execute() {
         if(username == null || password == null) return "stay";
 
-        return "fuck you!";
+        Bean myBean = new Bean();
+
+        myBean.setUsername(username);
+        myBean.setPassword(password);
+
+        String uuid = UUID.randomUUID().toString();
+
+        return myBean.register(uuid);
     }
 
     public String getUsername() {
