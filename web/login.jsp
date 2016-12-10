@@ -54,5 +54,7 @@
             <s:textfield name="password" type="password" label="Password"/><br>
             <s:submit value="LOGIN"/><br>
         </s:form>
+        <s:url action="register" var="url"/>
+        <s:a href="%{url}">Register</s:a>
     </body>
 </html>

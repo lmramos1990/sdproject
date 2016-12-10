@@ -11,5 +11,7 @@
         <s:textfield name="amount" label="Amount"/><br>
         <s:submit value="Bid"/><br>
     </s:form>
+    <s:url action="login" var="url"/>
+    <s:a href="%{url}">Home</s:a>
 </body>
 </html>

@@ -14,5 +14,7 @@
         <s:submit value="SUBMIT"/><br>
     </s:form>
     <h4>There's not any auction with that id</h4>
+    <s:url action="login" var="url"/>
+    <s:a href="%{url}">Home</s:a>
 </body>
 </html>

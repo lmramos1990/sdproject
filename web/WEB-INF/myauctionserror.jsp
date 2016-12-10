@@ -12,5 +12,7 @@
 </head>
 <body>
 
+<s:url action="login" var="url"/>
+<s:a href="%{url}">Home</s:a>
 </body>
 </html>

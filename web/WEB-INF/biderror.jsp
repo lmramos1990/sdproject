@@ -12,5 +12,7 @@
         <s:submit value="Bid"/><br>
     </s:form>
     <h4>Either the auction id or the amount are not valid</h4>
+    <s:url action="login" var="url"/>
+    <s:a href="%{url}">Home</s:a>
 </body>
 </html>

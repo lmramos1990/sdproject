@@ -14,5 +14,7 @@
         <s:password name="password" label="password"/><br>
         <s:submit value="REGISTER"/>
     </s:form>
+    <s:url action="login" var="url"/>
+    <s:a href="%{url}">Login</s:a>
 </body>
 </html>

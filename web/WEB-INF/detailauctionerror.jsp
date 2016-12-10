@@ -13,5 +13,7 @@
         <s:textfield name="detail" label="ID"/><br>
         <s:submit value="SUBMIT"/><br>
     </s:form>
+    <s:url action="login" var="url"/>
+    <s:a href="%{url}">Home</s:a>
     </body>
 </html>

@@ -12,5 +12,7 @@
         <s:submit value="Log-in"/><br>
     </s:form>
     <h4>The username or the password are incorrect</h4>
+    <s:url action="register" var="url"/>
+    <s:a href="%{url}">Register</s:a>
 </body>
 </html>
