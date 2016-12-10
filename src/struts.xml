@@ -46,18 +46,20 @@
             <interceptor-ref name="newStack"/>
             <result name="success">WEB-INF/home.jsp</result>
             <result name="error">WEB-INF/createauctionerror.jsp</result>
-        </action>
-
-        <action name="editauction" class="web.action.EditAuctionAction" method="execute">
-            <interceptor-ref name="newStack"/>
-            <result name="success">WEB-INF/home.jsp</result>
-            <result name="error">WEB-INF/editauctionerror.jsp</result>
+            <result name="stay">WEB-INF/createauction.jsp</result>
         </action>
 
         <action name="searchauction" class="web.action.SearchAuctionAction" method="execute">
             <interceptor-ref name="newStack"/>
             <result name="success">WEB-INF/searchauctiondisplay.jsp</result>
             <result name="error">WEB-INF/searchauctionerror.jsp</result>
+            <result name="stay">WEB-INF/searchauction.jsp</result>
+        </action>
+
+        <action name="editauction" class="web.action.EditAuctionAction" method="execute">
+            <interceptor-ref name="newStack"/>
+            <result name="success">WEB-INF/home.jsp</result>
+            <result name="error">WEB-INF/editauctionerror.jsp</result>
         </action>
 
         <action name="detailauction" class="web.action.DetailAuctionAction" method="execute">

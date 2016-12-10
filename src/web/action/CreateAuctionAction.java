@@ -18,6 +18,8 @@ public class CreateAuctionAction implements SessionAware {
 
     public String execute() {
 
+        if(username == null && articlecode == null && title == null && description == null && deadline == null && amount == null) return "stay";
+
         setUsername(session.get("username").toString());
 
         Bean myBean = new Bean();

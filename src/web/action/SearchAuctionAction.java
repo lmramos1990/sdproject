@@ -1,23 +1,37 @@
 package web.action;
 
 import com.opensymphony.xwork2.Action;
+import org.apache.struts2.interceptor.SessionAware;
 import web.beans.Bean;
+import web.beans.SearchAuctionObject;
 
-public class SearchAuctionAction {
+import java.util.ArrayList;
+import java.util.Map;
 
+public class SearchAuctionAction implements SessionAware {
+    private Map<String, Object> session;
     private String articlecode;
 
     public String execute() {
+        if(articlecode == null) return "stay";
+
+        ArrayList<SearchAuctionObject> hello = new ArrayList<>();
+
         Bean myBean = new Bean();
         myBean.setArticlecode(getArticlecode());
+        myBean.setSearchAuctionObjects(hello);
 
         String reply = myBean.searchauction();
 
         if(reply.equals(Action.SUCCESS)) {
-            // insere este bean na session!
-        }
+            session.put("bean", myBean);
+            return Action.SUCCESS;
+        } else return Action.ERROR;
+    }
 
-        return reply;
+    @Override
+    public void setSession(Map<String, Object> session) {
+        this.session = session;
     }
 
     public String getArticlecode() {

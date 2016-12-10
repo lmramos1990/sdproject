@@ -12,6 +12,7 @@ import java.io.InputStream;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Properties;
 
 import java.math.BigInteger;
@@ -37,6 +38,7 @@ public class Bean {
     private int numberOfRetries = 40;
 
     private ArrayList<User> users;
+    private ArrayList<SearchAuctionObject> searchAuctionObjects;
 
     private String username;
     private String password;
@@ -228,6 +230,7 @@ public class Bean {
     }
 
     public String searchauction() {
+        System.out.println("search auction");
         if(getArticlecode().length() != 13) return Action.ERROR;
 
         String reply = "";
@@ -249,9 +252,28 @@ public class Bean {
             if(reply.equals("SERVER DOWN") || reply.equals("type: search_auction, ok: false")) return Action.ERROR;
         }
 
-        System.out.println(reply);
+        HashMap<String, String> hreply = new HashMap<>();
+        Arrays.stream(reply.split(",")).map(s -> s.split(":")).forEach(i -> hreply.put(i[0].trim(), i[1].trim()));
 
-        return reply;
+        if(Integer.parseInt(hreply.get("items_count")) == 0) return "no items";
+
+        int numberofobjects = Integer.parseInt(hreply.get("items_count"));
+
+        String title;
+        String auctionid;
+        String articlecode = hreply.get("items_0_code");
+
+        ArrayList<SearchAuctionObject> objects = getSearchAuctionObjects();
+
+        for(int i = 0; i < numberofobjects; i++) {
+            title = hreply.get("items_" + i + "_title");
+            auctionid = hreply.get("items_" + i + "_id");
+            objects.add(new SearchAuctionObject(articlecode, title, auctionid));
+        }
+
+        setSearchAuctionObjects(objects);
+
+        return Action.SUCCESS;
     }
 
     private String isUser(String username) {
@@ -413,5 +435,13 @@ public class Bean {
 
     public void setText(String text) {
         this.text = text;
+    }
+
+    public ArrayList<SearchAuctionObject> getSearchAuctionObjects() {
+        return searchAuctionObjects;
+    }
+
+    public void setSearchAuctionObjects(ArrayList<SearchAuctionObject> searchAuctionObjects) {
+        this.searchAuctionObjects = searchAuctionObjects;
     }
 }

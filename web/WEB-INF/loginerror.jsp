@@ -6,12 +6,12 @@
 </head>
 <body>
     <h1>Log-in</h1>
+    <h1>Login</h1>
     <s:form action="login" method="POST" name="loginform">
         <s:textfield name="username" label="Username"/><br>
-        <s:textfield name="password" label="Password"/><br>
-        <s:submit value="Log-in"/><br>
+        <s:textfield name="password" type="password" label="Password"/><br>
+        <s:submit value="LOGIN"/><br>
     </s:form>
-    <h4>The username or the password are incorrect</h4>
     <s:url action="register" var="url"/>
     <s:a href="%{url}">Register</s:a>
 </body>

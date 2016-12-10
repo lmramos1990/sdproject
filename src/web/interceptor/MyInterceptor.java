@@ -12,7 +12,6 @@ public class MyInterceptor implements Interceptor {
 
     @Override
     public String intercept(ActionInvocation invocation) throws Exception {
-        System.out.println("[INTERCEPTOR] I JUST RAN");
         Map<String, Object> session = invocation.getInvocationContext().getSession();
 
         Object action = invocation.getAction();
