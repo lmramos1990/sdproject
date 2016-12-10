@@ -63,12 +63,6 @@
             <result name="stay">WEB-INF/detailauction.jsp</result>
         </action>
 
-        <action name="editauction" class="web.action.EditAuctionAction" method="execute">
-            <interceptor-ref name="newStack"/>
-            <result name="success">WEB-INF/home.jsp</result>
-            <result name="error">WEB-INF/editauctionerror.jsp</result>
-        </action>
-
         <action name="myauctions" class="web.action.MyAuctionsAction" method="execute">
             <interceptor-ref name="newStack"/>
             <result name="success">WEB-INF/myauctions.jsp</result>
@@ -79,12 +73,21 @@
             <interceptor-ref name="newStack"/>
             <result name="success">WEB-INF/home.jsp</result>
             <result name="error">WEB-INF/biderror.jsp</result>
+            <result name="stay">WEB-INF/bid.jsp</result>
+        </action>
+
+        <action name="editauction" class="web.action.EditAuctionAction" method="execute">
+            <interceptor-ref name="newStack"/>
+            <result name="success">WEB-INF/home.jsp</result>
+            <result name="error">WEB-INF/editauctionerror.jsp</result>
+            <result name="stay">WEB-INF/editauction.jsp</result>
         </action>
 
         <action name="message" class="web.action.MessageAction" method="execute">
             <interceptor-ref name="newStack"/>
             <result name="success">WEB-INF/home.jsp</result>
             <result name="error">WEB-INF/messageerror.jsp</result>
+            <result name="stay">WEB-INF/message.jsp</result>
         </action>
 
         <action name="onlineusers" class="web.action.OnlineUsersAction" method="execute">

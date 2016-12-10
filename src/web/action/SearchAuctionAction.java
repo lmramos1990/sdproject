@@ -19,7 +19,7 @@ public class SearchAuctionAction implements SessionAware {
 
         Bean myBean = new Bean();
         myBean.setArticlecode(getArticlecode());
-        myBean.setSearchAuctionObjects(hello);
+        myBean.setSearchAuctionList(hello);
 
         String reply = myBean.searchauction();
 

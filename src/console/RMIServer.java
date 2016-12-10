@@ -496,7 +496,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         System.out.println("[RMISERVER] MY AUCTION REQUEST");
 
         int clientId = getClientId(username);
-        if(clientId == -1) return "type: my_auctions, items_count: 0";
+        if(clientId == -1) return "type: my_auctions, ok: false";
 
         try {
             ArrayList<Integer> myAuctions = new ArrayList<>();
@@ -533,7 +533,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                 if(!getInfoSet.next()) {
                     getInfoSet.close();
-                    return "type: my_auctions, items_count: 0";
+                    return "type: my_auctions, ok: false";
                 } else {
                     String item = ", items_" + i + "_id: " + myAuctions.get(i) + ", items_" + i + "_code: " + getInfoSet.getString("code") + ", items_" + i + "_title: " + getInfoSet.getString("title");
                     sb.append(item);
@@ -546,7 +546,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
-            return "type: my_auctions, items_count: 0";
+            return "type: my_auctions, ok: false";
         }
     }
 

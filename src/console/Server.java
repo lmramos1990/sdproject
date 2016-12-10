@@ -734,7 +734,7 @@ class TCPConnection extends Thread {
             }
 
             if(!reconnected) reply = reconnect(retries);
-            if(reply.equals("SERVER DOWN")) reply = "type: my_auction, items_count = 0, message: we are experiencing some problems on our servers, try again later";
+            if(reply.equals("SERVER DOWN")) reply = "type: my_auctions, items_count = 0, message: we are experiencing some problems on our servers, try again later";
         }
 
         return reply;

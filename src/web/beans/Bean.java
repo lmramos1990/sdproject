@@ -10,10 +10,7 @@ import javax.crypto.spec.PBEKeySpec;
 import java.io.FileInputStream;
 import java.io.InputStream;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Properties;
+import java.util.*;
 
 import java.math.BigInteger;
 
@@ -32,14 +29,14 @@ public class Bean {
     private AuctionInterface iBei;
 
     private String rmiHost;
-    private String machineHost;
     private int rmiPort;
 
     private int numberOfRetries = 40;
 
     private ArrayList<User> users;
-    private ArrayList<SearchAuctionObject> searchAuctionObjects;
+    private ArrayList<SearchAuctionObject> searchAuctionList;
     private DetailAuctionObject detailAuctionObject;
+    private ArrayList<MyAuctionsObject> myAuctionsList;
 
     private String username;
     private String password;
@@ -85,10 +82,7 @@ public class Bean {
             prop.load(inputStream);
 
             rmiHost = prop.getProperty("rmiHost");
-            machineHost = prop.getProperty("machineHost");
             rmiPort = Integer.parseInt(prop.getProperty("rmiPort"));
-
-
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -265,7 +259,7 @@ public class Bean {
         String auctionid;
         String articlecode = hreply.get("items_0_code");
 
-        ArrayList<SearchAuctionObject> objects = getSearchAuctionObjects();
+        ArrayList<SearchAuctionObject> objects = getSearchAuctionList();
 
         for(int i = 0; i < numberofobjects; i++) {
             title = hreply.get("items_" + i + "_title");
@@ -273,7 +267,7 @@ public class Bean {
             objects.add(new SearchAuctionObject(articlecode, title, auctionid));
         }
 
-        setSearchAuctionObjects(objects);
+        setSearchAuctionList(objects);
 
         return Action.SUCCESS;
     }
@@ -336,6 +330,228 @@ public class Bean {
         details = new DetailAuctionObject(getAuctionid(), title, description, deadline, messages, bids);
 
         setDetailAuctionObject(details);
+
+        return Action.SUCCESS;
+    }
+
+    public String myauctions() {
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.myAuctions(username);
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN") || reply.equals("type: my_auctions, ok: false")) return Action.ERROR;
+        }
+
+        HashMap<String, String> hreply = new HashMap<>();
+        Arrays.stream(reply.split(",")).map(s -> s.split(":")).forEach(i -> hreply.put(i[0].trim(), i[1].trim()));
+
+        ArrayList<MyAuctionsObject> myAuctions = getMyAuctionsList();
+
+        int numberofauctions = Integer.parseInt(hreply.get("items_count"));
+
+        for(int i = 0; i < numberofauctions; i++) {
+            String auctionid = hreply.get("items_" + i + "_id");
+            String articlecode = hreply.get("items_" + i + "_code");
+            String title = hreply.get("items_" + i + "_title");
+            myAuctions.add(new MyAuctionsObject(auctionid, articlecode, title));
+        }
+
+        setMyAuctionsList(myAuctions);
+
+        return Action.SUCCESS;
+    }
+
+    public String bid() {
+        float fAmount;
+        int id;
+
+        try {
+            id = Integer.parseInt(getAuctionid());
+        } catch(Exception e) {
+            return Action.ERROR;
+        }
+
+        try {
+            fAmount = Float.parseFloat(getAmount());
+        } catch(Exception e) {
+            return Action.ERROR;
+        }
+
+        if(fAmount <= 0) return Action.ERROR;
+
+        String uuid = UUID.randomUUID().toString();
+
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.bid(uuid, getUsername(), id, fAmount);
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                    System.out.println("[SERVER][BID] FOUND THE RMI SERVER");
+                } catch(Exception e2) {System.out.println("[SERVER][BID] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+        }
+
+        if(reply.equals("SERVER DOWN") || reply.equals("type: bid, ok: false")) return Action.ERROR;
+        else return Action.SUCCESS;
+    }
+
+    public String editauction() {
+        String etitle, edescription, edeadline, ecode, eamount;
+
+        if(getTitle() == null || getTitle().equals("")) etitle = "";
+        else etitle = getTitle();
+
+        if(getDescription() == null || getDescription().equals("")) edescription = "";
+        else edescription = getDescription();
+
+        if(getDeadline() == null || getDeadline().equals("")) edeadline = "";
+        else edeadline = getDeadline();
+
+        if(getArticlecode() == null || getArticlecode().equals("")) ecode = "";
+        else ecode = getArticlecode();
+
+        if(getAmount() == null || getAmount().equals("")) eamount = "";
+        else eamount = getAmount();
+
+        int id;
+        float fAmount = -1.0f;
+        boolean isNumber;
+
+        try {
+            id = Integer.parseInt(getAuctionid());
+        } catch(Exception e) {
+            return Action.ERROR;
+        }
+
+        if(eamount.equals("")) {
+            fAmount = -1.0f;
+            isNumber = true;
+        } else {
+            try {
+                fAmount = Float.parseFloat(eamount);
+                if(fAmount <= 0) return Action.ERROR;
+                isNumber = true;
+            } catch(Exception e) {
+                isNumber = false;
+            }
+        }
+
+        if(!edeadline.equals("")) {
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm");
+                LocalDateTime dateTime = LocalDateTime.parse(getDeadline(), formatter);
+                Timestamp timestamp = Timestamp.valueOf(dateTime);
+                Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+
+                if(timestamp.before(currentTime)) return Action.ERROR;
+            } catch(Exception e) {
+                return Action.ERROR;
+            }
+        }
+
+        if(!isNumber) return Action.ERROR;
+
+        String uuid = UUID.randomUUID().toString();
+
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.editAuction(uuid, getUsername(), id, etitle, edescription, edeadline, ecode, fAmount);
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                    System.out.println("[SERVER][EDIT AUCTION] FOUND THE RMI SERVER");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+        }
+
+        if(reply.equals("SERVER DOWN") || reply.equals("type: edit_auction, ok: false")) return Action.ERROR;
+        else return Action.SUCCESS;
+    }
+
+    public String message() {
+        int id;
+
+        try {
+            id = Integer.parseInt(getAuctionid());
+        } catch(Exception e) {
+            return Action.ERROR;
+        }
+
+        String uuid = UUID.randomUUID().toString();
+
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.message(uuid, getUsername(), id, getText());
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+        }
+
+        if(reply.equals("SERVER DOWN") || reply.equals("type: message, ok: false")) return Action.ERROR;
+        else return Action.SUCCESS;
+    }
+
+    public String onlineusers() {
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.onlineUsers(getUsername());
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                    System.out.println("[SERVER][ONLINE USERS] FOUND THE RMI SERVER");
+                } catch(Exception e2) {System.out.println("[SERVER][ONLINE USERS] CANNOT LOCATE THE RMI SERVER AT THIS MOMENT");}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN") || reply.equals("type: online_users, ok: false")) reply = Action.ERROR;
+        }
+
+        // fazer a lista de utilizadores para guardar o bean
 
         return Action.SUCCESS;
     }
@@ -429,6 +645,30 @@ public class Bean {
         this.users = users;
     }
 
+    public ArrayList<SearchAuctionObject> getSearchAuctionList() {
+        return searchAuctionList;
+    }
+
+    public void setSearchAuctionList(ArrayList<SearchAuctionObject> searchAuctionList) {
+        this.searchAuctionList = searchAuctionList;
+    }
+
+    public DetailAuctionObject getDetailAuctionObject() {
+        return detailAuctionObject;
+    }
+
+    public void setDetailAuctionObject(DetailAuctionObject detailAuctionObject) {
+        this.detailAuctionObject = detailAuctionObject;
+    }
+
+    public ArrayList<MyAuctionsObject> getMyAuctionsList() {
+        return myAuctionsList;
+    }
+
+    public void setMyAuctionsList(ArrayList<MyAuctionsObject> myAuctionsList) {
+        this.myAuctionsList = myAuctionsList;
+    }
+
     public String getUsername() {
         return username;
     }
@@ -499,21 +739,5 @@ public class Bean {
 
     public void setText(String text) {
         this.text = text;
-    }
-
-    public ArrayList<SearchAuctionObject> getSearchAuctionObjects() {
-        return searchAuctionObjects;
-    }
-
-    public void setSearchAuctionObjects(ArrayList<SearchAuctionObject> searchAuctionObjects) {
-        this.searchAuctionObjects = searchAuctionObjects;
-    }
-
-    public DetailAuctionObject getDetailAuctionObject() {
-        return detailAuctionObject;
-    }
-
-    public void setDetailAuctionObject(DetailAuctionObject detailAuctionObjects) {
-        this.detailAuctionObject = detailAuctionObjects;
     }
 }
