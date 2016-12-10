@@ -4,12 +4,12 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Welcome to iBei</title>
+    <title>iBei - Search Auction</title>
 </head>
 <body>
 <h1>Search Auction</h1>
 <s:form action="searchauction" method="POST" name="searchauctionform">
-    <s:textfield name="code" label="Code"/><br>
+    <s:textfield name="articlecode" label="Code"/><br>
     <s:submit value="SEARCH"/><br>
 </s:form>
 <s:url action="login" var="url"/>

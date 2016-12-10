@@ -227,6 +227,33 @@ public class Bean {
         else return Action.SUCCESS;
     }
 
+    public String searchauction() {
+        if(getArticlecode().length() != 13) return Action.ERROR;
+
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.searchAuction(getArticlecode());
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN") || reply.equals("type: search_auction, ok: false")) return Action.ERROR;
+        }
+
+        System.out.println(reply);
+
+        return reply;
+    }
+
     private String isUser(String username) {
         String reply = "";
         int retries = 0;

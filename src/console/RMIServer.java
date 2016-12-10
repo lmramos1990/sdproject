@@ -329,7 +329,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         if(articleId == -1) {
             System.out.println("[RMISERVER] THE ARTICLE DOES NOT EXIST");
-            return "type: search_auction, items_count: 0";
+            return "type: search_auction, ok: false";
         }
 
         try {
@@ -371,7 +371,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
-            return "type: search_auction, items_count: 0";
+            return "type: search_auction, ok: false";
         }
     }
 
