@@ -6,7 +6,7 @@
     <title>iBei - Search Auction Results</title>
 </head>
 <body>
-    <c:forEach items="${sessionScope.bean.searchAuctionObjects}" var="auctions">
+    <c:forEach items="${sessionScope.searchauctionbean.searchAuctionObjects}" var="auctions">
         <c:out value="${auctions.articlecode}"/><tr>
         <c:out value="${auctions.auctionid}"/><tr>
         <c:out value="${auctions.title}"/><br>

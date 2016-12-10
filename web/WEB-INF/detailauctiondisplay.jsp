@@ -1,18 +1,25 @@
-<%--
-  Created by IntelliJ IDEA.
-  User: lmramos
-  Date: 12/8/16
-  Time: 8:03 PM
-  To change this template use File | Settings | File Templates.
---%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="s" uri="/struts-tags" %>
+<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+
 <html>
 <head>
     <title>iBei - Display Auction Results</title>
 </head>
 <body>
-
-<s:url action="login" var="url"/>
-<s:a href="%{url}">Home</s:a>
+    <c:out value="auction id: ${sessionScope.detailauctionbean.detailAuctionObject.auctionid}"/><br>
+    <c:out value="auction title: ${sessionScope.detailauctionbean.detailAuctionObject.title}"/><br>
+    <c:out value="auction description: ${sessionScope.detailauctionbean.detailAuctionObject.description}"/><br>
+    <c:out value="auction deadline: ${sessionScope.detailauctionbean.detailAuctionObject.deadline}"/><br>
+    <c:forEach items="${sessionScope.detailauctionbean.detailAuctionObject.messages}" var="messages">
+        <c:out value="message user: ${messages.username}"/><br>
+        <c:out value="message text: ${messages.text}"/><br>
+    </c:forEach>
+    <c:forEach items="${sessionScope.detailauctionbean.detailAuctionObject.bids}" var="bids">
+        <c:out value="bid user: ${bids.username}"/><br>
+        <c:out value="bid amount: ${bids.amount}"/><br>
+    </c:forEach>
+    <s:url action="login" var="url"/>
+    <s:a href="%{url}">Home</s:a>
 </body>
 </html>

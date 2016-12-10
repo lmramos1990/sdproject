@@ -39,6 +39,7 @@ public class Bean {
 
     private ArrayList<User> users;
     private ArrayList<SearchAuctionObject> searchAuctionObjects;
+    private DetailAuctionObject detailAuctionObject;
 
     private String username;
     private String password;
@@ -192,6 +193,8 @@ public class Bean {
             return Action.ERROR;
         }
 
+        if(fAmount <= 0) return Action.ERROR;
+
         if(getArticlecode().length() != 13) {
             return Action.ERROR;
         }
@@ -230,7 +233,6 @@ public class Bean {
     }
 
     public String searchauction() {
-        System.out.println("search auction");
         if(getArticlecode().length() != 13) return Action.ERROR;
 
         String reply = "";
@@ -272,6 +274,68 @@ public class Bean {
         }
 
         setSearchAuctionObjects(objects);
+
+        return Action.SUCCESS;
+    }
+
+    public String detailauction() {
+        int id;
+
+        try {
+            id = Integer.parseInt(getAuctionid());
+        } catch(Exception e) {
+            return Action.ERROR;
+        }
+
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.detailAuction(id);
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN") || reply.equals("type: detail_auction, ok: false")) return Action.ERROR;
+        }
+
+        HashMap<String, String> hreply = new HashMap<>();
+        Arrays.stream(reply.split(",")).map(s -> s.split(":")).forEach(i -> hreply.put(i[0].trim(), i[1].trim()));
+
+        int numberofmessages = Integer.parseInt(hreply.get("messages_count"));
+        int numberofbids = Integer.parseInt(hreply.get("bids_count"));
+
+        ArrayList<MessageObject> messages = new ArrayList<>();
+        ArrayList<BidObject> bids = new ArrayList<>();
+
+        for(int i = 0; i < numberofmessages; i++) {
+            String username = hreply.get("messages_" + i + "_user");
+            String text = hreply.get("messages_" + i + "_text");
+            messages.add(new MessageObject(username, text));
+        }
+
+        for(int i = 0; i < numberofbids; i++) {
+            String username = hreply.get("bids_" + i + "_user");
+            String amount = hreply.get("bids_" + i + "_amount");
+            bids.add(new BidObject(username, amount));
+        }
+
+        DetailAuctionObject details;
+
+        String title = hreply.get("title");
+        String description = hreply.get("description");
+        String deadline = hreply.get("deadline");
+
+        details = new DetailAuctionObject(getAuctionid(), title, description, deadline, messages, bids);
+
+        setDetailAuctionObject(details);
 
         return Action.SUCCESS;
     }
@@ -443,5 +507,13 @@ public class Bean {
 
     public void setSearchAuctionObjects(ArrayList<SearchAuctionObject> searchAuctionObjects) {
         this.searchAuctionObjects = searchAuctionObjects;
+    }
+
+    public DetailAuctionObject getDetailAuctionObject() {
+        return detailAuctionObject;
+    }
+
+    public void setDetailAuctionObject(DetailAuctionObject detailAuctionObjects) {
+        this.detailAuctionObject = detailAuctionObjects;
     }
 }

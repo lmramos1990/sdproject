@@ -24,7 +24,7 @@ public class SearchAuctionAction implements SessionAware {
         String reply = myBean.searchauction();
 
         if(reply.equals(Action.SUCCESS)) {
-            session.put("bean", myBean);
+            session.put("searchauctionbean", myBean);
             return Action.SUCCESS;
         } else return Action.ERROR;
     }

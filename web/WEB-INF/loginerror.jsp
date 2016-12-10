@@ -5,7 +5,6 @@
     <title>Welcome to iBei</title>
 </head>
 <body>
-    <h1>Log-in</h1>
     <h1>Login</h1>
     <s:form action="login" method="POST" name="loginform">
         <s:textfield name="username" label="Username"/><br>

@@ -557,8 +557,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             if(aServerList.requestStatus(uuid) == 1) return "type: bid, ok: true";
         }
 
-
-
         int clientId = getClientId(username);
         if(clientId == -1) return "type: bid, ok: false";
 

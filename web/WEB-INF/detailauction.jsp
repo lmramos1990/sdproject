@@ -9,7 +9,7 @@
     <body>
     <h1>Detail Auction</h1>
     <s:form action="detailauction" method="POST" name="detailauctionform">
-        <s:textfield name="detail" label="ID"/><br>
+        <s:textfield name="auctionid" label="Auction ID"/><br>
         <s:submit value="SUBMIT"/><br>
     </s:form>
     <s:url action="login" var="url"/>
