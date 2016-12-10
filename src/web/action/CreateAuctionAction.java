@@ -1,10 +1,13 @@
 package web.action;
 
+import org.apache.struts2.interceptor.SessionAware;
 import web.beans.Bean;
 
+import java.util.Map;
 import java.util.UUID;
 
-public class CreateAuctionAction {
+public class CreateAuctionAction implements SessionAware {
+    private Map<String, Object> session;
 
     private String username;
     private String articlecode;
@@ -14,6 +17,8 @@ public class CreateAuctionAction {
     private String amount;
 
     public String execute() {
+
+        setUsername(session.get("username").toString());
 
         Bean myBean = new Bean();
         myBean.setUsername(getUsername());
@@ -26,6 +31,11 @@ public class CreateAuctionAction {
         String uuid = UUID.randomUUID().toString();
 
         return myBean.createauction(uuid);
+    }
+
+    @Override
+    public void setSession(Map<String, Object> session) {
+        this.session = session;
     }
 
     public String getUsername() {
