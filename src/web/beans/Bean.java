@@ -6,16 +6,26 @@ import shared.Encryptor;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
+
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.math.BigInteger;
-import java.rmi.registry.LocateRegistry;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Properties;
+
+import java.math.BigInteger;
+
+import java.rmi.registry.LocateRegistry;
+
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+
+import java.sql.Timestamp;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Bean {
     private AuctionInterface iBei;
@@ -26,15 +36,11 @@ public class Bean {
 
     private int numberOfRetries = 40;
 
-    private ArrayList<Auction> auctions;
     private ArrayList<User> users;
-    private ArrayList<Bid> bids;
-    private ArrayList<Message> messages;
 
     private String username;
     private String password;
 
-    private String uuid;
     private String auctionid;
     private String articlecode;
     private String title;
@@ -175,6 +181,52 @@ public class Bean {
         else return Action.ERROR;
     }
 
+    public String createauction(String uuid) {
+        float fAmount;
+
+        try {
+            fAmount = Float.parseFloat(getAmount());
+        } catch(Exception e) {
+            return Action.ERROR;
+        }
+
+        if(getArticlecode().length() != 13) {
+            return Action.ERROR;
+        }
+
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm");
+            LocalDateTime dateTime = LocalDateTime.parse(getDeadline(), formatter);
+            Timestamp timestamp = Timestamp.valueOf(dateTime);
+            Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+
+            if(timestamp.before(currentTime)) return Action.ERROR;
+        } catch(Exception e) {
+            return Action.ERROR;
+        }
+
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.createAuction(uuid, getUsername(), getArticlecode(), getTitle(), getDescription(), getDeadline(), fAmount);
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+        }
+
+        if(reply.equals("SERVER DOWN") || reply.equals("type: create_auction, ok: false")) return Action.ERROR;
+        else return Action.SUCCESS;
+    }
+
     private String isUser(String username) {
         String reply = "";
         int retries = 0;
@@ -256,36 +308,12 @@ public class Bean {
         }
     }
 
-    public ArrayList<Auction> getAuctions() {
-        return auctions;
-    }
-
-    public void setAuctions(ArrayList<Auction> auctions) {
-        this.auctions = auctions;
-    }
-
     public ArrayList<User> getUsers() {
         return users;
     }
 
     public void setUsers(ArrayList<User> users) {
         this.users = users;
-    }
-
-    public ArrayList<Bid> getBids() {
-        return bids;
-    }
-
-    public void setBids(ArrayList<Bid> bids) {
-        this.bids = bids;
-    }
-
-    public ArrayList<Message> getMessages() {
-        return messages;
-    }
-
-    public void setMessages(ArrayList<Message> messages) {
-        this.messages = messages;
     }
 
     public String getUsername() {
@@ -302,5 +330,61 @@ public class Bean {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getAuctionid() {
+        return auctionid;
+    }
+
+    public void setAuctionid(String auctionid) {
+        this.auctionid = auctionid;
+    }
+
+    public String getArticlecode() {
+        return articlecode;
+    }
+
+    public void setArticlecode(String articlecode) {
+        this.articlecode = articlecode;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getDeadline() {
+        return deadline;
+    }
+
+    public void setDeadline(String deadline) {
+        this.deadline = deadline;
+    }
+
+    public String getAmount() {
+        return amount;
+    }
+
+    public void setAmount(String amount) {
+        this.amount = amount;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
     }
 }

@@ -24,9 +24,8 @@ public class LoginAction implements SessionAware {
         reply = myBean.login();
 
         if(reply.equals(Action.SUCCESS)) {
-            session.put("username", username);
+            session.put("username", getUsername());
             session.put("loggedin", true);
-            session.put("bean", myBean);
         }
 
         return reply;
