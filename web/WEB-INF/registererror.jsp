@@ -15,5 +15,7 @@
         <s:submit value="REGISTER"/>
     </s:form>
     <h4>Error</h4>
+    <s:url action="login" var="url"/>
+    <s:a href="%{url}">Login</s:a>
 </body>
 </html>
