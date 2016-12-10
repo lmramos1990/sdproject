@@ -35,7 +35,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     static ArrayList<NotificationCenter> serverList = new ArrayList<>();
     static String rmiHost;
-    private int registryPort;
+    private int rmiPort;
 
     private RMIServer() throws RemoteException {
         super();
@@ -52,7 +52,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         System.setProperty("java.rmi.server.hostname", rmiHost);
 
-        Registry registry = LocateRegistry.createRegistry(registryPort);
+        Registry registry = LocateRegistry.createRegistry(rmiPort);
 
         if(online) {
             try {
@@ -130,7 +130,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             prop.load(inputStream);
 
             rmiHost = prop.getProperty("rmiHost");
-            registryPort = Integer.parseInt(prop.getProperty("registryPort"));
+            rmiPort = Integer.parseInt(prop.getProperty("rmiPort"));
 
         } catch (Exception e) {
             e.printStackTrace();

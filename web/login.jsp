@@ -44,14 +44,14 @@
         function onError(event) {
 
         }
-
     </script>
+
 </head>
     <body>
         <h1>Log-in</h1>
         <s:form action="login" method="POST" name="loginform">
             <s:textfield name="username" label="Username"/><br>
-            <s:textfield name="password" label="Password"/><br>
+            <s:textfield name="password" type="password" label="Password"/><br>
             <s:submit value="Log-in"/><br>
         </s:form>
     </body>
