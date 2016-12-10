@@ -4,7 +4,7 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Welcome to iBei</title>
+        <title>iBei - Detail Auction</title>
     </head>
     <body>
     <h1>Detail Auction</h1>

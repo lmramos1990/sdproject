@@ -5,29 +5,14 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Welcome to iBei</title>
+    <title>iBei - Register</title>
 </head>
 <body>
-<h1 align="center">Register</h1>
-<table align="center" border="0" width="10%" cellpadding="5">
-    <tbody>
+    <h1>Register</h1>
     <s:form method="post" action="register" name="registerform">
-        <tr>
-            <td> <s:textfield name="username" label="username"/></td>
-        </tr>
-        <tr>
-            <td> <s:password name="password" label="password"/></td>
-        </tr>
-        <tr>
-            <td></td>
-            <td align="right"><s:submit value="REGISTER"/> </td>
-        </tr>
+        <s:textfield name="username" label="username"/><br>
+        <s:password name="password" label="password"/><br>
+        <s:submit value="REGISTER"/>
     </s:form>
-    <tr>
-        <td></td>
-        <td align="right"><s:a action="login"><button>BACK</button></s:a></td>
-    </tr>
-    </tbody>
-</table>
 </body>
 </html>

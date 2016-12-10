@@ -2,7 +2,7 @@
 <%@ taglib prefix="s" uri="/struts-tags" %>
 <html>
 <head>
-    <title>Title</title>
+    <title>Welcome to iBei</title>
 </head>
 <body>
     <h1>Log-in</h1>
