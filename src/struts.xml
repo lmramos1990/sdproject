@@ -5,7 +5,8 @@
         "http://struts.apache.org/dtds/struts-2.3.dtd">
 
 <struts>
-    <constant name="struts.devMode" value="true" />
+    <constant name="struts.devMode" value="true"/>
+    <!-- <constant name="struts.ui.theme" value="simple"/>  USAR ISTO QUANDO FOR PARA POR O SITE BONITO -->
     <constant name="struts.action.excludePattern" value="/ws"/>
 
     <package name="webserver" extends="struts-default">
@@ -25,7 +26,7 @@
         </global-results>
 
         <global-exception-mappings>
-            <exception-mapping exception="java.lang.NullPointerException" result="exceptionError" />
+            <exception-mapping exception="java.lang.NullPointerException" result="exceptionError"/>
         </global-exception-mappings>
 
         <action name="login" class="web.action.LoginAction" method="execute">

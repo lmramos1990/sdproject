@@ -7,12 +7,12 @@
     <body>
         <h1>Create Auction</h1>
         <s:form action="createauction" method="POST" name="createauctionform">
-            <s:textfield name="articlecode" label="Article Code"/>
-            <s:textfield name="title" label="Title"/>
-            <s:textfield name="description" label="Description"/>
-            <s:textfield name="deadline" label="Deadline"/>
-            <s:textfield name="amount" label="Amount"/>
-            <s:submit value="Create Auction"/>
+            <s:textfield name="articlecode" label="Article Code"/><br>
+            <s:textfield name="title" label="Title"/><br>
+            <s:textfield name="description" label="Description"/><br>
+            <s:textfield name="deadline" label="Deadline"/><br>
+            <s:textfield name="amount" label="Amount"/><br>
+            <s:submit value="Create Auction"/><br>
         </s:form>
         <s:url action="login" var="url"/>
         <s:a href="%{url}">Home</s:a>
