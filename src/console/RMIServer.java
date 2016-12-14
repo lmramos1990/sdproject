@@ -31,7 +31,8 @@ import java.time.format.DateTimeFormatter;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
-    public static Connection connection;
+    public static Connection connection, registerConnection, createAuctionConnection, bidConnection, secondaryBidConnection, editAuctionConnection, secondaryEditAuctionConnection, messageConnection;
+
     public String user = "bd";
     public String pass = "oracle";
     public String url = "jdbc:oracle:thin:@localhost:1521:XE";
@@ -58,6 +59,21 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 try {
                     System.out.println("[RMISERVER] ESTABLISHING CONNECTION TO THE DATABASE");
                     connection = DriverManager.getConnection(url, user, pass);
+                    registerConnection = DriverManager.getConnection(url, user, pass);
+                    createAuctionConnection = DriverManager.getConnection(url, user, pass);
+                    bidConnection = DriverManager.getConnection(url, user, pass);
+                    secondaryBidConnection = DriverManager.getConnection(url, user, pass);
+                    editAuctionConnection = DriverManager.getConnection(url, user, pass);
+                    secondaryEditAuctionConnection = DriverManager.getConnection(url, user, pass);
+                    messageConnection = DriverManager.getConnection(url, user, pass);
+
+                    messageConnection.setAutoCommit(false);
+                    secondaryEditAuctionConnection.setAutoCommit(false);
+                    editAuctionConnection.setAutoCommit(false);
+                    secondaryBidConnection.setAutoCommit(false);
+                    bidConnection.setAutoCommit(false);
+                    createAuctionConnection.setAutoCommit(false);
+                    registerConnection.setAutoCommit(false);
                     connection.setAutoCommit(false);
                     System.out.println("[RMISERVER] CONNECTION TO THE DATABASE ESTABLISHED");
                 } catch(Exception e) {
@@ -78,6 +94,21 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                     System.out.println("[RMISERVER] ESTABLISHING CONNECTION TO THE DATABASE");
                     connection = DriverManager.getConnection(url, user, pass);
+                    registerConnection = DriverManager.getConnection(url, user, pass);
+                    createAuctionConnection = DriverManager.getConnection(url, user, pass);
+                    bidConnection = DriverManager.getConnection(url, user, pass);
+                    secondaryBidConnection = DriverManager.getConnection(url, user, pass);
+                    editAuctionConnection = DriverManager.getConnection(url, user, pass);
+                    secondaryEditAuctionConnection = DriverManager.getConnection(url, user, pass);
+                    messageConnection = DriverManager.getConnection(url, user, pass);
+
+                    messageConnection.setAutoCommit(false);
+                    secondaryEditAuctionConnection.setAutoCommit(false);
+                    editAuctionConnection.setAutoCommit(false);
+                    secondaryBidConnection.setAutoCommit(false);
+                    bidConnection.setAutoCommit(false);
+                    createAuctionConnection.setAutoCommit(false);
+                    registerConnection.setAutoCommit(false);
                     connection.setAutoCommit(false);
                     System.out.println("[RMISERVER] CONNECTION TO THE DATABASE ESTABLISHED");
                 } catch(Exception e) {
@@ -221,11 +252,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String register(String uuid, String username, String hpassword, String esalt) throws RemoteException {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
-        Connection myConnection = createConnection();
-        if(myConnection == null){
-            return "type: register, ok: false";
-        }
-
         for(NotificationCenter aServerList : serverList) {
             if(aServerList.requestStatus(uuid) == 1) return "type: register, ok: true";
         }
@@ -234,7 +260,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         try {
             String registerQuery = "INSERT INTO client (client_id, username, hpassword, esalt) VALUES(clients_seq.nextVal, ?, ?, ?)";
-            PreparedStatement registerStatement = myConnection.prepareStatement(registerQuery);
+            PreparedStatement registerStatement = registerConnection.prepareStatement(registerQuery);
             registerStatement.setString(1, username);
             registerStatement.setString(2, hpassword);
             registerStatement.setString(3, esalt);
@@ -246,7 +272,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return "type: register, ok: false";
             } else {
                 registerSet.close();
-                myConnection.commit();
+                registerConnection.commit();
                 System.out.println("[RMISERVER] USER REGISTERED IN THE DATABASE WITH SUCCESS");
                 for(NotificationCenter aServerList : serverList) {
                     aServerList.updateRequest(uuid);
@@ -259,7 +285,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
             try {
-                myConnection.rollback();
+                registerConnection.rollback();
             } catch(SQLException e1) {e1.printStackTrace();}
             return "type: register, ok: false";
         }
@@ -267,11 +293,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized String createAuction(String uuid, String username, String code, String title, String description, String deadline, float amount) throws RemoteException {
         System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
-
-        Connection myConnection = createConnection();
-        if(myConnection == null){
-            return "type: create_auction, ok: false";
-        }
 
         for(NotificationCenter aServerList : serverList) {
             if(aServerList.requestStatus(uuid) == 1) return "type: create_auction, ok: true";
@@ -295,7 +316,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         try {
             String createAuctionQuery = "INSERT INTO auction (auction_id, client_id, article_id, title, description, initial_value, deadline) VALUES(auction_seq.nextVal, ?, ?, ?, ?, ?, ?)";
-            PreparedStatement createAuctionStatement = myConnection.prepareStatement(createAuctionQuery);
+            PreparedStatement createAuctionStatement = createAuctionConnection.prepareStatement(createAuctionQuery);
             createAuctionStatement.setInt(1, clientId);
             createAuctionStatement.setInt(2, articleId);
             createAuctionStatement.setString(3, title);
@@ -310,7 +331,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return "type: create_auction, ok: false";
             } else {
                 createAuctionSet.close();
-                myConnection.commit();
+                createAuctionConnection.commit();
                 System.out.println("[RMISERVER] AUCTION REGISTERED IN THE DATABASE WITH SUCCESS");
 
                 for(NotificationCenter aServerList : serverList) {
@@ -324,7 +345,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
             try {
-                myConnection.rollback();
+                createAuctionConnection.rollback();
             } catch(SQLException e1) {e1.printStackTrace();}
             return "type: create_auction, ok: false";
         }
@@ -562,16 +583,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String bid(String uuid, String username, int id, float amount) throws RemoteException {
         System.out.println("[RMISERVER] BID REQUEST");
 
-        Connection myConnection = createConnection();
-        if(myConnection == null){
-            return "type: bid, ok: false";
-        }
-
-        Connection mySecondaryConnection = createConnection();
-        if(myConnection == null){
-            return "type: bid, ok: false";
-        }
-
         for(NotificationCenter aServerList : serverList) {
             if(aServerList.requestStatus(uuid) == 1) return "type: bid, ok: true";
         }
@@ -588,7 +599,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         try {
             String createBidQuery = "INSERT INTO bid (bid_id, client_id, auction_id, value) VALUES (bid_seq.nextVal, ?, ?, ?)";
-            PreparedStatement createBidStatement = myConnection.prepareStatement(createBidQuery);
+            PreparedStatement createBidStatement = bidConnection.prepareStatement(createBidQuery);
             createBidStatement.setInt(1, clientId);
             createBidStatement.setInt(2, auctionId);
             createBidStatement.setFloat(3, amount);
@@ -600,21 +611,21 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return "type: bid, ok: false";
             } else {
                 createBidSet.close();
-                myConnection.commit();
+                bidConnection.commit();
                 String updateQuery = "UPDATE auction SET current_value = ? WHERE auction_id = ?";
-                PreparedStatement updateStatement = mySecondaryConnection.prepareStatement(updateQuery);
+                PreparedStatement updateStatement = secondaryBidConnection.prepareStatement(updateQuery);
                 updateStatement.setFloat(1, amount);
                 updateStatement.setInt(2, auctionId);
                 ResultSet updateSet = updateStatement.executeQuery();
 
                 if(!updateSet.next()) {
                     updateSet.close();
-                    myConnection.rollback();
+                    bidConnection.rollback();
                     System.out.println("[RMISERVER] AUCTION WAS NOT UPDATED WITH SUCCESS");
                     return "type: bid, ok: false";
                 } else {
                     updateSet.close();
-                    mySecondaryConnection.commit();
+                    secondaryBidConnection.commit();
                     System.out.println("[RMISERVER] AUCTION WAS UPDATED WITH SUCCESS");
 
                     for(NotificationCenter aServerList : serverList) {
@@ -631,8 +642,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
             try {
-                myConnection.rollback();
-                mySecondaryConnection.rollback();
+                bidConnection.rollback();
+                secondaryBidConnection.rollback();
             } catch(SQLException e1) {e1.printStackTrace();}
             return "type: bid, ok: false";
         }
@@ -640,16 +651,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized String editAuction(String uuid, String username, int id, String title, String description, String deadline, String code, float amount) throws RemoteException {
         System.out.println("[RMISERVER] EDIT AUCTION REQUEST");
-
-        Connection myConnection = createConnection();
-        if(myConnection == null){
-            return "type: edit_auction, ok: false";
-        }
-
-        Connection mySecondaryConnection = createConnection();
-        if(myConnection == null){
-            return "type: edit_auction, ok: false";
-        }
 
         for(NotificationCenter aServerList : serverList) {
             if(aServerList.requestStatus(uuid) == 1) return "type: edit_auction, ok: true";
@@ -758,7 +759,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         try {
             String oldQuery = "SELECT title, description, deadline, initial_value, article_id FROM auction WHERE auction_id = ?";
-            PreparedStatement oldStatement = myConnection.prepareStatement(oldQuery);
+            PreparedStatement oldStatement = editAuctionConnection.prepareStatement(oldQuery);
             oldStatement.setInt(1, id);
             ResultSet oldSet = oldStatement.executeQuery();
 
@@ -776,8 +777,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         } catch(SQLException e) {e.printStackTrace();}
 
         try {
-            PreparedStatement historyStatement = myConnection.prepareStatement(historyQuery);
-            PreparedStatement updateStatement = mySecondaryConnection.prepareStatement(updateQuery);
+            PreparedStatement historyStatement = editAuctionConnection.prepareStatement(historyQuery);
+            PreparedStatement updateStatement = secondaryEditAuctionConnection.prepareStatement(updateQuery);
             int counter = 0;
             for(int i = 0; i < myArray.length(); i++) {
                 if(i == 0 && (myArray.charAt(i) == '1')) {
@@ -811,7 +812,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return "type: edit_auction, ok: false";
             } else {
                 historySet.close();
-                myConnection.commit();
+                editAuctionConnection.commit();
                 System.out.println("[RMISERVER] REGISTER AUCTION INTO HISTORY");
             }
 
@@ -819,12 +820,12 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             if(!updateSet.next()) {
                 updateSet.close();
-                myConnection.rollback();
+                editAuctionConnection.rollback();
                 System.out.println("[RMISERVER] DID NOT REGISTER CHANGES IN THE AUCTION");
                 return "type: edit_auction, ok: false";
             } else {
                 updateSet.close();
-                mySecondaryConnection.commit();
+                secondaryEditAuctionConnection.commit();
                 System.out.println("[RMISERVER] REGISTERED CHANGES IN THE AUCTION");
 
                 for(NotificationCenter aServerList : serverList) {
@@ -839,8 +840,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
             try {
-                myConnection.rollback();
-                mySecondaryConnection.rollback();
+                editAuctionConnection.rollback();
+                secondaryEditAuctionConnection.rollback();
             } catch(SQLException e1) {e1.printStackTrace();}
             return "type: edit_auction, ok: false";
         }
@@ -848,11 +849,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     public synchronized String message(String uuid, String username, int id, String text) throws RemoteException {
         System.out.println("[RMISERVER] MESSAGE REQUEST");
-
-        Connection myConnection = createConnection();
-        if(myConnection == null){
-            return "type: message, ok: false";
-        }
 
         for(NotificationCenter aServerList : serverList) {
             if(aServerList.requestStatus(uuid) == 1) return "type: message, ok: true";
@@ -866,7 +862,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         try {
             String messageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES(message_seq.nextVal, ?, ?, ?)";
-            PreparedStatement messageStatement = myConnection.prepareStatement(messageQuery);
+            PreparedStatement messageStatement = messageConnection.prepareStatement(messageQuery);
             messageStatement.setInt(1, clientId);
             messageStatement.setInt(2, auctionId);
             messageStatement.setString(3, text);
@@ -878,7 +874,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 return "type: message, ok: false";
             } else {
                 messageSet.close();
-                myConnection.commit();
+                messageConnection.commit();
                 System.out.println("[RMISERVER] MESSAGE WAS REGISTERED IN THE DATABASE WITH SUCCESS");
 
                 for(NotificationCenter aServerList : serverList) {
@@ -894,7 +890,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
             try {
-                myConnection.rollback();
+                messageConnection.rollback();
             } catch(SQLException e1) {e1.printStackTrace();}
             return "type: message, ok: false";
         }
@@ -1160,18 +1156,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         return onlineUsers;
-    }
-
-    private Connection createConnection (){
-        Connection connection;
-        try {
-            connection = DriverManager.getConnection(url, user, pass);
-            connection.setAutoCommit(false);
-            return connection;
-        } catch(Exception e) {
-            e.printStackTrace();
-            return null;
-        }
     }
 
     /*private void test(int s) {
