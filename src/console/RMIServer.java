@@ -182,6 +182,8 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String login(String username, String hpassword) throws RemoteException {
         System.out.println("[RMISERVER] LOGIN REQUEST");
 
+
+
         System.out.println("[RMISERVER] CHECKING IF USER IS ONLINE");
         try {
             for(NotificationCenter aServerList : serverList) {
@@ -195,24 +197,16 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         try {
-            String loginQuery = "SELECT username, hpassword FROM client WHERE to_char(username) = ?";
-            PreparedStatement loginStatement = connection.prepareStatement(loginQuery);
-            loginStatement.setString(1, username);
-            ResultSet loginSet = loginStatement.executeQuery();
 
-            if(!loginSet.next()) {
-                loginSet.close();
-                System.out.println("[RMISERVER] USER DOES NOT EXIST IN THE DATABASE");
-                return "type: login, ok: false";
-            } else {
-                System.out.println("[RMISERVER] CHECKING CREDENTIALS");
+            CallableStatement cstmt = connection.prepareCall("{ call signin(?, ?, ?)}");
+            cstmt.setString(1, username);
+            cstmt.setString(2, hpassword);
+            cstmt.registerOutParameter(3, Types.VARCHAR);
+            cstmt.executeUpdate();
+            String result = cstmt.getString(3);
+            cstmt.close();
 
-                String encryptedPassword = loginSet.getString("hpassword");
-                loginSet.close();
-
-                if(encryptedPassword.equals(hpassword)) return "type: login, ok: true";
-                else return "type: login, ok: false";
-            }
+            return result;
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
