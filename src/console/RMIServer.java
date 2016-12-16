@@ -182,8 +182,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public synchronized String login(String username, String hpassword) throws RemoteException {
         System.out.println("[RMISERVER] LOGIN REQUEST");
 
-
-
         System.out.println("[RMISERVER] CHECKING IF USER IS ONLINE");
         try {
             for(NotificationCenter aServerList : serverList) {
@@ -197,15 +195,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         try {
-
-            CallableStatement cstmt = connection.prepareCall("{ call signin(?, ?, ?)}");
-            cstmt.setString(1, username);
-            cstmt.setString(2, hpassword);
-            cstmt.registerOutParameter(3, Types.VARCHAR);
-            cstmt.executeUpdate();
-            String result = cstmt.getString(3);
-            cstmt.close();
-
+            CallableStatement loginStatement = connection.prepareCall("{ call signin(?, ?, ?)}");
+            loginStatement.registerOutParameter(3, Types.VARCHAR);
+            loginStatement.setString(1, username);
+            loginStatement.setString(2, hpassword);
+            loginStatement.executeUpdate();
+            String result = loginStatement.getString(3);
+            loginStatement.close();
             return result;
         } catch(Exception e) {
             e.printStackTrace();
@@ -224,19 +220,14 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         if(clientId == -1) return "";
 
         try {
-            String saltQuery = "SELECT esalt FROM client WHERE client_id = ?";
-            PreparedStatement saltStatement = connection.prepareStatement(saltQuery);
-            saltStatement.setInt(1, clientId);
-            ResultSet saltSet = saltStatement.executeQuery();
+            CallableStatement saltStatement = connection.prepareCall("{ ? = call getsalt(?)}");
+            saltStatement.registerOutParameter(1, Types.CLOB);
+            saltStatement.setString(2, username);
+            saltStatement.executeUpdate();
+            String result = saltStatement.getString(1);
+            saltStatement.close();
 
-            if(!saltSet.next()) {
-                saltSet.close();
-                return "";
-            } else {
-                String esalt = saltSet.getString("esalt");
-                saltSet.close();
-                return esalt;
-            }
+            return result;
         } catch(Exception e) {
             e.printStackTrace();
             return "";
@@ -250,30 +241,16 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             if(aServerList.requestStatus(uuid) == 1) return "type: register, ok: true";
         }
 
-        if(getClientId(username) != -1) return "type: register, ok: false";
-
         try {
-            String registerQuery = "INSERT INTO client (client_id, username, hpassword, esalt) VALUES(clients_seq.nextVal, ?, ?, ?)";
-            PreparedStatement registerStatement = registerConnection.prepareStatement(registerQuery);
+            CallableStatement registerStatement = registerConnection.prepareCall("{ call signup(?, ?, ?, ?)}");
+            registerStatement.registerOutParameter(4, Types.VARCHAR);
             registerStatement.setString(1, username);
             registerStatement.setString(2, hpassword);
             registerStatement.setString(3, esalt);
-            ResultSet registerSet = registerStatement.executeQuery();
-
-            if(!registerSet.next()) {
-                System.out.println("[RMISERVER] USER WAS NOT REGISTERED WITH SUCCESS");
-                registerSet.close();
-                return "type: register, ok: false";
-            } else {
-                registerSet.close();
-                registerConnection.commit();
-                System.out.println("[RMISERVER] USER REGISTERED IN THE DATABASE WITH SUCCESS");
-                for(NotificationCenter aServerList : serverList) {
-                    aServerList.updateRequest(uuid);
-                }
-
-                return "type: register, ok: true";
-            }
+            registerStatement.executeUpdate();
+            String result = registerStatement.getString(4);
+            registerStatement.close();
+            return result;
         } catch(SQLException e) {
             e.printStackTrace();
 
@@ -955,19 +932,14 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
     private int getClientId(String username) {
         try {
-            String getIdQuery = "SELECT client_id FROM client WHERE to_char(username) = ?";
-            PreparedStatement getIdStatement = connection.prepareStatement(getIdQuery);
-            getIdStatement.setString(1, username);
-            ResultSet getIdSet = getIdStatement.executeQuery();
+            CallableStatement clientStatement = connection.prepareCall("{ ? = call getclientid(?)}");
+            clientStatement.setString(2, username);
+            clientStatement.registerOutParameter(1, Types.INTEGER);
+            clientStatement.executeUpdate();
+            Integer result = clientStatement.getInt(1);
+            clientStatement.close();
 
-            if(!getIdSet.next()) {
-                getIdSet.close();
-                return -1;
-            } else {
-                int id = getIdSet.getInt("client_id");
-                getIdSet.close();
-                return id;
-            }
+            return result;
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
