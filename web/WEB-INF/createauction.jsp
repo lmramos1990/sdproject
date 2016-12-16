@@ -3,6 +3,7 @@
 <html>
 <head>
     <title>iBei - Create Auction</title>
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
     <body>
         <h1>Create Auction</h1>
@@ -16,5 +17,9 @@
         </s:form>
         <s:url action="login" var="url"/>
         <s:a href="%{url}">Home</s:a>
+
+        <div id="container">
+            <div id="notifications"></div>
+        </div>
     </body>
 </html>

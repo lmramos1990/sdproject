@@ -2,9 +2,11 @@ package shared;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 
 public interface AuctionInterface extends Remote {
     void subscribe(NotificationCenter nc) throws RemoteException;
+    void removeSubscription(NotificationCenter nc) throws RemoteException;
     String login(String username, String hpassword) throws RemoteException;
     String isUser(String username) throws RemoteException;
     String getSalt(String username) throws RemoteException;
@@ -18,4 +20,5 @@ public interface AuctionInterface extends Remote {
     String message(String uuid, String username, int id, String text) throws RemoteException;
     String onlineUsers(String username) throws RemoteException;
     void startUpNotifications(String username) throws RemoteException;
+    ArrayList<String> getNotifications(String username) throws RemoteException;
 }

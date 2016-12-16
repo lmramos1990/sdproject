@@ -33,7 +33,7 @@ public class Bean {
 
     private int numberOfRetries = 40;
 
-    private ArrayList<User> users;
+    private ArrayList<UserObject> onlineUsersList;
     private ArrayList<SearchAuctionObject> searchAuctionList;
     private DetailAuctionObject detailAuctionObject;
     private ArrayList<MyAuctionsObject> myAuctionsList;
@@ -173,6 +173,8 @@ public class Bean {
 
             if (!reconnected) reply = reconnect(retries);
         }
+
+        System.out.println(reply);
 
         if (reply.equals("type: register, ok: true")) return Action.SUCCESS;
         else return Action.ERROR;
@@ -373,7 +375,7 @@ public class Bean {
         return Action.SUCCESS;
     }
 
-    public String bid() {
+    public String bid(String uuid) {
         float fAmount;
         int id;
 
@@ -390,8 +392,6 @@ public class Bean {
         }
 
         if(fAmount <= 0) return Action.ERROR;
-
-        String uuid = UUID.randomUUID().toString();
 
         String reply = "";
         int retries = 0;
@@ -416,7 +416,7 @@ public class Bean {
         else return Action.SUCCESS;
     }
 
-    public String editauction() {
+    public String editauction(String uuid) {
         String etitle, edescription, edeadline, ecode, eamount;
 
         if(getTitle() == null || getTitle().equals("")) etitle = "";
@@ -472,8 +472,6 @@ public class Bean {
 
         if(!isNumber) return Action.ERROR;
 
-        String uuid = UUID.randomUUID().toString();
-
         String reply = "";
         int retries = 0;
         boolean reconnected = false;
@@ -497,7 +495,7 @@ public class Bean {
         else return Action.SUCCESS;
     }
 
-    public String message() {
+    public String message(String uuid) {
         int id;
 
         try {
@@ -505,8 +503,6 @@ public class Bean {
         } catch(Exception e) {
             return Action.ERROR;
         }
-
-        String uuid = UUID.randomUUID().toString();
 
         String reply = "";
         int retries = 0;
@@ -551,9 +547,44 @@ public class Bean {
             if(reply.equals("SERVER DOWN") || reply.equals("type: online_users, ok: false")) reply = Action.ERROR;
         }
 
-        // fazer a lista de utilizadores para guardar o bean
+        HashMap<String, String> hreply = new HashMap<>();
+        Arrays.stream(reply.split(",")).map(s -> s.split(":")).forEach(i -> hreply.put(i[0].trim(), i[1].trim()));
+
+        int numberofusers = Integer.parseInt(hreply.get("users_count"));
+        ArrayList<UserObject> onlineUsers = getOnlineUsersList();
+
+        for(int i = 0; i < numberofusers; i++) {
+            String username = hreply.get("users_" + i + "_username");
+            onlineUsers.add(new UserObject(username));
+        }
+
+        setOnlineUsersList(onlineUsers);
 
         return Action.SUCCESS;
+    }
+
+    public ArrayList<String> startUpNotifications() {
+        ArrayList<String> notifications = new ArrayList<>();
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                notifications = iBei.getNotifications(getUsername());
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN")) return null;
+        }
+
+        return notifications;
     }
 
     private String isUser(String username) {
@@ -637,12 +668,12 @@ public class Bean {
         }
     }
 
-    public ArrayList<User> getUsers() {
-        return users;
+    public ArrayList<UserObject> getOnlineUsersList() {
+        return onlineUsersList;
     }
 
-    public void setUsers(ArrayList<User> users) {
-        this.users = users;
+    public void setOnlineUsersList(ArrayList<UserObject> users) {
+        this.onlineUsersList= users;
     }
 
     public ArrayList<SearchAuctionObject> getSearchAuctionList() {
@@ -651,10 +682,6 @@ public class Bean {
 
     public void setSearchAuctionList(ArrayList<SearchAuctionObject> searchAuctionList) {
         this.searchAuctionList = searchAuctionList;
-    }
-
-    public DetailAuctionObject getDetailAuctionObject() {
-        return detailAuctionObject;
     }
 
     public void setDetailAuctionObject(DetailAuctionObject detailAuctionObject) {

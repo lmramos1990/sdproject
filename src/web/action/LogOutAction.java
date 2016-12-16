@@ -11,6 +11,7 @@ public class LogOutAction implements SessionAware {
     public String execute() {
         session.remove("loggedin");
         session.remove("username");
+        session.remove("notifications");
 
         return Action.SUCCESS;
     }

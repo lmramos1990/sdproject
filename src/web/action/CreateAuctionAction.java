@@ -1,8 +1,10 @@
 package web.action;
 
 import org.apache.struts2.interceptor.SessionAware;
+import shared.RequestObject;
 import web.beans.Bean;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,6 +23,17 @@ public class CreateAuctionAction implements SessionAware {
         if(username == null && articlecode == null && title == null && description == null && deadline == null && amount == null) return "stay";
 
         setUsername(session.get("username").toString());
+        session.remove("notifications");
+
+        String uuid = UUID.randomUUID().toString();
+        RequestObject requestObject = new RequestObject(uuid, 0);
+
+        ArrayList<RequestObject> requests = (ArrayList<RequestObject>) session.get("requestsmap");
+
+        if(requests == null) {
+            requests = new ArrayList<>();
+            requests.add(requestObject);
+        } else if(!requests.contains(requestObject)) requests.add(requestObject);
 
         Bean myBean = new Bean();
         myBean.setUsername(getUsername());
@@ -30,9 +43,12 @@ public class CreateAuctionAction implements SessionAware {
         myBean.setDeadline(getDeadline());
         myBean.setAmount(getAmount());
 
-        String uuid = UUID.randomUUID().toString();
+        String reply = myBean.createauction(uuid);
 
-        return myBean.createauction(uuid);
+        requests.remove(requestObject);
+        session.put("requestsmap", requests);
+
+        return reply;
     }
 
     @Override

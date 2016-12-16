@@ -4,6 +4,8 @@ import web.beans.Bean;
 
 import com.opensymphony.xwork2.Action;
 import org.apache.struts2.interceptor.SessionAware;
+
+import java.util.ArrayList;
 import java.util.Map;
 
 public class LoginAction implements SessionAware {
@@ -24,6 +26,9 @@ public class LoginAction implements SessionAware {
         reply = myBean.login();
 
         if(reply.equals(Action.SUCCESS)) {
+            ArrayList<String> notifications = myBean.startUpNotifications();
+
+            session.put("notifications", notifications);
             session.put("username", getUsername());
             session.put("loggedin", true);
         }

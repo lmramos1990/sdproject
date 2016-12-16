@@ -5,7 +5,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Welcome to iBei</title>
+
     <link rel="stylesheet" href="bootstrap/css/styles/signin.css">
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
 <body>
     <!DOCTYPE html>

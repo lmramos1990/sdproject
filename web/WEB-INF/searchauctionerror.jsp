@@ -5,6 +5,7 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>iBei - Search Auction</title>
+        <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
     </head>
     <body>
     <h1>Search Auction</h1>
@@ -15,5 +16,9 @@
     </s:form>
     <s:url action="login" var="url"/>
     <s:a href="%{url}">Home</s:a>
+
+    <div id="container">
+        <div id="notifications"></div>
+    </div>
     </body>
 </html>

@@ -95,9 +95,19 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public void subscribe(NotificationCenter nc) throws RemoteException {
+    public synchronized void subscribe(NotificationCenter nc) throws RemoteException {
+
+        System.out.println("SOMEONE JUST SUBSCRIBED TO ME");
+
         if(serverList.indexOf(nc) == -1) serverList.add(nc);
         else serverList.set(serverList.indexOf(nc), nc);
+    }
+
+    public synchronized void removeSubscription(NotificationCenter nc) throws RemoteException {
+
+        System.out.println("SOMEONE JUST REMOVED THE SUBSCRIPTION");
+
+        if(serverList.indexOf(nc) != -1) serverList.remove(serverList.indexOf(nc));
     }
 
     public static void main(String[] args) {
@@ -924,6 +934,54 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
+    public synchronized ArrayList<String> getNotifications(String username) throws RemoteException {
+        int clientId = getClientId(username);
+
+        if(clientId == -1) return null;
+
+        ArrayList<String> notifications = new ArrayList<>();
+
+        try {
+            String getNotificationsQuery = "SELECT whoisfrom, message FROM notification WHERE client_id = ? AND read = 0";
+            PreparedStatement getNotificationsStatement = connection.prepareStatement(getNotificationsQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            getNotificationsStatement.setInt(1, clientId);
+            ResultSet getNotificationsSet = getNotificationsStatement.executeQuery();
+
+            if(!getNotificationsSet.next()) {
+                getNotificationsSet.close();
+                System.out.println("[RMISERVER] NO NEW NOTIFICATION FOR THE USER");
+                return null;
+            } else {
+                getNotificationsSet.beforeFirst();
+
+                while(getNotificationsSet.next()) {
+                    String notification = "you got a message from " + getNotificationsSet.getString("whoisfrom") + " that says: " + getNotificationsSet.getString("message");
+                    notifications.add(notification);
+                }
+                getNotificationsSet.close();
+            }
+
+            String updateQuery = "UPDATE notification SET read = 1 WHERE client_id = ?";
+            PreparedStatement updateStatement = connection.prepareStatement(updateQuery);
+            updateStatement.setInt(1, clientId);
+            ResultSet updateSet = updateStatement.executeQuery();
+
+            if(!updateSet.next()) {
+                System.out.println("[RMISERVER] START UP NOTIFICATIONS DID NOT UPDATE SUCCESSFULLY");
+                updateSet.close();
+            } else {
+                System.out.println("[RMISERVER] START UP NOTIFICATIONS UPDATED SUCCESSFULLY");
+                connection.commit();
+                updateSet.close();
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED");
+        }
+
+        return notifications;
+    }
+
     private int getClientId(String username) {
         try {
             String getIdQuery = "SELECT client_id FROM client WHERE to_char(username) = ?";
@@ -1123,13 +1181,13 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return onlineUsers;
     }
 
-    /*private void test(int s) {
+    private void test(int s) {
         try {
             Thread.sleep(s * 1000);
         } catch(InterruptedException e) {
             e.printStackTrace();
         }
-    }*/
+    }
 }
 
 class PrimaryServer extends Thread {

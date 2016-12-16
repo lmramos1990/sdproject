@@ -14,6 +14,7 @@ public class MyAuctionsAction implements SessionAware {
     public String execute() {
 
         setUsername(session.get("username").toString());
+        session.remove("notifications");
 
         Bean myBeans = new Bean();
 

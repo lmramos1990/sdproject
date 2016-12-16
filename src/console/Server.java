@@ -326,6 +326,7 @@ class TCPConnection extends Thread {
             }
 
             return reply;
+
         } else if(username.equals("") && request.get("type").equals("register") && request.containsKey("username") && request.containsKey("password") && request.size() == 3) {
             System.out.println("[SERVER] REGISTER");
 
@@ -354,6 +355,7 @@ class TCPConnection extends Thread {
             if(!Server.requests.contains(requestObject)) Server.requests.add(requestObject);
 
             return register(uuid, request.get("username"), hpassword, esalt);
+
         } else if(!username.equals("") && request.get("type").equals("create_auction") && request.containsKey("code") && request.containsKey("title") && request.containsKey("description") && request.containsKey("deadline") && request.containsKey("amount") && request.size() == 6) {
             System.out.println("[SERVER] CREATE AUCTION");
 
@@ -389,6 +391,7 @@ class TCPConnection extends Thread {
             if(!Server.requests.contains(requestObject)) Server.requests.add(requestObject);
 
             return createAuction(uuid, username, request.get("code"), request.get("title"), request.get("description"), request.get("deadline"), fAmount);
+
         } else if(!username.equals("") && request.get("type").equals("search_auction") && request.containsKey("code") && request.size() == 2) {
             System.out.println("[SERVER] SEARCH AUCTION");
 
@@ -417,6 +420,7 @@ class TCPConnection extends Thread {
             System.out.println("[SERVER] MY_AUCTIONS");
 
             return myAuctions(username);
+
         } else if(!username.equals("") && request.get("type").equals("bid") && request.containsKey("id") && request.containsKey("amount") && request.size() == 3) {
             System.out.println("[SERVER] BID");
 

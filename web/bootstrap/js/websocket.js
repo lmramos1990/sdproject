@@ -1,64 +1,45 @@
 var websocket = null;
 
-window.onload = function() { // URI = ws://10.16.0.165:8080/WebSocket/ws
+window.onload = function() {
     connect('ws://' + window.location.host + '/ws');
-    document.getElementById("chat").focus();
-}
+};
 
-function connect(host) { // connect to the host websocket
+function connect(host) {
     if('WebSocket' in window) websocket = new WebSocket(host);
-    else if ('MozWebSocket' in window) websocket = new MozWebSocket(host);
-    else {
-        writeToHistory('Get a real browser which supports WebSocket.');
-        return;
-    }
+    else return;
 
-    websocket.onopen    = onOpen; // set the event listeners below
-    websocket.onclose   = onClose;
+    // set the event listeners below
+    websocket.onopen = onOpen;
+    websocket.onclose = onClose;
     websocket.onmessage = onMessage;
-    websocket.onerror   = onError;
+    websocket.onerror = onError;
 }
 
 function onOpen(event) {
-    writeToHistory('Connected to ' + window.location.host + '.');
-    document.getElementById('chat').onkeydown = function(key) {
-        if(key.keyCode == 13) doSend(); // call doSend() on enter key
-    };
+    getNotifications();
 }
 
 function onClose(event) {
-    writeToHistory('WebSocket closed.');
-    document.getElementById('chat').onkeydown = null;
-
-    console.log("ACABEI DE TE MANDAR COM AS PUTAS!")
-
-    window.onbeforeunload = function() {
-        websocket.onclose = function () {}; // disable onclose handler first
-        websocket.close()
-    };
+    console.log("[WEBSOCKET] GOING TO CLOSE")
 }
 
-function onMessage(message) { // print the received message
-    writeToHistory(message.data);
+function onMessage(message) {
+    writeNotification(message.data);
 }
 
 function onError(event) {
-    writeToHistory('WebSocket error (' + event.data + ').');
-    document.getElementById('chat').onkeydown = null;
+    console.log("SOME ERROR OCURRED");
 }
 
-function doSend() {
-    var message = document.getElementById('chat').value;
-    if (message != '')
-        websocket.send(message); // send the message
-    document.getElementById('chat').value = '';
+function getNotifications() {
+    console.log("THIS IS TO GET THE NOTIFICATIONS");
 }
 
-function writeToHistory(text) {
-    var history = document.getElementById('history');
+function writeNotification(message) {
+    var notification = document.getElementById('notifications');
     var line = document.createElement('p');
     line.style.wordWrap = 'break-word';
-    line.innerHTML = text;
-    history.appendChild(line);
-    history.scrollTop = history.scrollHeight;
+    line.innerHTML = message;
+    notification.appendChild(line);
+    notification.scrollTop = notification.scrollHeight;
 }

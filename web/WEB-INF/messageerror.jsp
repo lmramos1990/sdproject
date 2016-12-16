@@ -5,6 +5,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>iBei - Message</title>
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
 <body>
     <h1>Message</h1>
@@ -16,5 +17,9 @@
     <h4>There's not any auction with that id</h4>
     <s:url action="login" var="url"/>
     <s:a href="%{url}">Home</s:a>
+
+    <div id="container">
+        <div id="notifications"></div>
+    </div>
 </body>
 </html>

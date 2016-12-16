@@ -1,9 +1,9 @@
 package web.beans;
 
-public class User {
+public class UserObject {
     String username;
 
-    public User(String username) {
+    public UserObject(String username) {
         this.username = username;
     }
 

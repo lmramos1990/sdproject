@@ -5,6 +5,7 @@
 <html>
 <head>
     <title>iBei - Display Auction Results</title>
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
 <body>
     <c:out value="auction id: ${sessionScope.detailauctionbean.detailAuctionObject.auctionid}"/><br>
@@ -21,5 +22,9 @@
     </c:forEach>
     <s:url action="login" var="url"/>
     <s:a href="%{url}">Home</s:a>
+
+    <div id="container">
+        <div id="notifications"></div>
+    </div>
 </body>
 </html>

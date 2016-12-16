@@ -14,6 +14,7 @@ public class SearchAuctionAction implements SessionAware {
 
     public String execute() {
         if(articlecode == null) return "stay";
+        session.remove("notifications");
 
         ArrayList<SearchAuctionObject> hello = new ArrayList<>();
 

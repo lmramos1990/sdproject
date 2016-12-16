@@ -13,6 +13,7 @@ public class DetailAuctionAction implements SessionAware {
 
     public String execute() {
         if(auctionid == null) return "stay";
+        session.remove("notifications");
 
         Bean myBean = new Bean();
         myBean.setAuctionid(getAuctionid());
