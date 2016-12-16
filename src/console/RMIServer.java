@@ -238,7 +238,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String register(String uuid, String username, String hpassword, String esalt) throws RemoteException {
+    public String register(String uuid, String username, String hpassword, String esalt) throws RemoteException {
         System.out.println("[RMISERVER] REGISTER REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
@@ -262,7 +262,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String createAuction(String uuid, String username, String code, String title, String description, String deadline, float amount) throws RemoteException {
+    public String createAuction(String uuid, String username, String code, String title, String description, String deadline, float amount) throws RemoteException {
         System.out.println("[RMISERVER] CREATE AUCTION REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
