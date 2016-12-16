@@ -552,25 +552,23 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         int auctionId = getAuctionId(id);
         if(auctionId == -1) return "type: bid, ok: false";
 
-        if(hasEnded(auctionId)) return "type: bid, ok: false";
-
-        if(assessValidBid(clientId, auctionId, amount) == -1) return "type: bid, ok: false";
-
         try {
-            String createBidQuery = "INSERT INTO bid (bid_id, client_id, auction_id, value) VALUES (bid_seq.nextVal, ?, ?, ?)";
-            PreparedStatement createBidStatement = bidConnection.prepareStatement(createBidQuery);
-            createBidStatement.setInt(1, clientId);
-            createBidStatement.setInt(2, auctionId);
-            createBidStatement.setFloat(3, amount);
-            ResultSet createBidSet = createBidStatement.executeQuery();
+            String result = "";
+            CallableStatement bidStatement = bidConnection.prepareCall("{ call createbid(?, ?, ?, ?, ?, ?)}");
+            bidStatement.registerOutParameter(6, Types.VARCHAR);
+            bidStatement.setString(1, username);
+            bidStatement.setInt(2, id);
+            bidStatement.setFloat(3, amount);
+            bidStatement.setInt(4, auctionId);
+            bidStatement.setInt(5, clientId);
+            bidStatement.executeUpdate();
+            result = bidStatement.getString(6);
+            bidStatement.close();
 
-            if(!createBidSet.next()) {
-                createBidSet.close();
+            if(!result.equals("type: bid, ok: true")) {
                 System.out.println("[RMISERVER] BID WAS NOT REGISTERED IN THE DATABASE WITH SUCCESS");
                 return "type: bid, ok: false";
             } else {
-                createBidSet.close();
-                bidConnection.commit();
                 String updateQuery = "UPDATE auction SET current_value = ? WHERE auction_id = ?";
                 PreparedStatement updateStatement = secondaryBidConnection.prepareStatement(updateQuery);
                 updateStatement.setFloat(1, amount);
@@ -1022,7 +1020,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    private int assessValidBid(int clientId, int auctionId, float amount) {
+    /*private int assessValidBid(int clientId, int auctionId, float amount) {
         try {
             String assessBidQuery = "SELECT client_id, current_value, initial_value FROM auction WHERE auction_id = ?";
             PreparedStatement assessBidStatement = connection.prepareStatement(assessBidQuery);
@@ -1055,7 +1053,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
             return -1;
         }
-    }
+    }*/
 
     private int assessUserAuction(int clientId, int auctionId) {
         try {
