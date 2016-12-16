@@ -31,7 +31,7 @@ import java.time.format.DateTimeFormatter;
 
 class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     private static final long serialVersionUID = 1L;
-    public static Connection connection, registerConnection, createAuctionConnection, bidConnection, secondaryBidConnection, editAuctionConnection, secondaryEditAuctionConnection, messageConnection;
+    public static Connection connection, registerConnection, createAuctionConnection, bidConnection, secondaryBidConnection, editAuctionConnection, secondaryEditAuctionConnection, messageConnection, articleConnection;
 
     public String user = "bd";
     public String pass = "oracle";
@@ -66,7 +66,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     editAuctionConnection = DriverManager.getConnection(url, user, pass);
                     secondaryEditAuctionConnection = DriverManager.getConnection(url, user, pass);
                     messageConnection = DriverManager.getConnection(url, user, pass);
+                    articleConnection = DriverManager.getConnection(url, user, pass);
 
+                    articleConnection.setAutoCommit(false);
                     messageConnection.setAutoCommit(false);
                     secondaryEditAuctionConnection.setAutoCommit(false);
                     editAuctionConnection.setAutoCommit(false);
@@ -101,7 +103,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                     editAuctionConnection = DriverManager.getConnection(url, user, pass);
                     secondaryEditAuctionConnection = DriverManager.getConnection(url, user, pass);
                     messageConnection = DriverManager.getConnection(url, user, pass);
+                    articleConnection = DriverManager.getConnection(url, user, pass);
 
+                    articleConnection.setAutoCommit(false);
                     messageConnection.setAutoCommit(false);
                     secondaryEditAuctionConnection.setAutoCommit(false);
                     editAuctionConnection.setAutoCommit(false);
@@ -253,11 +257,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             return result;
         } catch(SQLException e) {
             e.printStackTrace();
-
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
-            try {
-                registerConnection.rollback();
-            } catch(SQLException e1) {e1.printStackTrace();}
             return "type: register, ok: false";
         }
     }
@@ -269,15 +269,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             if(aServerList.requestStatus(uuid) == 1) return "type: create_auction, ok: true";
         }
 
-        int clientId = getClientId(username);
-        if(clientId == -1) return "type: create_auction, ok: false";
-
-        int articleId = getArticleId(code);
-        if(articleId == -1) {
-            createArticle(code);
-            articleId = getArticleId(code);
-        }
-
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm");
         LocalDateTime dateTime = LocalDateTime.parse(deadline, formatter);
         Timestamp timestamp = Timestamp.valueOf(dateTime);
@@ -286,38 +277,35 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         if(timestamp.before(currentTime)) return "type: create_auction, ok: false";
 
         try {
-            String createAuctionQuery = "INSERT INTO auction (auction_id, client_id, article_id, title, description, initial_value, deadline) VALUES(auction_seq.nextVal, ?, ?, ?, ?, ?, ?)";
-            PreparedStatement createAuctionStatement = createAuctionConnection.prepareStatement(createAuctionQuery);
-            createAuctionStatement.setInt(1, clientId);
-            createAuctionStatement.setInt(2, articleId);
+            CallableStatement createAuctionStatement = createAuctionConnection.prepareCall("{ call createauction(?, ?, ?, ?, ?, ?, ?)}");
+            createAuctionStatement.registerOutParameter(7, Types.VARCHAR);
+            createAuctionStatement.setString(1, username);
+            createAuctionStatement.setString(2, code);
             createAuctionStatement.setString(3, title);
             createAuctionStatement.setString(4, description);
             createAuctionStatement.setFloat(5, amount);
             createAuctionStatement.setTimestamp(6, timestamp);
-            ResultSet createAuctionSet = createAuctionStatement.executeQuery();
+            createAuctionStatement.executeUpdate();
+            String result = createAuctionStatement.getString(7);
+            createAuctionStatement.close();
 
-            if(!createAuctionSet.next()) {
-                createAuctionSet.close();
-                System.out.println("[RMISERVER] AUCTION WAS NOT REGISTERED IN THE DATABASE WITH SUCCESS");
-                return "type: create_auction, ok: false";
-            } else {
-                createAuctionSet.close();
-                createAuctionConnection.commit();
+            System.out.println("DIZ ME A RESPOSTA: " + result);
+
+            if(result.equals("type: create_auction, ok: true")){
                 System.out.println("[RMISERVER] AUCTION REGISTERED IN THE DATABASE WITH SUCCESS");
-
                 for(NotificationCenter aServerList : serverList) {
                     aServerList.updateRequest(uuid);
                 }
-
-                return "type: create_auction, ok: true";
+            } else {
+                System.out.println("[RMISERVER] AUCTION WAS NOT REGISTERED IN THE DATABASE WITH SUCCESS");
             }
+
+            return result;
+
         } catch(Exception e) {
             e.printStackTrace();
 
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
-            try {
-                createAuctionConnection.rollback();
-            } catch(SQLException e1) {e1.printStackTrace();}
             return "type: create_auction, ok: false";
         }
     }
@@ -948,22 +936,16 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     }
 
     private int getArticleId(String code) {
-        int articleId;
 
         try {
-            String getArticleIdQuery = "SELECT article_id FROM article WHERE to_char(code) = ?";
-            PreparedStatement getArticleIdStatement = connection.prepareStatement(getArticleIdQuery);
-            getArticleIdStatement.setString(1, code);
-            ResultSet getArticleIdSet = getArticleIdStatement.executeQuery();
+            CallableStatement articleStatement = connection.prepareCall("{ ? = call getarticleid(?)}");
+            articleStatement.registerOutParameter(1, Types.INTEGER);
+            articleStatement.setString(2, code);
+            articleStatement.executeUpdate();
+            Integer result = articleStatement.getInt(1);
+            articleStatement.close();
 
-            if(!getArticleIdSet.next()) {
-                getArticleIdSet.close();
-                return -1;
-            } else {
-                articleId = getArticleIdSet.getInt("article_id");
-                getArticleIdSet.close();
-                return articleId;
-            }
+            return result;
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
@@ -971,45 +953,39 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    private void createArticle(String code) {
+    private int createArticle(String code) {
+        Integer result = -1;
         try {
-            String createArticleQuery = "INSERT INTO article (article_id, code) VALUES (article_seq.nextVal, ?)";
-            PreparedStatement createArticleStatement = connection.prepareStatement(createArticleQuery);
+            CallableStatement createArticleStatement = articleConnection.prepareCall("{ call createarticle(?, ?)}");
+            createArticleStatement.registerOutParameter(2, Types.INTEGER);
             createArticleStatement.setString(1, code);
-            ResultSet createArticleSet = createArticleStatement.executeQuery();
+            createArticleStatement.executeUpdate();
+            result = createArticleStatement.getInt(2);
+            createArticleStatement.close();
 
-            if(!createArticleSet.next()) {
-                createArticleSet.close();
+            if(result.equals(-1)) {
                 System.out.println("[RMISERVER] ARTICLE WAS NOT REGISTERED WITH SUCCESS");
             } else {
-                createArticleSet.close();
                 System.out.println("[RMISERVER] ARTICLE REGISTERED IN THE DATABASE WITH SUCCESS");
-                connection.commit();
             }
         } catch(Exception e) {
             e.printStackTrace();
-
             System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
-            try {
-                connection.rollback();
-            } catch(SQLException e1) {e1.printStackTrace();}
         }
+        return result;
     }
 
     private int getAuctionId(int id) {
         try {
-            String getAuctionQuery = "SELECT auction_id FROM auction WHERE auction_id = ?";
-            PreparedStatement getAuctionStatement = connection.prepareStatement(getAuctionQuery);
-            getAuctionStatement.setInt(1, id);
-            ResultSet getAuctionSet = getAuctionStatement.executeQuery();
+            CallableStatement auctionStatement = connection.prepareCall("{ ? = call getauctionid(?)}");
+            auctionStatement.registerOutParameter(1, Types.INTEGER);
+            auctionStatement.setInt(2, id);
+            auctionStatement.executeUpdate();
+            Integer result = auctionStatement.getInt(1);
+            auctionStatement.close();
 
-            if(!getAuctionSet.next()) {
-                getAuctionSet.close();
-                return -1;
-            } else {
-                getAuctionSet.close();
-                return id;
-            }
+            return result;
+
         } catch(Exception e) {
             e.printStackTrace();
             System.out.println("[DATABASE] AN ERROR HAS OCURRED");
