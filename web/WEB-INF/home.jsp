@@ -28,6 +28,9 @@
     <s:url action="logout" var="url"/>
     <s:a href="%{url}">LOG OUT</s:a><br>
 
+    <s:url action="facebook" var="url"/>
+    <s:a href="%{url}">ASSOCIATE WITH FACEBOOK</s:a><br>
+
     <div id="container">
         <div id ="startupnotifications">
             <c:forEach items="${sessionScope.notifications}" var="notifications">
