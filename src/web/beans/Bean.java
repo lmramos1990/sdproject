@@ -35,6 +35,7 @@ public class Bean {
 
     private ArrayList<UserObject> onlineUsersList;
     private ArrayList<SearchAuctionObject> searchAuctionList;
+
     private DetailAuctionObject detailAuctionObject;
     private ArrayList<MyAuctionsObject> myAuctionsList;
 
@@ -682,6 +683,10 @@ public class Bean {
 
     public void setSearchAuctionList(ArrayList<SearchAuctionObject> searchAuctionList) {
         this.searchAuctionList = searchAuctionList;
+    }
+
+    public DetailAuctionObject getDetailAuctionObject() {
+        return detailAuctionObject;
     }
 
     public void setDetailAuctionObject(DetailAuctionObject detailAuctionObject) {

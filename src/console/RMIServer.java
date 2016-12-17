@@ -96,17 +96,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     }
 
     public synchronized void subscribe(NotificationCenter nc) throws RemoteException {
-
-        System.out.println("SOMEONE JUST SUBSCRIBED TO ME");
-
         if(serverList.indexOf(nc) == -1) serverList.add(nc);
         else serverList.set(serverList.indexOf(nc), nc);
     }
 
     public synchronized void removeSubscription(NotificationCenter nc) throws RemoteException {
-
-        System.out.println("SOMEONE JUST REMOVED THE SUBSCRIPTION");
-
         if(serverList.indexOf(nc) != -1) serverList.remove(serverList.indexOf(nc));
     }
 
