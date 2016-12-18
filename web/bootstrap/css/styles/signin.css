@@ -203,3 +203,15 @@ p {
 .text--center {
     text-align: center;
 }
+
+button {
+    color: #cb4b16;
+    outline: 0;
+    text-decoration: none;
+}
+
+button:focus,
+button:hover {
+    color: #859901;
+    text-decoration: none;
+}

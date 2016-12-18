@@ -6,18 +6,85 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>iBei - Detail Auction</title>
     <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
+    <link rel="stylesheet" href="bootstrap/css/styles/forms.css">
+    <link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="css/local.css" />
+    <link rel="stylesheet" type="text/css" href="bootstrap/css/styles/utilities.css" />
+    <link rel="stylesheet" href="bootstrap/css/styles/signin.css">
 </head>
-<body>
-    <h1>Detail Auction</h1>
-    <s:form action="detailauction" method="POST" name="detailauctionform">
-        <s:textfield name="auctionid" label="Auction ID"/><br>
-        <s:submit value="SUBMIT"/><br>
-    </s:form>
-    <s:url action="login" var="url"/>
-    <s:a href="%{url}">Home</s:a>
+<body class="align">
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <form action="login.action">
+            <input class="navbar-brand"  type="submit" value="IBei">
+        </form>
+    </div>
+    <div class="collapse navbar-collapse navbar-ex1-collapse ulStyle">
+        <ul id="active" class="nav navbar-nav side-nav  ulStyle">
+            <li class="ulStyle"><s:url action="createauction" var="url"/>
+                <s:a href="%{url}">CREATE AUCTION</s:a></li>
+            <li><s:url action="editauction" var="url"/>
+                <s:a href="%{url}">EDIT AUCTION</s:a></li>
+            <li><s:url action="searchauction" var="url"/>
+                <s:a href="%{url}">SEARCH AUCTION</s:a></li>
+            <li><s:url action="detailauction" var="url"/>
+                <s:a href="%{url}">DETAIL AUCTION</s:a></li>
+            <li><s:url action="myauctions" var="url"/>
+                <s:a href="%{url}">MY AUCTIONS</s:a></li>
+            <li><s:url action="bid" var="url"/>
+                <s:a href="%{url}">BID</s:a></li>
+            <li><s:url action="message" var="url"/>
+                <s:a href="%{url}">MESSAGE</s:a></li>
+            <li><s:url action="onlineusers" var="url"/>
+                <s:a href="%{url}">ONLINE USERS</s:a></li>
 
+        </ul>
+        <ul class="nav navbar-nav navbar-right navbar-user">
+            <li><s:url action="logout" var="url"/>
+                <s:a href="%{url}">LOG OUT</s:a></li>
+            <li class="dropdown user-dropdown">
+
+            </li>
+            <li class="divider-vertical"></li>
+
+        </ul>
+    </div>
+</nav>
+
+<div id="contact-form" class="align">
+    <div>
+        <h4>DETAIL AN AUCTION</h4>
+    </div>
+
+    <form method="POST" action="detailauction.action" name="detailauctionform">
+        <br>
+        <div>
+            <label for="article" style="width: 350px;">
+                <span class="required">Auction ID </span>
+                <input type="text" id="article" name="bid" value="" placeholder="Enter a valid id" required="required" tabindex="1" autofocus="autofocus" />
+            </label>
+        </div>
+
+        <div>
+            <button  name="submit" type="submit" id="submit" >DETAIL</button>
+        </div>
+
+    </form>
     <div id="container">
         <div id="notifications"></div>
     </div>
+
+</div>
 </body>
+
 </html>
+
+
+

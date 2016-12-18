@@ -12,6 +12,7 @@
           <element id="library" level="project" name="ojdbc6" />
           <element id="library" level="project" name="commons-codec-1.10" />
           <element id="library" level="project" name="lib" />
+          <element id="library" level="project" name="lib1" />
         </element>
       </element>
     </root>
