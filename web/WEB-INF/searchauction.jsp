@@ -8,9 +8,6 @@
     <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
     <link rel="stylesheet" href="bootstrap/css/styles/forms.css">
     <link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.min.css" />
-    <link rel="stylesheet" type="text/css" href="font-awesome/css/font-awesome.min.css" />
-    <link rel="stylesheet" type="text/css" href="css/local.css" />
-    <link rel="stylesheet" type="text/css" href="bootstrap/css/styles/utilities.css" />
     <link rel="stylesheet" href="bootstrap/css/styles/signin.css">
 </head>
 <body class="align">
