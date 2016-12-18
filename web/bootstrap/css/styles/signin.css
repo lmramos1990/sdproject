@@ -16,6 +16,7 @@
     -webkit-box-pack: center;
     -ms-flex-pack: center;
     justify-content: center;
+    vertical-align: middle;
 }
 
 /* helpers/grid.css */
