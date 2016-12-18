@@ -1,24 +1,73 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib prefix="s" uri="/struts-tags"%>
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>iBei - Search Auction</title>
-        <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
-    </head>
-    <body>
-    <h1>Search Auction</h1>
-    <h4>There's not any auction with that code</h4>
-    <s:form action="searchauction" method="POST" name="searchauctionform">
-        <s:textfield name="articlecode" label="Code"/><br>
-        <s:submit value="SEARCH"/><br>
-    </s:form>
-    <s:url action="login" var="url"/>
-    <s:a href="%{url}">Home</s:a>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="s" uri="/struts-tags" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
 
-    <div id="container">
-        <div id="notifications"></div>
+    <title>iBei - Search Auction</title>
+    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="bootstrap/styles/dashboard.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <s:url action="login" var="url"/>
+                <a class="navbar-brand" href="${url}">iBei</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    <li><s:url action="createauction" var="url"/>
+                        <s:a href="%{url}">Create Auction</s:a></li>
+                    <li><s:url action="editauction" var="url"/>
+                        <s:a href="%{url}">Edit Auction</s:a></li>
+                    <li class="active"><s:url action="searchauction" var="url"/>
+                        <s:a href="%{url}">Search Auction</s:a></li>
+                    <li><s:url action="detailauction" var="url"/>
+                        <s:a href="%{url}">Detail Auction</s:a></li>
+                    <li><s:url action="myauctions" var="url"/>
+                        <s:a href="%{url}">My Auctions</s:a></li>
+                    <li><s:url action="bid" var="url"/>
+                        <s:a href="%{url}">Bid</s:a></li>
+                    <li><s:url action="message" var="url"/>
+                        <s:a href="%{url}">Message</s:a></li>
+                    <li><s:url action="onlineusers" var="url"/>
+                        <s:a href="%{url}">Online Users</s:a></li>
+                    <li><s:url action="associatewithfacebook" var="url"/>
+                        <s:a href="%{url}">Associate with Facebook</s:a></li>
+                    <li><s:url action="logout" var="url"/>
+                        <s:a href="%{url}">Logout</s:a></li>
+                </ul>
+            </div>
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                <h4>An error occurred when searching an auction</h4>
+                <form action="searchauction.action" method="post" >
+                    <div>
+                        <input name="articlecode" align="center" type="text" placeholder="Article Code" required="required" autofocus>
+                    </div>
+                    <div>
+                        <input type="submit" value="Search Auction">
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-    </body>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="bootstrap/js/bootstrap.min.js"></script>
+</body>
 </html>
+

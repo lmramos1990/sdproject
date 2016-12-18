@@ -28,7 +28,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="tomcat" level="project" />
-    <orderEntry type="library" name="Struts2" level="project" />
+    <orderEntry type="library" exported="" name="tomcat" level="project" />
+    <orderEntry type="library" exported="" name="Struts2" level="project" />
   </component>
 </module>
