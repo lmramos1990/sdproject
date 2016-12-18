@@ -36,6 +36,12 @@
                     <input type="submit" value="Log in">
                 </div>
             </form>
+            <br>
+            <form action="loginwithfacebook.action" method="POST" class="form login__facebook">
+                <div class="form__field__facebook">
+                    <input type="submit" value="Signin With Facebook">
+                </div>
+            </form>
             <h4 align="center">This was not a valid request</h4>
             <p class="text--center">Not a member? <a href="register.action">Sign up now</a> <svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="assets/images/icons.svg#arrow-right"></use></svg></p>
         </div>

@@ -28,7 +28,7 @@
     <s:url action="logout" var="url"/>
     <s:a href="%{url}">LOG OUT</s:a><br>
 
-    <s:url action="facebooklogin" var="url"/>
+    <s:url action="associatewithfacebook" var="url"/>
     <s:a href="%{url}">ASSOCIATE WITH FACEBOOK</s:a><br>
 
     <div id="container">

@@ -102,12 +102,7 @@
             <result name="error">WEB-INF/onlineuserserror.jsp</result>
         </action>
 
-        <action name="credentialredirect">
-            <interceptor-ref name="newStack"/>
-            <result>WEB-INF/facebooklogin.jsp</result>
-        </action>
-
-        <action name="facebooklogin" class="web.action.HandshakeFirstStep" method="execute">
+        <action name="associatewithfacebook" class="web.action.HandshakeFirstStep" method="execute">
             <interceptor-ref name="newStack"/>
             <result name="error">WEB-INF/home.jsp</result>
             <result name="redirect" type="redirect">%{authorizationUrl}</result>
@@ -119,10 +114,16 @@
             <result name="error" type="redirect">homeerror.jsp</result>
         </action>
 
-        <action name="loginwithfacebook" class="" method="execute">
+        <action name="loginwithfacebook" class="web.action.LoginWithFacebookFirstStep" method="execute">
             <interceptor-ref name="newStack"/>
-            <result name="success"></result>
-            <result name="error"></result>
+            <result name="error">WEB-INF/loginerror.jsp</result>
+            <result name="redirect" type="redirect">%{authorizationUrl}</result>
+        </action>
+
+        <action name="facebooklogin/" class="web.action.LoginWithFacebookSecondStep" method="execute">
+            <interceptor-ref name="newStack"/>
+            <result name="success" type="redirectAction">login</result>
+            <result name="error" type="redirect">homeerror.jsp</result>
         </action>
     </package>
 </struts>

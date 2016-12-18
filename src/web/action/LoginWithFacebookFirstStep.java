@@ -8,7 +8,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
 
-public class HandshakeFirstStep {
+public class LoginWithFacebookFirstStep {
     private String authorizationUrl;
 
     private String appsecret;
@@ -17,7 +17,7 @@ public class HandshakeFirstStep {
     public String execute() {
         readProperties();
 
-        OAuthService service = new ServiceBuilder().provider(FacebookApi.class).apiKey(appid).apiSecret(appsecret).callback("http://localhost:8080/facebook/").scope("publish_actions").build();
+        OAuthService service = new ServiceBuilder().provider(FacebookApi.class).apiKey(appid).apiSecret(appsecret).callback("http://localhost:8080/facebooklogin/").scope("publish_actions").build();
 
         String authorizationUrl = service.getAuthorizationUrl(null);
 
