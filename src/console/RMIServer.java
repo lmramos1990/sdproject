@@ -308,7 +308,9 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 String token = getToken(clientId);
                 String id = getId(clientId);
 
-                if(!(token == null || id == null || token.equals("error") || token.equals("non existent") || id.equals("error") || id.equals("non existent"))) new PostOnFacebook(token, id);
+                int auctionid = getLastAuction();
+
+                if(!(token == null || id == null || token.equals("error") || token.equals("non existent") || id.equals("error") || id.equals("non existent"))) new PostOnFacebook(token, id, auctionid);
 
                 return "type: create_auction, ok: true";
             }
@@ -1338,6 +1340,26 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
+    private int getLastAuction() {
+        try {
+            String query = "SELECT max(auction_id) FROM auction";
+            PreparedStatement statement = connection.prepareStatement(query);
+            ResultSet rs = statement.executeQuery();
+
+            if(!rs.next()) {
+                rs.close();
+                return -1;
+            } else {
+                int auctionid = rs.getInt("max(auction_id)");
+                rs.close();
+                return auctionid;
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
     private void test(int s) {
         try {
             Thread.sleep(s * 1000);
@@ -1832,25 +1854,25 @@ class PostOnFacebook extends Thread {
 
     private String token;
     private String id;
+    private int auctionid;
 
-    PostOnFacebook(String token, String id) {
+    PostOnFacebook(String token, String id, int auctionid) {
         this.token = token;
         this.id = id;
+        this.auctionid = auctionid;
         this.start();
     }
 
     public void run() {
-        String message = "puta que pariu";
-        String url = "https://graph.facebook.com/" + id + "/feed?message=test&access_token=" + token;
+        String message = "Created a new auction on iBei check it out\nhttp://localhost:8080/detailauction?auctionid=" + auctionid;
 
         try {
+            String url = "https://graph.facebook.com/" + id + "/feed?message=" + URLEncoder.encode(message, "UTF-8") + "&access_token=" + token;
             URL toPost = new URL(url);
             HttpsURLConnection con = (HttpsURLConnection) toPost.openConnection();
 
             con.setRequestMethod("POST");
             con.setDoOutput(true);
-
-            int responseCode = con.getResponseCode();
 
             BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
             String inputLine;
@@ -1860,6 +1882,8 @@ class PostOnFacebook extends Thread {
                 response.append(inputLine);
             }
             in.close();
+
+            System.out.println("[RMISERVER] JUST POSTED ON FACEBOOK WITHOUT ERRORS");
 
         } catch (IOException e) {
             e.printStackTrace();
