@@ -21,7 +21,6 @@
     <script type="text/javascript" src="http://www.shieldui.com/shared/components/latest/js/shieldui-all.min.js"></script>
     <script type="text/javascript" src="http://www.prepbootstrap.com/Content/js/gridData.js"></script>
 </head>
-
 <body class="align">
 <div id="wrapper">
     <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
@@ -77,8 +76,6 @@
                 </h1>
 
             </div>
-        </div>
-
         </div>
     </div>
 </div>

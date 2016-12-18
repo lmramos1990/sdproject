@@ -1,5 +1,5 @@
-<%@ taglib prefix="s" uri="/struts-tags"%>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="s" uri="/struts-tags"%>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
@@ -35,6 +35,12 @@
 
                 <div class="form__field">
                     <input type="submit" value="Log in">
+                </div>
+            </form>
+            <br>
+            <form action="loginwithfacebook.action" method="POST" class="form login__facebook">
+                <div class="form__field__facebook">
+                    <input type="submit" value="Signin With Facebook">
                 </div>
             </form>
             <p class="text--center">Not a member? <a href="register.action">Sign up now</a> <svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="assets/images/icons.svg#arrow-right"></use></svg></p>

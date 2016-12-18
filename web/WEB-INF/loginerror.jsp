@@ -1,4 +1,3 @@
-<%@ taglib prefix="s" uri="/struts-tags"%>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -35,6 +34,12 @@
 
                 <div class="form__field">
                     <input type="submit" value="Log in">
+                </div>
+            </form>
+            <br>
+            <form action="loginwithfacebook.action" method="POST" class="form login__facebook">
+                <div class="form__field__facebook">
+                    <input type="submit" value="Signin With Facebook">
                 </div>
             </form>
             <h4 align="center">This was not a valid request</h4>

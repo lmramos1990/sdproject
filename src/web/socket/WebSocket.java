@@ -32,9 +32,7 @@ public class WebSocket extends ServerEndpointConfig.Configurator {
 
         try {
             this.wsHelper = new WebSocketHelper(this, httpSession);
-        } catch(RemoteException e) {
-            e.printStackTrace();
-        }
+        } catch(RemoteException ignored) {}
     }
 
     @OnMessage
@@ -48,15 +46,12 @@ public class WebSocket extends ServerEndpointConfig.Configurator {
 
         try {
             wsSession.close();
-        } catch (IOException e) {
-            System.out.println("[WEBSOCKET] AN ERROR OCURRED WHEN CLOSING THE WEBSOCKET");
-        }
+        } catch (IOException ignored) {}
     }
 
     @OnError
     public void handleError(Throwable t) {
-        t.printStackTrace();
-        System.out.println("[WEBSOCKET] SOME UNHANDLED ERROR OCURRED");
+        return;
     }
 
     void sendMessage(String text) {

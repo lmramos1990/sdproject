@@ -48,8 +48,10 @@ public class Bean {
     private String description;
     private String deadline;
     private String amount;
-
     private String text;
+
+    private String token;
+    private String id;
 
     public Bean() {
 
@@ -345,7 +347,7 @@ public class Bean {
         while(!reconnected && retries < numberOfRetries) {
             try {
                 retries++;
-                reply = iBei.myAuctions(username);
+                reply = iBei.myAuctions(getUsername());
                 reconnected = true;
             } catch(Exception e) {
                 try {
@@ -564,6 +566,38 @@ public class Bean {
         return Action.SUCCESS;
     }
 
+    public String getArticleCodeFromAuctionId() {
+
+        int id;
+
+        try {
+            id = Integer.parseInt(getAuctionid());
+        } catch(Exception e) {
+            return Action.ERROR;
+        }
+
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.getArticleCodeFromAuctionId(id);
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN") || reply.equals("error")) return Action.ERROR;
+        }
+
+        return reply;
+    }
+
     public ArrayList<String> startUpNotifications() {
         ArrayList<String> notifications = new ArrayList<>();
         String reply = "";
@@ -586,6 +620,54 @@ public class Bean {
         }
 
         return notifications;
+    }
+
+    public String savefacebookid() {
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.saveFacebookID(getUsername(), getToken(), getId());
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN")) return Action.ERROR;
+        }
+
+        if(reply.equals("error") || reply.equals("false")) return Action.ERROR;
+        else return Action.SUCCESS;
+    }
+
+    public String getUserById() {
+        String reply = "";
+        int retries = 0;
+        boolean reconnected = false;
+
+        while(!reconnected && retries < numberOfRetries) {
+            try {
+                retries++;
+                reply = iBei.getUserById(getId());
+                reconnected = true;
+            } catch(Exception e) {
+                try {
+                    iBei = (AuctionInterface) LocateRegistry.getRegistry(rmiHost, rmiPort).lookup("iBei");
+                } catch(Exception ignored) {}
+            }
+
+            if(!reconnected) reply = reconnect(retries);
+            if(reply.equals("SERVER DOWN")) return Action.ERROR;
+        }
+
+        if(reply.equals("[ADMIN]")) return Action.ERROR;
+        else return reply;
     }
 
     private String isUser(String username) {
@@ -771,5 +853,21 @@ public class Bean {
 
     public void setText(String text) {
         this.text = text;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

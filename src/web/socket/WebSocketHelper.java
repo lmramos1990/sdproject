@@ -23,9 +23,6 @@ public class WebSocketHelper extends UnicastRemoteObject implements Notification
 
 
     WebSocketHelper(WebSocket webSocket, HttpSession session) throws RemoteException {
-
-        System.out.println("JUST STARTED A NEW CONNECTION TO THE RMISERVER");
-
         this.browserSession = session;
         this.webSocket = webSocket;
 
@@ -43,7 +40,6 @@ public class WebSocketHelper extends UnicastRemoteObject implements Notification
                 iBei.subscribe(this);
                 connected = true;
             } catch (Exception e) {
-                e.printStackTrace();
                 connected = false;
             }
         }
@@ -80,9 +76,7 @@ public class WebSocketHelper extends UnicastRemoteObject implements Notification
     void removeSubscription() {
         try {
             iBei.removeSubscription(this);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        } catch (RemoteException ignored) {}
     }
 
     public synchronized boolean isUserOnline(String username) throws RemoteException {
@@ -100,21 +94,13 @@ public class WebSocketHelper extends UnicastRemoteObject implements Notification
     public synchronized void sendNotificationToUser(String username, String message) throws RemoteException {
         if(username.equals(browserSession.getAttribute("username").toString())) {
             webSocket.sendMessage(message);
-            System.out.println("SEND SOMETHING TO RETURN TO THE BROWSER");
         }
     }
 
     public synchronized void updateRequest(String uuid) throws RemoteException {
-
-        System.out.println("GOING TO UPDATE THE REQUEST");
-
         ArrayList<RequestObject> requestsmap = (ArrayList<RequestObject>) browserSession.getAttribute("requestsmap");
 
         if(requestsmap == null) return;
-
-        for(RequestObject request : requestsmap) {
-            System.out.println(request.getUUID() + " " + request.getModified());
-        }
 
         for(RequestObject request : requestsmap) {
             if(uuid.equals(request.getUUID())) {
@@ -122,29 +108,15 @@ public class WebSocketHelper extends UnicastRemoteObject implements Notification
                 browserSession.setAttribute("requestsmap", requestsmap);
             }
         }
-
-        for(RequestObject request : requestsmap) {
-            System.out.println(request.getUUID() + " " + request.getModified());
-        }
     }
 
     public synchronized int requestStatus(String uuid) throws RemoteException {
-
-        System.out.println("GOING TO GET THE REQUEST");
-
         ArrayList<RequestObject> requestsmap = (ArrayList<RequestObject>) browserSession.getAttribute("requestsmap");
 
         if(requestsmap == null) return -1;
 
         for(RequestObject request : requestsmap) {
-            System.out.println(request.getUUID() + " " + request.getModified());
-        }
-
-        for(RequestObject request : requestsmap) {
             if(uuid.equals(request.getUUID())) {
-
-                System.out.println("THIS IS THE THING: " + request.getModified());
-
                 return request.getModified();
             }
         }
