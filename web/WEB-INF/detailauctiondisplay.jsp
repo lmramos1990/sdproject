@@ -23,6 +23,10 @@
     <s:url action="login" var="url"/>
     <s:a href="%{url}">Home</s:a>
 
+    <div>
+        <c:out value="${sessionScope.lowestprice}"/><br>
+    </div>
+
     <div id="container">
         <div id="notifications"></div>
     </div>

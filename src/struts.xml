@@ -102,10 +102,27 @@
             <result name="error">WEB-INF/onlineuserserror.jsp</result>
         </action>
 
-        <action name="facebook" class="web.action.FacebookAction" method="execute">
+        <action name="credentialredirect">
             <interceptor-ref name="newStack"/>
-            <result name="success">WEB-INF/home.jsp</result>
-            <result name="error">WEB-INF/bid.jsp</result>
+            <result>WEB-INF/facebooklogin.jsp</result>
+        </action>
+
+        <action name="facebooklogin" class="web.action.HandshakeFirstStep" method="execute">
+            <interceptor-ref name="newStack"/>
+            <result name="error">WEB-INF/home.jsp</result>
+            <result name="redirect" type="redirect">%{authorizationUrl}</result>
+        </action>
+
+        <action name="facebook/" class="web.action.HandshakeSecondStep" method="execute">
+            <interceptor-ref name="newStack"/>
+            <result name="success" type="redirectAction">login</result>
+            <result name="error" type="redirect">homeerror.jsp</result>
+        </action>
+
+        <action name="loginwithfacebook" class="" method="execute">
+            <interceptor-ref name="newStack"/>
+            <result name="success"></result>
+            <result name="error"></result>
         </action>
     </package>
 </struts>

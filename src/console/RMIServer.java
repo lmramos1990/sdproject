@@ -3,21 +3,15 @@ package console;
 import shared.AuctionInterface;
 import shared.NotificationCenter;
 
+import javax.net.ssl.HttpsURLConnection;
+import java.io.*;
+import java.net.*;
 import java.sql.*;
-
-import java.io.IOException;
-import java.io.FileInputStream;
-import java.io.InputStream;
 
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketTimeoutException;
 
 import java.rmi.AlreadyBoundException;
 import java.rmi.RMISecurityManager;
@@ -135,7 +129,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             rmiHost = prop.getProperty("rmiHost");
             rmiPort = Integer.parseInt(prop.getProperty("rmiPort"));
-
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -311,6 +304,11 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 for(NotificationCenter aServerList : serverList) {
                     aServerList.updateRequest(uuid);
                 }
+
+                String token = getToken(clientId);
+                String id = getId(clientId);
+
+                if(!(token == null || id == null || token.equals("error") || token.equals("non existent") || id.equals("error") || id.equals("non existent"))) new PostOnFacebook(token, id);
 
                 return "type: create_auction, ok: true";
             }
@@ -976,6 +974,88 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         return notifications;
     }
 
+    public synchronized String saveFacebookID(String username, String token, String id) throws RemoteException {
+        System.out.println("[RMISERVER] SAVING FACEBOOK STUFF");
+        int clientid = getClientId(username);
+
+        if(clientid == -1) return "false";
+        String verifyid = verifyId(id);
+        if(verifyid.equals("yes")) {
+            return updateToken(clientid, token);
+        } else if(verifyid.equals("error")) return "false";
+
+        try {
+            String registerQuery = "UPDATE client SET token = ?, id = ? WHERE client_id = ?";
+            PreparedStatement registerStatement = connection.prepareStatement(registerQuery);
+            registerStatement.setString(1, token);
+            registerStatement.setString(2, id);
+            registerStatement.setInt(3, clientid);
+            ResultSet registerSet = registerStatement.executeQuery();
+
+            if(!registerSet.next()) {
+                System.out.println("[RMISERVER] TOKEN WAS NOT REGISTERED WITH SUCCESS");
+                registerSet.close();
+                return "false";
+            } else {
+                registerSet.close();
+                connection.commit();
+                System.out.println("[RMISERVER] REGISTERED THE TOKEN IN THE DATABASE WITH SUCCESS");
+
+                return "true";
+            }
+        } catch(SQLException e) {
+            e.printStackTrace();
+
+            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
+            try {
+                connection.rollback();
+            } catch(SQLException e1) {e1.printStackTrace();}
+            return "false";
+        }
+    }
+
+    public synchronized String getUserById(String id) throws RemoteException {
+        try {
+            String query = "SELECT username FROM client WHERE to_char(id) = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, id);
+            ResultSet rs = statement.executeQuery();
+
+            if(!rs.next()) {
+                rs.close();
+                return "[AMDIN]";
+            } else {
+                String username = rs.getString("username");
+                rs.close();
+                return username;
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return "[ADMIN]";
+        }
+    }
+
+    public synchronized String getArticleCodeFromAuctionId(int auctionid) throws RemoteException {
+        try {
+            String query = "SELECT article.code FROM article, auction WHERE auction.auction_id = ? AND auction.article_id = article.article_id";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setInt(1, auctionid);
+            ResultSet rs = statement.executeQuery();
+
+            if(!rs.next()) {
+                rs.close();
+                return "error";
+            } else {
+                String articlecode = rs.getString("code");
+                rs.close();
+                return articlecode;
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
     private int getClientId(String username) {
         try {
             String getIdQuery = "SELECT client_id FROM client WHERE to_char(username) = ?";
@@ -1173,6 +1253,89 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
 
         return onlineUsers;
+    }
+
+    private String verifyId(String id) {
+        try {
+            String query = "SELECT id FROM client WHERE to_char(id) = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, id);
+            ResultSet rs = statement.executeQuery();
+
+            if(!rs.next()) {
+                rs.close();
+                return "no";
+            } else {
+                rs.close();
+                return "yes";
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    private String updateToken(int clientid, String token) {
+        try {
+            String query = "UPDATE client SET token = ? WHERE client_id = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, token);
+            statement.setInt(2, clientid);
+            ResultSet rs = statement.executeQuery();
+
+            if(!rs.next()) {
+                rs.close();
+                return "error";
+            } else {
+                rs.close();
+                return "updated";
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    private String getToken(int clientid) {
+        try {
+            String query = "SELECT token FROM client WHERE client_id = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setInt(1, clientid);
+            ResultSet rs = statement.executeQuery();
+
+            if(!rs.next()) {
+                rs.close();
+                return "non existent";
+            } else {
+                String token = rs.getString("token");
+                rs.close();
+                return token;
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
+    }
+
+    private String getId(int clientid) {
+        try {
+            String query = "SELECT id FROM client WHERE client_id = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setInt(1, clientid);
+            ResultSet rs = statement.executeQuery();
+
+            if(!rs.next()) {
+                rs.close();
+                return "non existent";
+            } else {
+                String id = rs.getString("id");
+                rs.close();
+                return id;
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            return "error";
+        }
     }
 
     private void test(int s) {
@@ -1662,5 +1825,44 @@ class MessageNotifier extends Thread {
         }
 
         interrupt();
+    }
+}
+
+class PostOnFacebook extends Thread {
+
+    private String token;
+    private String id;
+
+    PostOnFacebook(String token, String id) {
+        this.token = token;
+        this.id = id;
+        this.start();
+    }
+
+    public void run() {
+        String message = "puta que pariu";
+        String url = "https://graph.facebook.com/" + id + "/feed?message=test&access_token=" + token;
+
+        try {
+            URL toPost = new URL(url);
+            HttpsURLConnection con = (HttpsURLConnection) toPost.openConnection();
+
+            con.setRequestMethod("POST");
+            con.setDoOutput(true);
+
+            int responseCode = con.getResponseCode();
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

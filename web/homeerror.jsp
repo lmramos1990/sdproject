@@ -28,10 +28,10 @@
 <s:url action="logout" var="url"/>
 <s:a href="%{url}">LOG OUT</s:a><br>
 
-<s:url action="facebook" var="url"/>
+<s:url action="facebooklogin" var="url"/>
 <s:a href="%{url}">ASSOCIATE WITH FACEBOOK</s:a><br>
 
-<h4>You are already associated with a facebook account</h4>
+<h4>This facebook account is already associated with another user</h4>
 
 <div id="container">
     <div id ="startupnotifications">

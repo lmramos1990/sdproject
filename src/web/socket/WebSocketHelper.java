@@ -117,9 +117,6 @@ public class WebSocketHelper extends UnicastRemoteObject implements Notification
 
         for(RequestObject request : requestsmap) {
             if(uuid.equals(request.getUUID())) {
-
-                System.out.println("THIS IS THE THING: " + request.getModified());
-
                 return request.getModified();
             }
         }

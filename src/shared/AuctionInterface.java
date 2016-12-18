@@ -21,4 +21,7 @@ public interface AuctionInterface extends Remote {
     String onlineUsers(String username) throws RemoteException;
     void startUpNotifications(String username) throws RemoteException;
     ArrayList<String> getNotifications(String username) throws RemoteException;
+    String saveFacebookID(String username, String token, String id) throws RemoteException;
+    String getUserById(String id) throws RemoteException;
+    String getArticleCodeFromAuctionId(int auctionid) throws RemoteException;
 }
