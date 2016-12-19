@@ -60,7 +60,7 @@ public class LoginWithFacebookSecondStep implements SessionAware {
 
         String reply = myBean.getUserById();
 
-        if(reply.equals(Action.ERROR)) return Action.ERROR;
+        if(reply.equals(Action.ERROR) || reply.equals("[ADMIN]")) return Action.ERROR;
 
         session.put("username", reply);
         session.put("loggedin", true);

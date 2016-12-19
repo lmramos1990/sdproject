@@ -42,9 +42,8 @@ public class WebSocket extends ServerEndpointConfig.Configurator {
 
     @OnClose
     public void end() {
-        wsHelper.removeSubscription();
-
         try {
+            wsHelper.removeSubscription();
             wsSession.close();
         } catch (IOException ignored) {}
     }

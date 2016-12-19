@@ -177,8 +177,6 @@ public class Bean {
             if (!reconnected) reply = reconnect(retries);
         }
 
-        System.out.println(reply);
-
         if (reply.equals("type: register, ok: true")) return Action.SUCCESS;
         else return Action.ERROR;
     }
