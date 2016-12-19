@@ -50,7 +50,7 @@ public class WebSocketHelper extends UnicastRemoteObject implements Notification
 
         try {
             Properties prop = new Properties();
-            String propFileName = "../../config.properties";
+            String propFileName = "config.properties";
 
             System.out.println();
 

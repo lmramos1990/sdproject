@@ -32,7 +32,7 @@ public class WebSocket extends ServerEndpointConfig.Configurator {
 
         try {
             this.wsHelper = new WebSocketHelper(this, httpSession);
-        } catch(RemoteException ignored) {}
+        } catch(RemoteException e) {e.printStackTrace();}
     }
 
     @OnMessage
@@ -42,8 +42,10 @@ public class WebSocket extends ServerEndpointConfig.Configurator {
 
     @OnClose
     public void end() {
+
+        wsHelper.removeSubscription();
+
         try {
-            wsHelper.removeSubscription();
             wsSession.close();
         } catch (IOException ignored) {}
     }

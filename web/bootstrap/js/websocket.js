@@ -16,10 +16,11 @@ function connect(host) {
 }
 
 function onOpen(event) {
-    getNotifications();
+    console.log(event);
 }
 
 function onClose(event) {
+    console.log(event);
     console.log("[WEBSOCKET] GOING TO CLOSE")
 }
 
@@ -28,11 +29,8 @@ function onMessage(message) {
 }
 
 function onError(event) {
+    console.log(event);
     console.log("SOME ERROR OCURRED");
-}
-
-function getNotifications() {
-    console.log("THIS IS TO GET THE NOTIFICATIONS");
 }
 
 function writeNotification(message) {

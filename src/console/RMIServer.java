@@ -499,7 +499,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String bid(String uuid, String username, int id, float amount) throws RemoteException {
+    public String bid(String uuid, String username, int id, float amount) throws RemoteException {
         System.out.println("[RMISERVER] BID REQUEST");
 
         for(NotificationCenter aServerList : serverList) {
@@ -528,65 +528,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             }
 
             return result;
-
-
         } catch(Exception e) {
             e.printStackTrace();
             return "type: bid, ok: false";
         }
-/*
-        if(hasEnded(auctionId)) return "type: bid, ok: false";
-
-        if(assessValidBid(clientId, auctionId, amount) == -1) return "type: bid, ok: false";
-
-        try {
-            String createBidQuery = "INSERT INTO bid (bid_id, client_id, auction_id, value) VALUES (bid_seq.nextVal, ?, ?, ?)";
-            PreparedStatement createBidStatement = connection.prepareStatement(createBidQuery);
-            createBidStatement.setInt(1, clientId);
-            createBidStatement.setInt(2, auctionId);
-            createBidStatement.setFloat(3, amount);
-            ResultSet createBidSet = createBidStatement.executeQuery();
-
-            if(!createBidSet.next()) {
-                createBidSet.close();
-                System.out.println("[RMISERVER] BID WAS NOT REGISTERED IN THE DATABASE WITH SUCCESS");
-                return "type: bid, ok: false";
-            } else {
-                createBidSet.close();
-
-                String updateQuery = "UPDATE auction SET current_value = ? WHERE auction_id = ?";
-                PreparedStatement updateStatement = connection.prepareStatement(updateQuery);
-                updateStatement.setFloat(1, amount);
-                updateStatement.setInt(2, auctionId);
-                ResultSet updateSet = updateStatement.executeQuery();
-
-                if(!updateSet.next()) {
-                    updateSet.close();
-                    System.out.println("[RMISERVER] AUCTION WAS NOT UPDATED WITH SUCCESS");
-                    return "type: bid, ok: false";
-                } else {
-                    updateSet.close();
-                    connection.commit();
-                    System.out.println("[RMISERVER] AUCTION WAS UPDATED WITH SUCCESS");
-
-                    for(NotificationCenter aServerList : serverList) {
-                        aServerList.updateRequest(uuid);
-                    }
-
-                    new BidsPool(username, clientId, id, amount);
-
-                    return "type: bid, ok: true";
-                }
-            }
-        } catch(Exception e) {
-            e.printStackTrace();
-
-            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
-            try {
-                connection.rollback();
-            } catch(SQLException e1) {e1.printStackTrace();}
-            return "type: bid, ok: false";
-        }*/
     }
 
     public synchronized String editAuction(String uuid, String username, int id, String title, String description, String deadline, String code, float amount) throws RemoteException {
@@ -784,51 +729,38 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
         }
     }
 
-    public synchronized String message(String uuid, String username, int id, String text) throws RemoteException {
+    public String message(String uuid, String username, int id, String text) throws RemoteException {
         System.out.println("[RMISERVER] MESSAGE REQUEST");
+
+        int clientid = getClientId(username);
+        if(clientid == -1) return "type: message, ok: false";
 
         for(NotificationCenter aServerList : serverList) {
             if(aServerList.requestStatus(uuid) == 1) return "type: message, ok: true";
         }
 
-        int clientId = getClientId(username);
-        if(clientId == -1) return "type: message, ok: false";
-
-        int auctionId = getAuctionId(id);
-        if(auctionId == -1) return "type: message, ok: false";
-
         try {
-            String messageQuery = "INSERT INTO message (message_id, client_id, auction_id, text) VALUES(message_seq.nextVal, ?, ?, ?)";
-            PreparedStatement messageStatement = connection.prepareStatement(messageQuery);
-            messageStatement.setInt(1, clientId);
-            messageStatement.setInt(2, auctionId);
+            CallableStatement messageStatement = connection.prepareCall("{ call createmessage(?, ?, ?, ?)}");
+            messageStatement.setString(1, username);
+            messageStatement.setInt(2, id);
             messageStatement.setString(3, text);
-            ResultSet messageSet = messageStatement.executeQuery();
+            messageStatement.registerOutParameter(4, Types.VARCHAR);
+            messageStatement.executeUpdate();
 
-            if(!messageSet.next()) {
-                messageSet.close();
-                System.out.println("[RMISERVER] MESSAGE WAS NOT REGISTERED IN THE DATABASE WITH SUCCESS");
-                return "type: message, ok: false";
-            } else {
-                messageSet.close();
-                connection.commit();
-                System.out.println("[RMISERVER] MESSAGE WAS REGISTERED IN THE DATABASE WITH SUCCESS");
+            String result = messageStatement.getString(4);
+            messageStatement.close();
 
+            if(result.equals("type: message, ok: true")) {
                 for(NotificationCenter aServerList : serverList) {
                     aServerList.updateRequest(uuid);
                 }
 
-                new MessagePool(username, clientId, auctionId, text);
-
-                return "type: message, ok: true";
+                new MessagePool(username, clientid, id, text);
             }
+
+            return result;
         } catch(Exception e) {
             e.printStackTrace();
-
-            System.out.println("[DATABASE] AN ERROR HAS OCURRED ROLLING BACK CHANGES");
-            try {
-                connection.rollback();
-            } catch(SQLException e1) {e1.printStackTrace();}
             return "type: message, ok: false";
         }
     }
