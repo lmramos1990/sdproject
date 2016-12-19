@@ -13,8 +13,8 @@
 
     <title>iBei - Search Auction</title>
     <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
-
     <link href="bootstrap/styles/dashboard.css" rel="stylesheet">
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
 <body>
     <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -51,12 +51,18 @@
                         <s:a href="%{url}">Logout</s:a></li>
                 </ul>
             </div>
-            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-                <c:forEach items="${sessionScope.searchauctionbean.searchAuctionList}" var="auctions">
-                <c:out value="${auctions.articlecode}"/><tr>
-                <c:out value="${auctions.auctionid}"/><tr>
-                    <c:out value="${auctions.title}"/><br>
-                </c:forEach>
+            <div class="container">
+                <div class="col-md-8 col-md-offset-1">
+                    <h1>Search Auction</h1>
+                    <c:forEach items="${sessionScope.searchauctionbean.searchAuctionList}" var="auctions">
+                        <c:out value="Article Code: ${auctions.articlecode}"/><br>
+                        <c:out value="Auction ID: ${auctions.auctionid}"/><br>
+                        <c:out value="Auction Title: ${auctions.title}"/><br>
+                    </c:forEach>
+                </div>
+                <div class="col-md-3 col-md-offset-0" id="notifications">
+                    <h1>Notifications</h1>
+                </div>
             </div>
         </div>
     </div>

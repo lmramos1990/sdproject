@@ -13,8 +13,8 @@
 
     <title>iBei - Detail Auction</title>
     <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
-
     <link href="bootstrap/styles/dashboard.css" rel="stylesheet">
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
 <body>
     <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -51,15 +51,21 @@
                         <s:a href="%{url}">Logout</s:a></li>
                 </ul>
             </div>
-            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-                <form action="detailauction.action" method="post" >
-                    <div>
-                        <input name="auctionid" align="center" type="text" placeholder="Auction ID" required="required" autofocus>
-                    </div>
-                    <div>
-                        <input type="submit" value="Detail Auction">
-                    </div>
-                </form>
+            <div class="container">
+                <div class="col-md-8 col-md-offset-1">
+                    <h1>Detail Auction</h1>
+                    <form action="detailauction.action" method="post" >
+                        <div>
+                            <input name="auctionid" align="center" type="text" placeholder="Auction ID" required="required" autofocus>
+                        </div>
+                        <div>
+                            <input type="submit" value="Detail Auction">
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-3 col-md-offset-0" id="notifications">
+                    <h1>Notifications</h1>
+                </div>
             </div>
         </div>
     </div>

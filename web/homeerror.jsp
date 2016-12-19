@@ -13,9 +13,8 @@
 
     <title>iBei</title>
     <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Custom styles for this template -->
     <link href="bootstrap/styles/dashboard.css" rel="stylesheet">
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
 <body>
     <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -52,10 +51,16 @@
                         <s:a href="%{url}">Logout</s:a></li>
                 </ul>
             </div>
-            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-                <h1 align="center">Welcome to iBei</h1>
-                <h2 align="center">${sessionScope.username}</h2>
-                <h3 align="center">This facebook profile is already linked with another account</h3>
+
+            <div class="container">
+                <div class="col-md-8 col-md-offset-1">
+                    <h1 align="center">Welcome to iBei</h1>
+                    <h2 align="center">${sessionScope.username}</h2>
+                    <h3 align="center">This facebook profile is already linked with another account</h3>
+                </div>
+                <div class="col-md-3 col-md-offset-0" id="notifications">
+                    <h1>Notifications</h1>
+                </div>
             </div>
         </div>
     </div>

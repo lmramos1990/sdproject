@@ -13,72 +13,78 @@
 
     <title>iBei - Create Auction</title>
     <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
-
     <link href="bootstrap/styles/dashboard.css" rel="stylesheet">
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
 <body>
-<nav class="navbar navbar-inverse navbar-fixed-top">
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <s:url action="login" var="url"/>
+                <a class="navbar-brand" href="${url}">iBei</a>
+            </div>
+        </div>
+    </nav>
     <div class="container-fluid">
-        <div class="navbar-header">
-            <s:url action="login" var="url"/>
-            <a class="navbar-brand" href="${url}">iBei</a>
+        <div class="row">
+            <div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    <li class="active"><s:url action="createauction" var="url"/>
+                        <s:a href="%{url}">Create Auction</s:a></li>
+                    <li><s:url action="editauction" var="url"/>
+                        <s:a href="%{url}">Edit Auction</s:a></li>
+                    <li><s:url action="searchauction" var="url"/>
+                        <s:a href="%{url}">Search Auction</s:a></li>
+                    <li><s:url action="detailauction" var="url"/>
+                        <s:a href="%{url}">Detail Auction</s:a></li>
+                    <li><s:url action="myauctions" var="url"/>
+                        <s:a href="%{url}">My Auctions</s:a></li>
+                    <li><s:url action="bid" var="url"/>
+                        <s:a href="%{url}">Bid</s:a></li>
+                    <li><s:url action="message" var="url"/>
+                        <s:a href="%{url}">Message</s:a></li>
+                    <li><s:url action="onlineusers" var="url"/>
+                        <s:a href="%{url}">Online Users</s:a></li>
+                    <li><s:url action="associatewithfacebook" var="url"/>
+                        <s:a href="%{url}">Associate with Facebook</s:a></li>
+                    <li><s:url action="logout" var="url"/>
+                        <s:a href="%{url}">Logout</s:a></li>
+                </ul>
+            </div>
+            <div class="container">
+                <div class="col-md-8 col-md-offset-1">
+                    <h1>Create Auction</h1>
+                    <form action="createauction.action" method="post" >
+                        <div>
+                            <input name="articlecode" align="center" type="text" placeholder="Article Code" required="required" autofocus>
+                        </div>
+                        <div>
+                            <input name="title" align="center" type="text" placeholder="Title" required="required" autofocus>
+                        </div>
+                        <div>
+                            <input name="description" align="center" type="text" placeholder="Description" required="required" autofocus>
+                        </div>
+                        <div>
+                            <input name="deadline" align="center" type="text" placeholder="Deadline" required="required" autofocus>
+                        </div>
+                        <div>
+                            <input name="amount" align="center" type="text" placeholder="Amount" required="required" autofocus>
+                        </div>
+                        <div>
+                            <input type="submit" value="Create Auction">
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-3 col-md-offset-0" id="notifications">
+                    <h1>Notifications</h1>
+                </div>
+            </div>
         </div>
     </div>
-</nav>
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-sm-3 col-md-2 sidebar">
-            <ul class="nav nav-sidebar">
-                <li class="active"><s:url action="createauction" var="url"/>
-                    <s:a href="%{url}">Create Auction</s:a></li>
-                <li><s:url action="editauction" var="url"/>
-                    <s:a href="%{url}">Edit Auction</s:a></li>
-                <li><s:url action="searchauction" var="url"/>
-                    <s:a href="%{url}">Search Auction</s:a></li>
-                <li><s:url action="detailauction" var="url"/>
-                    <s:a href="%{url}">Detail Auction</s:a></li>
-                <li><s:url action="myauctions" var="url"/>
-                    <s:a href="%{url}">My Auctions</s:a></li>
-                <li><s:url action="bid" var="url"/>
-                    <s:a href="%{url}">Bid</s:a></li>
-                <li><s:url action="message" var="url"/>
-                    <s:a href="%{url}">Message</s:a></li>
-                <li><s:url action="onlineusers" var="url"/>
-                    <s:a href="%{url}">Online Users</s:a></li>
-                <li><s:url action="associatewithfacebook" var="url"/>
-                    <s:a href="%{url}">Associate with Facebook</s:a></li>
-                <li><s:url action="logout" var="url"/>
-                    <s:a href="%{url}">Logout</s:a></li>
-            </ul>
-        </div>
-        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-            <form action="createauction.action" method="post" >
-                <div>
-                    <input name="articlecode" align="center" type="text" placeholder="Article Code" required="required" autofocus>
-                </div>
-                <div>
-                    <input name="title" align="center" type="text" placeholder="Title" required="required" autofocus>
-                </div>
-                <div>
-                    <input name="description" align="center" type="text" placeholder="Description" required="required" autofocus>
-                </div>
-                <div>
-                    <input name="deadline" align="center" type="text" placeholder="Deadline" required="required" autofocus>
-                </div>
-                <div>
-                    <input name="amount" align="center" type="text" placeholder="Amount" required="required" autofocus>
-                </div>
-                <div>
-                    <input type="submit" value="Create Auction">
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-<script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
-<script src="bootstrap/js/bootstrap.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="bootstrap/js/bootstrap.min.js"></script>
 </body>
 </html>
 

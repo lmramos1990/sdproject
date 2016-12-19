@@ -13,8 +13,8 @@
 
     <title>iBei - Detail Auction</title>
     <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
-
     <link href="bootstrap/styles/dashboard.css" rel="stylesheet">
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
 <body>
 <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -51,19 +51,25 @@
                     <s:a href="%{url}">Logout</s:a></li>
             </ul>
         </div>
-        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-            <c:out value="auction id: ${sessionScope.detailauctionbean.detailAuctionObject.auctionid}"/><br>
-            <c:out value="auction title: ${sessionScope.detailauctionbean.detailAuctionObject.title}"/><br>
-            <c:out value="auction description: ${sessionScope.detailauctionbean.detailAuctionObject.description}"/><br>
-            <c:out value="auction deadline: ${sessionScope.detailauctionbean.detailAuctionObject.deadline}"/><br>
-            <c:forEach items="${sessionScope.detailauctionbean.detailAuctionObject.messages}" var="messages">
-                <c:out value="message user: ${messages.username}"/><br>
-                <c:out value="message text: ${messages.text}"/><br>
-            </c:forEach>
-            <c:forEach items="${sessionScope.detailauctionbean.detailAuctionObject.bids}" var="bids">
-                <c:out value="bid user: ${bids.username}"/><br>
-                <c:out value="bid amount: ${bids.amount}"/><br>
-            </c:forEach>
+        <div class="container">
+            <div class="col-md-8 col-md-offset-1">
+                <h1>Detail Auction</h1>
+                <c:out value="auction id: ${sessionScope.detailauctionbean.detailAuctionObject.auctionid}"/><br>
+                <c:out value="auction title: ${sessionScope.detailauctionbean.detailAuctionObject.title}"/><br>
+                <c:out value="auction description: ${sessionScope.detailauctionbean.detailAuctionObject.description}"/><br>
+                <c:out value="auction deadline: ${sessionScope.detailauctionbean.detailAuctionObject.deadline}"/><br>
+                <c:forEach items="${sessionScope.detailauctionbean.detailAuctionObject.messages}" var="messages">
+                    <c:out value="message user: ${messages.username}"/><br>
+                    <c:out value="message text: ${messages.text}"/><br>
+                </c:forEach>
+                <c:forEach items="${sessionScope.detailauctionbean.detailAuctionObject.bids}" var="bids">
+                    <c:out value="bid user: ${bids.username}"/><br>
+                    <c:out value="bid amount: ${bids.amount}"/><br>
+                </c:forEach>
+            </div>
+            <div class="col-md-3 col-md-offset-0" id="notifications">
+                <h1>Notifications</h1>
+            </div>
         </div>
     </div>
 </div>

@@ -13,8 +13,8 @@
 
     <title>iBei - Search Auction</title>
     <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
-
     <link href="bootstrap/styles/dashboard.css" rel="stylesheet">
+    <script type="text/javascript" src="bootstrap/js/websocket.js"></script>
 </head>
 <body>
     <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -51,16 +51,14 @@
                         <s:a href="%{url}">Logout</s:a></li>
                 </ul>
             </div>
-            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-                <h4>An error occurred when searching an auction</h4>
-                <form action="searchauction.action" method="post" >
-                    <div>
-                        <input name="articlecode" align="center" type="text" placeholder="Article Code" required="required" autofocus>
-                    </div>
-                    <div>
-                        <input type="submit" value="Search Auction">
-                    </div>
-                </form>
+            <h4 align="center">An error occurred when searching an auction</h4>
+            <div class="container">
+                <div class="col-md-8 col-md-offset-1">
+                    <h1>Search Auction</h1>
+                </div>
+                <div class="col-md-3 col-md-offset-0" id="notifications">
+                    <h1>Notifications</h1>
+                </div>
             </div>
         </div>
     </div>

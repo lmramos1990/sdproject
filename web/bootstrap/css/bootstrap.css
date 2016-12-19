@@ -243,10 +243,10 @@ th {
   }
   .btn > .caret,
   .dropup > .btn > .caret {
-    border-top-color: #000 !important;
+    border-top-color: #002833 !important;
   }
   .label {
-    border: 1px solid #000;
+    border: 1px solid #002833;
   }
   .table {
     border-collapse: collapse !important;
@@ -3988,7 +3988,7 @@ select[multiple].input-group-sm > .input-group-btn > .btn {
 .nav > li > a:hover,
 .nav > li > a:focus {
   text-decoration: none;
-  background-color: #eee;
+  background-color: #fdf6e3;
 }
 .nav > li.disabled > a {
   color: #777;
