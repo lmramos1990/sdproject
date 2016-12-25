@@ -62,15 +62,11 @@ public class DetailAuctionAction implements SessionAware {
 
         try {
             Properties prop = new Properties();
-            String propFileName = "../../config.properties";
 
-            System.out.println();
-
-            inputStream = new FileInputStream(propFileName);
-
+            inputStream = getClass().getClassLoader().getResourceAsStream("config.properties");
             prop.load(inputStream);
-
-            findingapikey = prop.getProperty("findingapikey");
+            findingapikey = prop.getProperty("findingApiKey");
+            inputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -85,7 +81,6 @@ public class DetailAuctionAction implements SessionAware {
 
     private String getEbayLink(String articlecode) {
         String myurl = "http://svcs.ebay.com/services/search/FindingService/v1?OPERATION-NAME=findItemsByProduct&SERVICE-VERSION=1.0.0&SECURITY-APPNAME=" + findingapikey + "&RESPONSE-DATA-FORMAT=JSON&productId.@type=ISBN&productId=" + articlecode;
-
         try {
             URL url = new URL(myurl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();

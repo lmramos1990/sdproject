@@ -126,8 +126,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
 
         try {
             Properties prop = new Properties();
-            String propFileName = "config.properties";
-
+            String propFileName = "src/config.properties";
             inputStream = new FileInputStream(propFileName);
 
             prop.load(inputStream);
@@ -135,7 +134,7 @@ class Server extends UnicastRemoteObject implements NotificationCenter {
             rmiHost = prop.getProperty("rmiHost");
             machineHost = prop.getProperty("machineHost");
             rmiPort = Integer.parseInt(prop.getProperty("rmiPort"));
-
+            inputStream.close();
         } catch(Exception e) {
             e.printStackTrace();
         } finally {
@@ -1156,4 +1155,3 @@ class ServerLoad extends Thread {
         return sb.toString();
     }
 }
-

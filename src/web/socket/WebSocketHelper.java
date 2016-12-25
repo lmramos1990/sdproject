@@ -50,24 +50,21 @@ public class WebSocketHelper extends UnicastRemoteObject implements Notification
 
         try {
             Properties prop = new Properties();
-            String propFileName = "config.properties";
-
-            System.out.println();
-
-            inputStream = new FileInputStream(propFileName);
+            inputStream = getClass().getClassLoader().getResourceAsStream("/config.properties");
 
             prop.load(inputStream);
 
             rmiHost = prop.getProperty("rmiHost");
             machineHost = prop.getProperty("machineHost");
             rmiPort = Integer.parseInt(prop.getProperty("rmiPort"));
+            inputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             try {
                 assert inputStream != null;
                 inputStream.close();
-            } catch (Exception e) {
+            } catch(Exception e) {
                 e.printStackTrace();
             }
         }

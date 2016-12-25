@@ -59,13 +59,14 @@
                 <c:out value="auction description: ${sessionScope.detailauctionbean.detailAuctionObject.description}"/><br>
                 <c:out value="auction deadline: ${sessionScope.detailauctionbean.detailAuctionObject.deadline}"/><br>
                 <c:forEach items="${sessionScope.detailauctionbean.detailAuctionObject.messages}" var="messages">
-                    <c:out value="message user: ${messages.username}"/><br>
-                    <c:out value="message text: ${messages.text}"/><br>
+                    <c:out value="message user: ${messages.username}"/> &#09
+                    <c:out value="text: ${messages.text}"/><br>
                 </c:forEach>
                 <c:forEach items="${sessionScope.detailauctionbean.detailAuctionObject.bids}" var="bids">
-                    <c:out value="bid user: ${bids.username}"/><br>
-                    <c:out value="bid amount: ${bids.amount}"/><br>
+                    <c:out value="bid user: ${bids.username}"/> &#09
+                    <c:out value="amount: ${bids.amount}"/><br>
                 </c:forEach>
+                <c:out value="${sessionScope.lowestprice}"/><br>
             </div>
             <div class="col-md-3 col-md-offset-0" id="notifications">
                 <h1>Notifications</h1>

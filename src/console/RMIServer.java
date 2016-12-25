@@ -121,7 +121,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
         try {
             Properties prop = new Properties();
-            String propFileName = "config.properties";
+            String propFileName = "src/config.properties";
 
             inputStream = new FileInputStream(propFileName);
 
@@ -129,6 +129,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
             rmiHost = prop.getProperty("rmiHost");
             rmiPort = Integer.parseInt(prop.getProperty("rmiPort"));
+            inputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -149,6 +150,10 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
     public String login(String username, String hpassword) throws RemoteException {
         System.out.println("[RMISERVER] LOGIN REQUEST");
 
+        for(NotificationCenter server: serverList) {
+            if(server.isUserOnline(username)) return "type: login, ok: false";
+        }
+
         try {
             CallableStatement loginStatement = connection.prepareCall("{ call login(?, ?, ?)}");
             loginStatement.setString(1, username);
@@ -160,7 +165,6 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             loginStatement.close();
 
             return result;
-
         } catch(Exception e) {
             e.printStackTrace();
             return "type: login, ok: false";
@@ -395,7 +399,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
                 reply = sb.toString();
             }
 
-            String getBidsQuery = "SELECT client_id, value FROM bid WHERE auction_id = ?";
+            String getBidsQuery = "SELECT client_id, amount FROM bid WHERE auction_id = ?";
             PreparedStatement getBidsStatement = connection.prepareStatement(getBidsQuery, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             getBidsStatement.setInt(1, auctionId);
             ResultSet getBidsSet = getBidsStatement.executeQuery();
@@ -418,7 +422,7 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
 
                     getUserSet.next();
 
-                    String bid = ", bids_" + count + "_user: " + getUserSet.getString("username") + ", bids_" + count + "_amount: " + getBidsSet.getFloat("value");
+                    String bid = ", bids_" + count + "_user: " + getUserSet.getString("username") + ", bids_" + count + "_amount: " + getBidsSet.getFloat("amount");
                     count++;
                     bids.add(bid);
                     getUserSet.close();
@@ -929,6 +933,12 @@ class RMIServer extends UnicastRemoteObject implements AuctionInterface {
             } else {
                 String username = rs.getString("username");
                 rs.close();
+
+                for(NotificationCenter server : serverList) {
+                    if(server.isUserOnline(username)) return "[ADMIN]";
+                }
+
+
                 return username;
             }
         } catch(Exception e) {

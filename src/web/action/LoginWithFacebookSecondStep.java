@@ -59,7 +59,6 @@ public class LoginWithFacebookSecondStep implements SessionAware {
         myBean.setId(id);
 
         String reply = myBean.getUserById();
-
         if(reply.equals(Action.ERROR) || reply.equals("[ADMIN]")) return Action.ERROR;
 
         session.put("username", reply);
@@ -78,16 +77,13 @@ public class LoginWithFacebookSecondStep implements SessionAware {
 
         try {
             Properties prop = new Properties();
-            String propFileName = "../../config.properties";
-
-            System.out.println();
-
-            inputStream = new FileInputStream(propFileName);
+            inputStream = getClass().getClassLoader().getResourceAsStream("/config.properties");
 
             prop.load(inputStream);
 
-            appsecret = prop.getProperty("appsecret");
-            appid = prop.getProperty("appid");
+            appsecret = prop.getProperty("appSecret");
+            appid = prop.getProperty("appId");
+            inputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
